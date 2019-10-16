@@ -17,18 +17,16 @@
 
 package org.apache.shardingsphere.core.parse.integrate.asserts.table;
 
-import com.google.common.base.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.core.parse.integrate.asserts.SQLStatementAssertMessage;
 import org.apache.shardingsphere.core.parse.integrate.jaxb.table.ExpectedTable;
-import org.apache.shardingsphere.core.parse.old.parser.context.table.Table;
-import org.apache.shardingsphere.core.parse.old.parser.context.table.Tables;
+import org.apache.shardingsphere.core.parse.sql.segment.generic.TableSegment;
 
+import java.util.Collection;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Table assert.
@@ -46,22 +44,13 @@ public final class TableAssert {
      * @param actual actual tables
      * @param expected expected tables
      */
-    public void assertTables(final Tables actual, final List<ExpectedTable> expected) {
-        assertThat(assertMessage.getFullAssertMessage("Tables size assertion error: "), actual.getTableNames().size(), is(expected.size()));
-        for (ExpectedTable each : expected) {
-            Optional<Table> table;
-            if (null != each.getAlias()) {
-                table = actual.find(each.getAlias());
-            } else {
-                table = actual.find(each.getName());
-            }
-            assertTrue(assertMessage.getFullAssertMessage("Table should exist: "), table.isPresent());
-            assertTable(table.get(), each);
+    public void assertTables(final Collection<TableSegment> actual, final List<ExpectedTable> expected) {
+        assertThat(assertMessage.getFullAssertMessage("Tables size assertion error: "), actual.size(), is(expected.size()));
+        int count = 0;
+        for (TableSegment each : actual) {
+            assertThat(assertMessage.getFullAssertMessage("Table name assertion error: "), each.getTableName(), is(expected.get(count).getName()));
+            assertThat(assertMessage.getFullAssertMessage("Table alias assertion error: "), each.getAlias().orNull(), is(expected.get(count).getAlias()));
+            count++;
         }
-    }
-    
-    private void assertTable(final Table actual, final ExpectedTable expected) {
-        assertThat(assertMessage.getFullAssertMessage("Table name assertion error: "), actual.getName(), is(expected.getName()));
-        assertThat(assertMessage.getFullAssertMessage("Table alias assertion error: "), actual.getAlias().orNull(), is(expected.getAlias()));
     }
 }

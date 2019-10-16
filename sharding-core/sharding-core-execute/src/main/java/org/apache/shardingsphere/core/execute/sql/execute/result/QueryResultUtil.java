@@ -17,9 +17,18 @@
 
 package org.apache.shardingsphere.core.execute.sql.execute.result;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 
 /**
@@ -27,7 +36,8 @@ import java.sql.Types;
  *
  * @author yangyi
  */
-public class QueryResultUtil {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class QueryResultUtil {
     
     /**
      * Get value.
@@ -43,23 +53,57 @@ public class QueryResultUtil {
     }
     
     /**
-     * Get value by column type.
+     * Get value by target class.
      *
      * @param resultSet result set
-     * @param columnIndex column index
-     * @return column value
+     * @param columnIndex column index of value
+     * @param targetClass target class
+     * @return {@code null} if the column is SQL {@code NULL}, otherwise the value of column
      * @throws SQLException SQL exception
      */
-    public static Object getValueByColumnType(final ResultSet resultSet, final int columnIndex) throws SQLException {
+    public static Object getValue(final ResultSet resultSet, final int columnIndex, final Class<?> targetClass) throws SQLException {
+        if (boolean.class == targetClass) {
+            return resultSet.getBoolean(columnIndex);
+        } else if (byte.class == targetClass) {
+            return resultSet.getByte(columnIndex);
+        } else if (short.class == targetClass) {
+            return resultSet.getShort(columnIndex);
+        } else if (int.class == targetClass) {
+            return resultSet.getInt(columnIndex);
+        } else if (long.class == targetClass) {
+            return resultSet.getLong(columnIndex);
+        } else if (float.class == targetClass) {
+            return resultSet.getFloat(columnIndex);
+        } else if (double.class == targetClass) {
+            return resultSet.getDouble(columnIndex);
+        } else if (String.class == targetClass) {
+            return resultSet.getString(columnIndex);
+        } else if (BigDecimal.class == targetClass) {
+            return resultSet.getBigDecimal(columnIndex);
+        } else if (byte[].class == targetClass) {
+            return resultSet.getBytes(columnIndex);
+        } else if (Date.class == targetClass) {
+            return resultSet.getDate(columnIndex);
+        } else if (Time.class == targetClass) {
+            return resultSet.getTime(columnIndex);
+        } else if (Timestamp.class == targetClass) {
+            return resultSet.getTimestamp(columnIndex);
+        } else if (Blob.class == targetClass) {
+            return resultSet.getBlob(columnIndex);
+        } else if (Clob.class == targetClass) {
+            return resultSet.getClob(columnIndex);
+        } else {
+            return resultSet.getObject(columnIndex);
+        }
+    }
+    
+    private static Object getValueByColumnType(final ResultSet resultSet, final int columnIndex) throws SQLException {
         ResultSetMetaData metaData = resultSet.getMetaData();
         switch (metaData.getColumnType(columnIndex)) {
-            case Types.BIT:
             case Types.BOOLEAN:
                 return resultSet.getBoolean(columnIndex);
             case Types.TINYINT:
-                return resultSet.getByte(columnIndex);
             case Types.SMALLINT:
-                return resultSet.getShort(columnIndex);
             case Types.INTEGER:
                 return resultSet.getInt(columnIndex);
             case Types.BIGINT:
@@ -74,10 +118,6 @@ public class QueryResultUtil {
             case Types.VARCHAR:
             case Types.LONGVARCHAR:
                 return resultSet.getString(columnIndex);
-            case Types.BINARY:
-            case Types.VARBINARY:
-            case Types.LONGVARBINARY:
-                return resultSet.getBytes(columnIndex);
             case Types.DATE:
                 return resultSet.getDate(columnIndex);
             case Types.TIME:
@@ -87,6 +127,9 @@ public class QueryResultUtil {
             case Types.CLOB:
                 return resultSet.getClob(columnIndex);
             case Types.BLOB:
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
                 return resultSet.getBlob(columnIndex);
             default:
                 return resultSet.getObject(columnIndex);

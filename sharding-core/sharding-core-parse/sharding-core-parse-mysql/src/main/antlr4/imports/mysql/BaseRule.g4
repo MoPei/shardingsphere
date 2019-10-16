@@ -67,7 +67,12 @@ identifier_
     ;
 
 variable_
-    : (AT_ AT_)? (GLOBAL | PERSIST | PERSIST_ONLY | SESSION)? DOT_? identifier_
+    : (AT_? AT_)? (GLOBAL | PERSIST | PERSIST_ONLY | SESSION)? DOT_? identifier_
+    ;
+
+scope_
+    : (GLOBAL | PERSIST | PERSIST_ONLY | SESSION)
+    | AT_ AT_ (GLOBAL | PERSIST | PERSIST_ONLY | SESSION) DOT_
     ;
 
 unreservedWord_
@@ -93,7 +98,17 @@ unreservedWord_
     | BOOLEAN | MAX | MIN | SUM | COUNT | AVG | BIT_AND
     | BIT_OR | BIT_XOR | GROUP_CONCAT | JSON_ARRAYAGG | JSON_OBJECTAGG | STD | STDDEV
     | STDDEV_POP | STDDEV_SAMP | VAR_POP | VAR_SAMP | VARIANCE | EXTENDED | STATUS
-    | FIELDS | INDEXES
+    | FIELDS | INDEXES | USER | ROLE | OJ | AUTOCOMMIT | OFF | ROTATE | INSTANCE | MASTER | BINLOG |ERROR
+    | SCHEDULE | COMPLETION | DO | DEFINER | START | EVERY | HOST | SOCKET | OWNER | PORT | RETURNS | CONTAINS
+    | SECURITY | INVOKER | UNDEFINED | MERGE | TEMPTABLE | CASCADED | LOCAL | SERVER | WRAPPER | OPTIONS | DATAFILE
+    | FILE_BLOCK_SIZE | EXTENT_SIZE | INITIAL_SIZE | AUTOEXTEND_SIZE | MAX_SIZE | NODEGROUP
+    | WAIT | LOGFILE | UNDOFILE | UNDO_BUFFER_SIZE | REDO_BUFFER_SIZE | DEFINITION | ORGANIZATION
+    | DESCRIPTION | REFERENCE | FOLLOWS | PRECEDES | NAME |CLOSE | OPEN | NEXT | HANDLER | PREV
+    | IMPORT | CONCURRENT | XML | POSITION | SHARE | DUMPFILE | CLONE | AGGREGATE | INSTALL | UNINSTALL
+    | RESOURCE | FLUSH | RESET | RESTART | HOSTS | RELAY | EXPORT | USER_RESOURCES | SLOW | GENERAL | CACHE
+    | SUBJECT | ISSUER | OLD | RANDOM | RETAIN | MAX_USER_CONNECTIONS | MAX_CONNECTIONS_PER_HOUR | MAX_UPDATES_PER_HOUR
+    | MAX_QUERIES_PER_HOUR | REUSE | OPTIONAL | HISTORY | NEVER | EXPIRE
+
     ;
 
 schemaName
@@ -101,11 +116,51 @@ schemaName
     ;
 
 tableName
-    : (identifier_ DOT_)? identifier_
+    : (owner DOT_)? name
     ;
 
 columnName
-    : (identifier_ DOT_)? identifier_
+    : (owner DOT_)? name
+    ;
+
+userName
+    : STRING_  AT_ STRING_
+    | identifier_
+    | STRING_
+    ;
+
+eventName
+    : (STRING_ | IDENTIFIER_) AT_ (STRING_ IDENTIFIER_)
+    | identifier_
+    | STRING_ 
+    ;
+
+serverName
+    : identifier_
+    | STRING_
+    ; 
+
+wrapperName
+    : identifier_
+    | STRING_
+    ;
+
+functionName
+    : identifier_
+    | (owner DOT_)? identifier_
+    ;
+
+viewName
+    : identifier_
+    | (owner DOT_)? identifier_
+    ;
+
+owner
+    : identifier_
+    ;
+
+name
+    : identifier_
     ;
 
 columnNames
@@ -122,6 +177,83 @@ indexName
 
 characterSetName_
     : IDENTIFIER_
+    ;
+
+collationName_
+   : IDENTIFIER_
+   ;
+
+groupName
+    : IDENTIFIER_
+    ;
+
+shardLibraryName
+    : STRING_
+    ;
+
+componentName
+    : STRING_
+    ;
+
+pluginName
+    : IDENTIFIER_
+    ;
+
+hostName
+    : STRING_
+    ;
+
+port
+    : NUMBER_
+    ;
+
+cloneInstance
+    : userName AT_ hostName COLON_ port
+    ;
+
+cloneDir
+    : IDENTIFIER_
+    ;
+ 
+
+channelName
+    : IDENTIFIER_
+    ;
+
+logName
+    : identifier_
+    ;
+
+roleName
+    : (STRING_ | IDENTIFIER_) AT_ (STRING_ IDENTIFIER_) | IDENTIFIER_
+    ;
+
+engineName
+    : IDENTIFIER_
+    ;
+
+triggerName
+    : IDENTIFIER_
+    ;
+
+triggerTime
+    : BEFORE | AFTER
+    ;
+
+userOrRole
+    : userName | roleName
+    ;
+
+partitionName
+    : IDENTIFIER_
+    ;
+
+triggerEvent
+    : INSERT | UPDATE | DELETE
+    ;
+
+triggerOrder
+    : (FOLLOWS | PRECEDES) triggerName
     ;
 
 expr
@@ -249,7 +381,7 @@ specialFunction_
     ;
 
 groupConcatFunction_
-    : GROUP_CONCAT LP_ distinct? (expr (COMMA_ expr)* | ASTERISK_)? (orderByClause (SEPARATOR expr)?)? RP_
+    : GROUP_CONCAT LP_ distinct? (expr (COMMA_ expr)* | ASTERISK_)? (orderByClause)? (SEPARATOR expr)? RP_
     ;
 
 windowFunction_
@@ -302,7 +434,7 @@ regularFunction_
     ;
 
 regularFunctionName_
-    : identifier_ | IF | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | NOW | REPLACE | INTERVAL
+    : identifier_ | IF | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | NOW | REPLACE | INTERVAL | SUBSTRING | LEFT | RIGHT
     ;
 
 matchExpression_

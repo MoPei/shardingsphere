@@ -35,6 +35,10 @@ DATABASES
     : D A T A B A S E S
     ;
 
+DATABASE
+    : D A T A B A S E
+    ;
+
 SCHEMAS
     : S C H E M A S
     ;
@@ -241,6 +245,10 @@ SOUNDS
 
 UNKNOWN
     : U N K N O W N
+    ;
+
+OFF
+    : O F F
     ;
 
 ALWAYS
@@ -946,4 +954,552 @@ MINUTE_MICROSECOND
 
 SECOND_MICROSECOND
     : S E C O N D UL_ M I C R O S E C O N D
+    ;
+
+UL_BINARY
+    : UL_ B I N A R Y
+    ;
+
+ROTATE
+    : R O T A T E
+    ;
+
+MASTER
+    : M A S T E R 
+    ;
+
+BINLOG
+    : B I N L O G
+    ;
+
+ERROR
+    : E R R O R
+    ;
+
+SCHEDULE
+    : S C H E D U L E
+    ;
+
+COMPLETION
+    : C O M P L E T I O N
+    ;
+
+EVERY
+    : E V E R Y
+    ;
+
+STARTS
+    : S T A R T S
+    ;
+
+ENDS
+    : E N D S
+    ;
+
+HOST
+    : H O S T
+    ;
+
+SOCKET
+    : S O C K E T
+    ;
+
+PORT
+    : P O R T
+    ;
+
+SERVER
+    : S E R V E R
+    ;
+
+WRAPPER
+    : W R A P P E R
+    ;
+
+OPTIONS
+    : O P T I O N S
+    ;
+
+OWNER
+    : O W N E R
+    ;
+
+DETERMINISTIC
+    : D E T E R M I N I S T I C
+    ;
+
+RETURNS
+    : R E T U R N S
+    ;
+
+CONTAINS
+    : C O N T A I N S
+    ;
+
+READS
+    : R E A D S
+    ;
+
+MODIFIES
+    : M O D I F I E S
+    ;
+
+SECURITY
+    : S E C U R I T Y
+    ;
+
+INVOKER
+    : I N V O K E R
+    ;
+
+OUT
+    : O U T
+    ;
+
+INOUT
+    : I N O U T
+    ;
+
+TEMPTABLE
+    : T E M P T A B L E
+    ;
+
+MERGE
+    : M E R G E
+    ;
+
+UNDEFINED
+    : U N D E F I N E D
+    ;
+
+DATAFILE
+    : D A T A F I L E
+    ;
+
+FILE_BLOCK_SIZE
+    : F I L E UL_ B L O C K UL_ S I Z E
+    ; 
+
+EXTENT_SIZE
+    : E X T E N T UL_ S I Z E
+    ;
+
+INITIAL_SIZE
+    : I N I T I A L UL_ S I Z E
+    ;
+
+AUTOEXTEND_SIZE
+    : A U T O E X T E N D UL_ S I Z E
+    ;
+
+MAX_SIZE
+    : M A X UL_ S I Z E
+    ;
+
+NODEGROUP
+    : N O D E G R O U P
+    ;
+
+WAIT
+    : W A I T
+    ;
+
+LOGFILE
+    : L O G F I L E
+    ;
+
+UNDOFILE
+    : U N D O F I L E
+    ;
+
+UNDO_BUFFER_SIZE
+    : U N D O UL_ B U F F E R UL_ S I Z E
+    ;
+
+REDO_BUFFER_SIZE
+    : R E D O UL_ B U F F E R UL_ S I Z E
+    ;
+
+HANDLER
+    : H A N D L E R
+    ;
+
+PREV
+    : P R E V
+    ;
+
+ORGANIZATION
+    : O R G A N I Z A T I O N
+    ;
+
+DEFINITION
+    : D E F I N I T I O N
+    ;
+
+DESCRIPTION
+    : D E S C R I P T I O N
+    ;
+
+REFERENCE
+    : R E F E R E N C E
+    ;
+
+FOLLOWS
+    : F O L L O W S
+    ;
+
+PRECEDES
+    : P R E C E D E S
+    ;
+
+IMPORT
+    : I M P O R T
+    ;
+
+LOAD
+    : L O A D
+    ;
+
+CONCURRENT
+    : C O N C U R R E N T
+    ;
+
+INFILE
+    : I N F I L E
+    ;
+
+LINES
+    : L I N E S
+    ;
+
+STARTING
+    : S T A R T I N G
+    ;
+
+TERMINATED
+    : T E R M I N A T E D
+    ;    
+
+OPTIONALLY
+    : O P T I O N A L L Y
+    ;
+
+ENCLOSED
+    : E N C L O S E D
+    ;
+
+ESCAPED
+    : E S C A P E D
+    ;
+
+XML
+    : X M L
+    ;
+
+UNDO
+    : U N D O
+    ;
+
+DUMPFILE
+    : D U M P F I L E
+    ;
+
+OUTFILE
+    : O U T F I L E
+    ;
+
+SHARE
+    : S H A R E
+    ;
+
+LOGS
+    : L O G S
+    ;
+
+EVENTS
+    : E V E N T S
+    ;
+
+BEFORE
+    : B E F O R E
+    ;
+
+EACH
+    : E A C H
+    ;
+
+MUTEX
+    : M U T E X
+    ;
+
+ENGINES
+    : E N G I N E S
+    ;
+
+ERRORS
+    : E R R O R S
+    ;
+
+CODE
+    : C O D E
+    ;
+
+GRANTS
+    : G R A N T S
+    ;
+
+PLUGINS
+    : P L U G I N S
+    ;
+
+PROCESSLIST
+    : P R O C E S S L I S T
+    ;
+
+BLOCK
+    : B L O C K
+    ;
+
+IO
+    : I O
+    ;
+
+CONTEXT
+    : C O N T E X T
+    ;
+
+SWITCHES
+    : S W I T C H E S
+    ; 
+
+CPU
+    : C P U
+    ;
+
+IPC
+    : I P C
+    ;
+
+PAGE
+    : P A G E
+    ;
+
+FAULTS
+    : F A U L T S
+    ;
+
+SOURCE
+    : S O U R C E
+    ;
+
+SWAPS
+    : S W A P S
+    ;
+
+PROFILE
+    : P R O F I L E
+    ;
+
+PROFILES
+    : P R O F I L E S
+    ;
+
+RELAYLOG
+    : R E L A Y L O G
+    ;
+
+CHANNEL
+    : C H A N N E L
+    ;
+
+VARIABLES
+    : V A R I A B L E S
+    ;
+
+WARNINGS
+    : W A R N I N G S
+    ;
+
+SSL
+    : S S L
+    ;
+
+CLONE
+    : C L O N E
+    ;
+
+AGGREGATE
+    : A G G R E G A T E
+    ;
+
+STRING
+    : S T R I N G
+    ;
+
+SONAME
+    : S O N A M E
+    ;
+
+INSTALL
+    : I N S T A L L
+    ;
+
+COMPONENT
+    : C O M P O N E N T
+    ;
+
+PLUGIN
+    : P L U G I N
+    ;
+
+UNINSTALL
+    : U N I N S T A L L
+    ;
+
+NO_WRITE_TO_BINLOG
+    : N O UL_ W R I T E UL_ T O UL_ B I N L O G
+    ;
+
+HISTOGRAM
+    : H I S T O G R A M
+    ;
+
+BUCKETS
+    : B U C K E T S
+    ;
+
+FAST 
+    : F A S T
+    ;
+
+MEDIUM
+    : M E D I U M
+    ;
+
+USE_FRM
+    : U S E UL_ F R M
+    ;
+
+RESOURCE
+    : R E S O U R C E
+    ;
+
+VCPU
+    : V C P U
+    ;
+
+THREAD_PRIORITY
+    : T H R E A D UL_ P R I O R I T Y
+    ;
+
+SYSTEM
+    : S Y S T E M
+    ;
+
+EXPIRE
+    : E X P I R E
+    ;
+
+NEVER
+    : N E V E R
+    ;
+
+HISTORY
+    : H I S T O R Y
+    ;
+
+OPTIONAL
+    : O P T I O N A L
+    ;
+
+REUSE
+    : R E U S E
+    ;
+
+MAX_QUERIES_PER_HOUR
+    : M A X UL_ Q U E R I E S UL_ P E R UL_ H O U R
+    ;
+
+MAX_UPDATES_PER_HOUR
+    : M A X UL_ U P D A T E S UL_ P E R UL_ H O U R
+    ;
+
+MAX_CONNECTIONS_PER_HOUR
+    : M A X UL_ C O N N E C T I O N S UL_ P E R UL_ H O U R
+    ;
+
+MAX_USER_CONNECTIONS
+    : M A X UL_ U S E R UL_ C O N N E C T I O N S
+    ; 
+
+RETAIN
+    : R E T A I N
+    ;
+
+RANDOM
+    : R A N D O M
+    ;
+
+OLD
+    : O L D
+    ;
+
+X509
+    : X '509'
+    ;
+
+ISSUER
+    : I S S U E R
+    ;
+
+SUBJECT
+    : S U B J E C T
+    ;
+
+CACHE
+    : C A C H E
+    ;
+
+GENERAL
+    : G E N E R A L
+    ;
+
+OPTIMIZER_COSTS
+    : O P T I M I Z E R UL_ C O S T S
+    ;
+
+SLOW
+    : S L O W
+    ;
+
+USER_RESOURCES
+    : U S E R UL_ R E S O U R C E S
+    ;
+
+EXPORT
+    : E X P O R T
+    ;
+
+RELAY
+    : R E L A Y
+    ;
+
+HOSTS
+    : H O S T S
+    ;
+
+KILL
+    : K I L L
+    ;
+
+FLUSH
+    : F L U S H
+    ;
+
+RESET
+    : R E S E T
+    ;
+
+RESTART
+    : R E S T A R T
     ;

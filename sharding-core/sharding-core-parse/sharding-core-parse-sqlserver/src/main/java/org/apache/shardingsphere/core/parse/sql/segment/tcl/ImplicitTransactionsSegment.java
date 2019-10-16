@@ -19,7 +19,7 @@ package org.apache.shardingsphere.core.parse.sql.segment.tcl;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.core.parse.antlr.sql.segment.SQLSegment;
+import org.apache.shardingsphere.core.parse.sql.segment.SQLSegment;
 
 /**
  * Implicit transactions segment.
@@ -29,6 +29,10 @@ import org.apache.shardingsphere.core.parse.antlr.sql.segment.SQLSegment;
 @RequiredArgsConstructor
 @Getter
 public final class ImplicitTransactionsSegment implements SQLSegment {
+    
+    private final int startIndex;
+    
+    private final int stopIndex;
     
     private final boolean on;
 }

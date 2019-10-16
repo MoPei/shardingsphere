@@ -61,20 +61,15 @@ literalsType_
     ;
 
 identifier_
-    : quotedIdentifier_ | IDENTIFIER_ |  unreservedWord_ 
-    ;
-
-quotedIdentifier_
-    : unicodeEscapes_? DQ_ IDENTIFIER_ DQ_ uescape_?
+    : unicodeEscapes_? IDENTIFIER_ uescape_? |  unreservedWord_ 
     ;
 
 unicodeEscapes_
     : ('U' | 'u') AMPERSAND_
     ;
 
-// TODO need investigte, UESCAPE cannot work
 uescape_
-    : UESCAPE SQ_ . SQ_
+    : UESCAPE STRING_
     ;
     
 unreservedWord_
@@ -96,7 +91,8 @@ unreservedWord_
     | SEQUENCE | SESSION | SHOW | SIMPLE | STATISTICS | STORAGE | TABLESPACE
     | TEMP | TEMPORARY | TRIGGER | TYPE | UNBOUNDED | UNLOGGED | UPDATE
     | USAGE | VALID | VALIDATE | WITHIN | WITHOUT | ZONE | GROUPS
-    | RECURSIVE
+    | RECURSIVE | INSTANCE | DEFINER | PRESERVE | SQL | LOCAL | CASCADED
+    | CLOSE | OPEN | NEXT | NAME | NAMES | INTEGER | REAL | DECIMAL | TYPE
     ;
 
 schemaName
@@ -104,15 +100,23 @@ schemaName
     ;
 
 tableName
-    : (identifier_ DOT_)? identifier_
+    : (owner DOT_)? name
+    ;
+
+columnName
+    : (owner DOT_)? name
+    ;
+
+owner
+    : identifier_
+    ;
+
+name
+    : identifier_
     ;
 
 tableNames
     : LP_? tableName (COMMA_ tableName)* RP_?
-    ;
-
-columnName
-    : (identifier_ DOT_)? identifier_
     ;
 
 columnNames

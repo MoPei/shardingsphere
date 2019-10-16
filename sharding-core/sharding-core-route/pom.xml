@@ -20,7 +20,7 @@
     <parent>
         <artifactId>sharding-core</artifactId>
         <groupId>org.apache.shardingsphere</groupId>
-        <version>4.0.0-RC2-SNAPSHOT</version>
+        <version>4.0.0-RC3-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>sharding-core-route</artifactId>
@@ -29,10 +29,16 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>sharding-core-optimize</artifactId>
+            <artifactId>sharding-core-preprocessor</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+    
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>sharding-core-parse-sql92</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>sharding-core-parse-mysql</artifactId>

@@ -159,10 +159,6 @@ CURRENT_TIMESTAMP
     : C U R R E N T UL_ T I M E S T A M P
     ;
 
-CURRENT_USER
-    : C U R R E N T UL_ U S E R
-    ;
-
 CYCLE
     : C Y C L E
     ;
@@ -287,10 +283,6 @@ LAST
     : L A S T
     ;
 
-LOCAL
-    : L O C A L
-    ;
-
 LOGGED
     : L O G G E D
     ;
@@ -387,10 +379,6 @@ RULE
     : R U L E
     ;
 
-SCHEMA
-    : S C H E M A
-    ;
-
 SECURITY
     : S E C U R I T Y
     ;
@@ -433,10 +421,6 @@ TEMP
 
 TEMPORARY
     : T E M P O R A R Y
-    ;
-
-TYPE
-    : T Y P E
     ;
 
 UNBOUNDED

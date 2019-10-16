@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>sharding-core</artifactId>
-        <version>4.0.0-RC2-SNAPSHOT</version>
+        <version>4.0.0-RC3-SNAPSHOT</version>
     </parent>
     <artifactId>sharding-core-parse</artifactId>
     <name>${project.artifactId}</name>
@@ -30,6 +30,7 @@
     <modules>
         <module>sharding-core-parse-spi</module>
         <module>sharding-core-parse-common</module>
+        <module>sharding-core-parse-sql92</module>
         <module>sharding-core-parse-mysql</module>
         <module>sharding-core-parse-postgresql</module>
         <module>sharding-core-parse-oracle</module>

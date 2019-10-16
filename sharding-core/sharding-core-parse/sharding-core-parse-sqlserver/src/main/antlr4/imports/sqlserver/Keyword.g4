@@ -55,6 +55,10 @@ TRUNCATE
     : T R U N C A T E
     ;
 
+SCHEMA
+    : S C H E M A
+    ;
+
 GRANT
     : G R A N T
     ;
@@ -453,4 +457,81 @@ ENABLE
 
 DISABLE
     : D I S A B L E
+    ;
+
+CALL
+    : C A L L
+    ;
+
+INSTANCE
+    : I N S T A N C E
+    ;
+
+PRESERVE
+    : P R E S E R V E
+    ;
+
+DO
+    : D O
+    ;
+
+DEFINER
+    : D E F I N E R
+    ;
+
+CURRENT_USER
+    : C U R R E N T UL_ U S E R
+    ;
+
+SQL
+    : S Q L
+    ;
+
+
+CASCADED
+    : C A S C A D E D
+    ;
+
+LOCAL
+    : L O C A L
+    ;
+
+CLOSE
+    : C L O S E
+    ;
+
+OPEN
+    : O P E N
+    ;
+
+NEXT
+    : N E X T
+    ;
+
+NAME
+    : N A M E
+    ;
+
+COLLATION
+    : C O L L A T I O N
+    ;
+
+NAMES
+    : N A M E S
+    ;
+
+INTEGER
+    : I N T E G E R
+    ;
+
+REAL
+    : R E A L
+    ;
+
+DECIMAL
+    : D E C I M A L
+    ;
+
+TYPE
+    : T Y P E
     ;

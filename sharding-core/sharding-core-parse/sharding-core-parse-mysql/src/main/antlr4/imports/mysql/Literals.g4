@@ -22,6 +22,7 @@ import Alphabet, Symbol;
 IDENTIFIER_
     : [A-Za-z_$0-9]*?[A-Za-z_$]+?[A-Za-z_$0-9]*
     |  BQ_ ~'`'+ BQ_
+    | (DQ_ ( '\\'. | '""' | ~('"'| '\\') )* DQ_)
     ;
 
 STRING_ 
@@ -39,6 +40,26 @@ HEX_DIGIT_
 
 BIT_NUM_
     : '0b' ('0' | '1')+ | B SQ_ ('0' | '1')+ SQ_
+    ;
+
+INNODB_
+    : 'INNODB'
+    ;
+
+TLS_
+    : 'TLS'
+    ;
+
+Y_N_
+    : ('Y' | 'N')
+    ;
+
+NOT_SUPPORT_
+    : 'not support'
+    ;
+
+FILESIZE_LITERAL
+    : INT_ ('K'|'M'|'G'|'T')
     ;
 
 fragment INT_
