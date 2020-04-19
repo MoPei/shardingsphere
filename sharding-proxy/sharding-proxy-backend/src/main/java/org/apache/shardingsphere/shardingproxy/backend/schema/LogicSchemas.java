@@ -28,7 +28,7 @@ import org.apache.shardingsphere.orchestration.core.common.eventbus.ShardingOrch
 import org.apache.shardingsphere.shardingproxy.backend.communication.jdbc.recognizer.JDBCDriverURLRecognizerEngine;
 import org.apache.shardingsphere.shardingproxy.config.yaml.YamlDataSourceParameter;
 import org.apache.shardingsphere.shardingproxy.util.DataSourceConverter;
-import org.apache.shardingsphere.spi.database.type.DatabaseType;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseType;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -62,17 +62,6 @@ public final class LogicSchemas {
      */
     public static LogicSchemas getInstance() {
         return INSTANCE;
-    }
-    
-    /**
-     * Initialize proxy context.
-     *
-     * @param schemaDataSources data source map
-     * @param schemaRules schema rule map
-     * @throws SQLException SQL exception
-     */
-    public void init(final Map<String, Map<String, YamlDataSourceParameter>> schemaDataSources, final Map<String, RuleConfiguration> schemaRules) throws SQLException {
-        init(schemaRules.keySet(), schemaDataSources, schemaRules, false);
     }
     
     /**

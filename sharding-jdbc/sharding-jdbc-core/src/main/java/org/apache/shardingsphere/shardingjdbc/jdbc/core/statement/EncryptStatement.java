@@ -22,17 +22,25 @@ import com.google.common.base.Strings;
 import lombok.Getter;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.connection.EncryptConnection;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.constant.SQLExceptionConstant;
-import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.EncryptRuntimeContext;
+import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.impl.EncryptRuntimeContext;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.resultset.EncryptResultSet;
 import org.apache.shardingsphere.shardingjdbc.jdbc.unsupported.AbstractUnsupportedOperationStatement;
 import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
+import org.apache.shardingsphere.underlying.common.rule.BaseRule;
 import org.apache.shardingsphere.underlying.executor.context.ExecutionContext;
-import org.apache.shardingsphere.underlying.pluggble.SimpleQueryPrepareEngine;
+import org.apache.shardingsphere.underlying.executor.context.ExecutionContextBuilder;
+import org.apache.shardingsphere.underlying.executor.log.SQLLogger;
+import org.apache.shardingsphere.underlying.rewrite.SQLRewriteEntry;
+import org.apache.shardingsphere.underlying.rewrite.engine.result.SQLRewriteResult;
+import org.apache.shardingsphere.underlying.route.DataNodeRouter;
+import org.apache.shardingsphere.underlying.route.context.RouteContext;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.Collection;
 import java.util.Collections;
 
 /**
@@ -85,11 +93,17 @@ public final class EncryptStatement extends AbstractUnsupportedOperationStatemen
     }
     
     private String getRewriteSQL(final String sql) {
-        SimpleQueryPrepareEngine prepareEngine = new SimpleQueryPrepareEngine(
-                Collections.singletonList(runtimeContext.getRule()), runtimeContext.getProperties(), runtimeContext.getMetaData(), runtimeContext.getSqlParserEngine());
-        ExecutionContext executionContext = prepareEngine.prepare(sql, Collections.emptyList());
+        Collection<BaseRule> rules = Collections.singletonList(runtimeContext.getRule());
+        RouteContext routeContext = new DataNodeRouter(runtimeContext.getMetaData(), runtimeContext.getProperties(),
+                rules).route(runtimeContext.getSqlParserEngine().parse(sql, false), sql, Collections.emptyList());
+        sqlStatementContext = routeContext.getSqlStatementContext();
+        SQLRewriteResult sqlRewriteResult = new SQLRewriteEntry(
+                runtimeContext.getMetaData().getSchema().getConfiguredSchemaMetaData(), runtimeContext.getProperties(), rules).rewrite(sql, Collections.emptyList(), routeContext);
+        ExecutionContext executionContext = new ExecutionContext(sqlStatementContext, ExecutionContextBuilder.build(runtimeContext.getMetaData(), sqlRewriteResult));
         Preconditions.checkArgument(1 == executionContext.getExecutionUnits().size());
-        sqlStatementContext = executionContext.getSqlStatementContext();
+        if (runtimeContext.getProperties().<Boolean>getValue(ConfigurationPropertyKey.SQL_SHOW)) {
+            SQLLogger.logSQL(sql, runtimeContext.getProperties().<Boolean>getValue(ConfigurationPropertyKey.SQL_SIMPLE), executionContext);
+        }
         return executionContext.getExecutionUnits().iterator().next().getSqlUnit().getSql();
     }
     

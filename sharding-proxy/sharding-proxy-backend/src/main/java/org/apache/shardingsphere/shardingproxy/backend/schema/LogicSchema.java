@@ -22,17 +22,26 @@ import lombok.Getter;
 import org.apache.shardingsphere.core.rule.ShardingRule;
 import org.apache.shardingsphere.orchestration.core.common.event.DataSourceChangedEvent;
 import org.apache.shardingsphere.orchestration.core.common.eventbus.ShardingOrchestrationEventBus;
+import org.apache.shardingsphere.orchestration.core.facade.ShardingOrchestrationFacade;
+import org.apache.shardingsphere.orchestration.core.metadatacenter.event.MetaDataChangedEvent;
 import org.apache.shardingsphere.shardingproxy.backend.communication.jdbc.datasource.JDBCBackendDataSource;
 import org.apache.shardingsphere.shardingproxy.config.yaml.YamlDataSourceParameter;
+import org.apache.shardingsphere.shardingproxy.context.ShardingProxyContext;
 import org.apache.shardingsphere.shardingproxy.util.DataSourceConverter;
 import org.apache.shardingsphere.sql.parser.SQLParserEngine;
 import org.apache.shardingsphere.sql.parser.SQLParserEngineFactory;
 import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
 import org.apache.shardingsphere.underlying.common.config.DatabaseAccessConfiguration;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseType;
 import org.apache.shardingsphere.underlying.common.database.type.DatabaseTypes;
 import org.apache.shardingsphere.underlying.common.metadata.ShardingSphereMetaData;
+import org.apache.shardingsphere.underlying.common.metadata.datasource.DataSourceMetas;
+import org.apache.shardingsphere.underlying.common.metadata.schema.RuleSchemaMetaData;
+import org.apache.shardingsphere.underlying.common.metadata.schema.RuleSchemaMetaDataLoader;
+import org.apache.shardingsphere.underlying.common.rule.BaseRule;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -48,24 +57,30 @@ public abstract class LogicSchema {
     
     private JDBCBackendDataSource backendDataSource;
     
-    public LogicSchema(final String name, final Map<String, YamlDataSourceParameter> dataSources) {
+    private ShardingSphereMetaData metaData;
+    
+    public LogicSchema(final String name, final Map<String, YamlDataSourceParameter> dataSources, final Collection<BaseRule> rules) throws SQLException {
         this.name = name;
         sqlParserEngine = SQLParserEngineFactory.getSQLParserEngine(DatabaseTypes.getTrunkDatabaseTypeName(LogicSchemas.getInstance().getDatabaseType()));
         backendDataSource = new JDBCBackendDataSource(dataSources);
+        metaData = createMetaData(name, rules);
         ShardingOrchestrationEventBus.getInstance().register(this);
     }
     
-    protected final Map<String, DatabaseAccessConfiguration> getDatabaseAccessConfigurationMap() {
-        return backendDataSource.getDataSourceParameters().entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> new DatabaseAccessConfiguration(entry.getValue().getUrl(), null, null)));
+    private ShardingSphereMetaData createMetaData(final String name, final Collection<BaseRule> rules) throws SQLException {
+        DatabaseType databaseType = LogicSchemas.getInstance().getDatabaseType();
+        DataSourceMetas dataSourceMetas = new DataSourceMetas(databaseType, getDatabaseAccessConfigurationMap());
+        RuleSchemaMetaData ruleSchemaMetaData = new RuleSchemaMetaDataLoader(rules).load(databaseType, getBackendDataSource().getDataSources(), ShardingProxyContext.getInstance().getProperties());
+        if (null != ShardingOrchestrationFacade.getInstance()) {
+            ShardingOrchestrationFacade.getInstance().getMetaDataCenter().persistMetaDataCenterNode(name, ruleSchemaMetaData);
+        }
+        return new ShardingSphereMetaData(dataSourceMetas, ruleSchemaMetaData);
     }
     
-    /**
-     * Get sharding meta data.
-     * 
-     * @return sharding meta data.
-     */
-    public abstract ShardingSphereMetaData getMetaData();
+    private Map<String, DatabaseAccessConfiguration> getDatabaseAccessConfigurationMap() {
+        return backendDataSource.getDataSourceParameters().entrySet().stream()
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new DatabaseAccessConfiguration(entry.getValue().getUrl(), null, null)));
+    }
     
     /**
      * Get Sharding rule.
@@ -82,6 +97,20 @@ public abstract class LogicSchema {
      */
     public Map<String, YamlDataSourceParameter> getDataSources() {
         return backendDataSource.getDataSourceParameters();
+    }
+    
+    /**
+     * Renew meta data of the schema.
+     *
+     * @param event meta data changed event.
+     */
+    @Subscribe
+    public final synchronized void renew(final MetaDataChangedEvent event) {
+        for (String each : event.getSchemaNames()) {
+            if (name.equals(each)) {
+                metaData = new ShardingSphereMetaData(metaData.getDataSources(), event.getRuleSchemaMetaData());
+            }
+        }
     }
     
     /**

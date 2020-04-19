@@ -17,16 +17,21 @@
 
 package org.apache.shardingsphere.ui.servcie.impl;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import org.apache.shardingsphere.orchestration.center.ConfigCenterRepository;
 import org.apache.shardingsphere.ui.servcie.ConfigCenterService;
 import org.apache.shardingsphere.underlying.common.config.DataSourceConfiguration;
-import org.apache.shardingsphere.ui.servcie.RegistryCenterService;
 import org.apache.shardingsphere.ui.servcie.ShardingSchemaService;
 import org.apache.shardingsphere.ui.util.ConfigurationYamlConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -72,6 +77,18 @@ public final class ShardingSchemaServiceImpl implements ShardingSchemaService {
         checkDataSourceConfiguration(dataSourceConfiguration);
         persistRuleConfiguration(schemaName, ruleConfiguration);
         persistDataSourceConfiguration(schemaName, dataSourceConfiguration);
+        persistSchemaName(schemaName);
+    }
+    
+    @Override
+    public void deleteSchemaConfiguration(final String schemaName) {
+        ConfigCenterRepository configCenterRepository = configCenterService.getActivatedConfigCenter();
+        String schemaNamePath = configCenterService.getActivateConfigurationNode().getSchemaNamePath(schemaName);
+        configCenterRepository.delete(schemaNamePath);
+        String schemaNames = configCenterRepository.get(configCenterService.getActivateConfigurationNode().getSchemaPath());
+        List<String> schemaNameList = new ArrayList<>(Splitter.on(",").splitToList(schemaNames));
+        schemaNameList.remove(schemaName);
+        configCenterRepository.persist(configCenterService.getActivateConfigurationNode().getSchemaPath(), Joiner.on(",").join(schemaNameList));
     }
     
     private void checkRuleConfiguration(final String configData) {
@@ -114,4 +131,14 @@ public final class ShardingSchemaServiceImpl implements ShardingSchemaService {
         Preconditions.checkArgument(!existedSchemaNames.contains(schemaName), "schema name already exists.");
     }
     
+    private void persistSchemaName(final String schemaName) {
+        ConfigCenterRepository configCenterRepository = configCenterService.getActivatedConfigCenter();
+        String schemaPath = configCenterService.getActivateConfigurationNode().getSchemaPath();
+        String schemaNames = configCenterRepository.get(schemaPath);
+        List<String> schemaNameList = Strings.isNullOrEmpty(schemaNames)?new ArrayList<>():new ArrayList<>(Splitter.on(",").splitToList(schemaNames));
+        if (!schemaNameList.contains(schemaName)) {
+            schemaNameList.add(schemaName);
+            configCenterRepository.persist(schemaPath, Joiner.on(",").join(schemaNameList));
+        }
+    }
 }

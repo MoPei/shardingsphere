@@ -1,6 +1,5 @@
 +++
 pre = "<b>4.5.1. </b>"
-toc = true
 title = "运行部署"
 weight = 1
 +++
@@ -12,7 +11,7 @@ weight = 1
 ```
 
 git clone https://github.com/apache/incubator-shardingsphere.git；
-cd incubarot-shardingsphere;
+cd incubator-shardingsphere;
 mvn clean install -Prelease;
 ```
 

@@ -208,7 +208,7 @@ public final class MySQLDMLVisitor extends MySQLVisitor implements DMLVisitor {
         UpdateStatement result = new UpdateStatement();
         CollectionValue<TableReferenceSegment> tableReferences = (CollectionValue<TableReferenceSegment>) visit(ctx.tableReferences());
         for (TableReferenceSegment each : tableReferences.getValue()) {
-            result.getTables().addAll(each.getTables());
+            result.getTables().addAll(each.getSimpleTableSegments());
         }
         result.setSetAssignment((SetAssignmentSegment) visit(ctx.setAssignmentsClause()));
         if (null != ctx.whereClause()) {
@@ -289,7 +289,7 @@ public final class MySQLDMLVisitor extends MySQLVisitor implements DMLVisitor {
         result.combine((CollectionValue<SimpleTableSegment>) visit(ctx.multipleTableNames()));
         CollectionValue<TableReferenceSegment> tableReferences = (CollectionValue<TableReferenceSegment>) visit(ctx.tableReferences());
         for (TableReferenceSegment each : tableReferences.getValue()) {
-            result.getValue().addAll(each.getTables());
+            result.getValue().addAll(each.getSimpleTableSegments());
         }
         return result;
     }
@@ -328,7 +328,6 @@ public final class MySQLDMLVisitor extends MySQLVisitor implements DMLVisitor {
         if (null != ctx.fromClause()) {
             CollectionValue<TableReferenceSegment> tableReferences = (CollectionValue<TableReferenceSegment>) visit(ctx.fromClause());
             for (TableReferenceSegment each : tableReferences.getValue()) {
-                result.getTables().addAll(each.getTables());
                 result.getTableReferences().add(each);
             }
         }
@@ -349,27 +348,7 @@ public final class MySQLDMLVisitor extends MySQLVisitor implements DMLVisitor {
         }
         return result;
     }
-    
-    @SuppressWarnings("unchecked")
-    private Collection<SimpleTableSegment> getTableSegments(final Collection<SimpleTableSegment> tableSegments, final JoinedTableContext joinedTable) {
-        Collection<SimpleTableSegment> result = new LinkedList<>();
-        for (SimpleTableSegment tableSegment : ((CollectionValue<SimpleTableSegment>) visit(joinedTable)).getValue()) {
-            if (isTable(tableSegment, tableSegments)) {
-                result.add(tableSegment);
-            }
-        }
-        return result;
-    }
-    
-    private boolean isTable(final SimpleTableSegment owner, final Collection<SimpleTableSegment> tableSegments) {
-        for (SimpleTableSegment each : tableSegments) {
-            if (owner.getTableName().getIdentifier().getValue().equals(each.getAlias().orElse(null))) {
-                return false;
-            }
-        }
-        return true;
-    }
-    
+
     private boolean isDistinct(final SelectClauseContext ctx) {
         for (SelectSpecificationContext each : ctx.selectSpecification()) {
             if (((BooleanLiteralValue) visit(each)).getValue()) {
@@ -552,8 +531,12 @@ public final class MySQLDMLVisitor extends MySQLVisitor implements DMLVisitor {
         if (null != ctx.expr()) {
             ASTNode expr = visit(ctx.expr());
             if (expr instanceof PredicateSegment) {
-                PredicateSegment predicate = (PredicateSegment) expr;
-                result.setPredicateSegment(predicate);
+                AndPredicate andPredicate = new AndPredicate();
+                andPredicate.getPredicates().add((PredicateSegment) expr);
+                result.getAndPredicates().add(andPredicate);
+            }
+            if (expr instanceof OrPredicateSegment) {
+                result.getAndPredicates().addAll(((OrPredicateSegment) expr).getAndPredicates());
             }
         }
         if (null != ctx.USING()) {
@@ -561,13 +544,9 @@ public final class MySQLDMLVisitor extends MySQLVisitor implements DMLVisitor {
             for (MySQLStatementParser.ColumnNameContext cname :ctx.columnNames().columnName()) {
                 columnSegmentList.add((ColumnSegment) visit(cname));
             }
-            result.setUsingColumns(columnSegmentList);
+            result.getUsingColumns().addAll(columnSegmentList);
         }
         return result;
-    }
-    
-    private SimpleTableSegment createTableSegment(final OwnerSegment ownerSegment) {
-        return new SimpleTableSegment(ownerSegment.getStartIndex(), ownerSegment.getStopIndex(), ownerSegment.getIdentifier());
     }
     
     @Override

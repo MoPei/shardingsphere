@@ -21,44 +21,26 @@ import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
 import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.core.log.ConfigurationLogger;
-import org.apache.shardingsphere.core.metadata.ShardingMetaDataLoader;
-import org.apache.shardingsphere.core.metadata.ShardingTableMetaDataDecorator;
 import org.apache.shardingsphere.core.rule.MasterSlaveRule;
 import org.apache.shardingsphere.core.rule.ShardingRule;
-import org.apache.shardingsphere.encrypt.metadata.EncryptTableMetaDataDecorator;
 import org.apache.shardingsphere.orchestration.core.common.event.ShardingRuleChangedEvent;
 import org.apache.shardingsphere.orchestration.core.common.rule.OrchestrationMasterSlaveRule;
 import org.apache.shardingsphere.orchestration.core.common.rule.OrchestrationShardingRule;
+import org.apache.shardingsphere.orchestration.core.facade.ShardingOrchestrationFacade;
 import org.apache.shardingsphere.orchestration.core.registrycenter.event.DisabledStateChangedEvent;
 import org.apache.shardingsphere.orchestration.core.registrycenter.schema.OrchestrationShardingSchema;
 import org.apache.shardingsphere.shardingproxy.backend.schema.LogicSchema;
 import org.apache.shardingsphere.shardingproxy.backend.schema.LogicSchemas;
 import org.apache.shardingsphere.shardingproxy.config.yaml.YamlDataSourceParameter;
 import org.apache.shardingsphere.shardingproxy.context.ShardingProxyContext;
-import org.apache.shardingsphere.sql.parser.binder.metadata.index.IndexMetaData;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
 import org.apache.shardingsphere.sql.parser.binder.metadata.table.TableMetaData;
 import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.ddl.AlterTableStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.ddl.CreateIndexStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.ddl.CreateTableStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.ddl.DropIndexStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.ddl.DropTableStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.AlterTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.CreateIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.CreateTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.DropIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.DropTableStatement;
-import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
-import org.apache.shardingsphere.underlying.common.metadata.ShardingSphereMetaData;
-import org.apache.shardingsphere.underlying.common.metadata.datasource.DataSourceMetas;
-import org.apache.shardingsphere.underlying.common.metadata.decorator.SchemaMetaDataDecorator;
+import org.apache.shardingsphere.underlying.common.metadata.refresh.MetaDataRefreshStrategy;
+import org.apache.shardingsphere.underlying.common.metadata.refresh.MetaDataRefreshStrategyFactory;
+import org.apache.shardingsphere.underlying.common.metadata.schema.RuleSchemaMetaDataLoader;
 
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
 
@@ -70,23 +52,14 @@ public final class ShardingSchema extends LogicSchema {
     
     private ShardingRule shardingRule;
     
-    private final ShardingSphereMetaData metaData;
-    
-    public ShardingSchema(
-            final String name, final Map<String, YamlDataSourceParameter> dataSources, final ShardingRuleConfiguration shardingRuleConfig, final boolean isUsingRegistry) throws SQLException {
-        super(name, dataSources);
+    public ShardingSchema(final String name, final Map<String, YamlDataSourceParameter> dataSources,
+                          final ShardingRuleConfiguration shardingRuleConfig, final boolean isUsingRegistry) throws SQLException {
+        super(name, dataSources, createShardingRule(shardingRuleConfig, dataSources.keySet(), isUsingRegistry).toRules());
         shardingRule = createShardingRule(shardingRuleConfig, dataSources.keySet(), isUsingRegistry);
-        metaData = createMetaData();
     }
     
-    private ShardingRule createShardingRule(final ShardingRuleConfiguration shardingRuleConfig, final Collection<String> dataSourceNames, final boolean isUsingRegistry) {
+    private static ShardingRule createShardingRule(final ShardingRuleConfiguration shardingRuleConfig, final Collection<String> dataSourceNames, final boolean isUsingRegistry) {
         return isUsingRegistry ? new OrchestrationShardingRule(shardingRuleConfig, dataSourceNames) : new ShardingRule(shardingRuleConfig, dataSourceNames);
-    }
-    
-    private ShardingSphereMetaData createMetaData() throws SQLException {
-        DataSourceMetas dataSourceMetas = new DataSourceMetas(LogicSchemas.getInstance().getDatabaseType(), getDatabaseAccessConfigurationMap());
-        SchemaMetaData schemaMetaData = loadSchemaMetaData();
-        return new ShardingSphereMetaData(dataSourceMetas, schemaMetaData);
     }
     
     /**
@@ -117,99 +90,23 @@ public final class ShardingSchema extends LogicSchema {
         }
     }
     
+    @SuppressWarnings("unchecked")
     @Override
     public void refreshTableMetaData(final SQLStatementContext sqlStatementContext) throws SQLException {
         if (null == sqlStatementContext) {
             return;
         }
-        if (sqlStatementContext instanceof CreateTableStatementContext) {
-            refreshTableMetaData(((CreateTableStatementContext) sqlStatementContext).getSqlStatement());
-        } else if (sqlStatementContext instanceof AlterTableStatementContext) {
-            refreshTableMetaData(((AlterTableStatementContext) sqlStatementContext).getSqlStatement());
-        } else if (sqlStatementContext instanceof DropTableStatementContext) {
-            refreshTableMetaData(((DropTableStatementContext) sqlStatementContext).getSqlStatement());
-        } else if (sqlStatementContext instanceof CreateIndexStatementContext) {
-            refreshTableMetaData(((CreateIndexStatementContext) sqlStatementContext).getSqlStatement());
-        } else if (sqlStatementContext instanceof DropIndexStatementContext) {
-            refreshTableMetaData(((DropIndexStatementContext) sqlStatementContext).getSqlStatement());
-        }
-    }
-    
-    private void refreshTableMetaData(final CreateTableStatement createTableStatement) throws SQLException {
-        String tableName = createTableStatement.getTable().getTableName().getIdentifier().getValue();
-        getMetaData().getSchema().put(tableName, loadTableMeta(tableName));
-    }
-    
-    private void refreshTableMetaData(final AlterTableStatement alterTableStatement) throws SQLException {
-        String tableName = alterTableStatement.getTable().getTableName().getIdentifier().getValue();
-        getMetaData().getSchema().put(tableName, loadTableMeta(tableName));
-    }
-    
-    private void refreshTableMetaData(final DropTableStatement dropTableStatement) {
-        for (SimpleTableSegment each : dropTableStatement.getTables()) {
-            getMetaData().getSchema().remove(each.getTableName().getIdentifier().getValue());
-        }
-    }
-    
-    private void refreshTableMetaData(final CreateIndexStatement createIndexStatement) {
-        if (null != createIndexStatement.getIndex()) {
-            String indexName = createIndexStatement.getIndex().getIdentifier().getValue();
-            getMetaData().getSchema().get(createIndexStatement.getTable().getTableName().getIdentifier().getValue()).getIndexes().put(indexName, new IndexMetaData(indexName));
-        }
-    }
-    
-    private void refreshTableMetaData(final DropIndexStatement dropIndexStatement) {
-        Collection<String> indexNames = getIndexNames(dropIndexStatement);
-        if (null != dropIndexStatement.getTable()) {
-            for (String each : indexNames) {
-                getMetaData().getSchema().get(dropIndexStatement.getTable().getTableName().getIdentifier().getValue()).getIndexes().remove(each);
-            }
-        }
-        for (String each : indexNames) {
-            if (findLogicTableName(getMetaData().getSchema(), each).isPresent()) {
-                getMetaData().getSchema().get(dropIndexStatement.getTable().getTableName().getIdentifier().getValue()).getIndexes().remove(each);
+        Optional<MetaDataRefreshStrategy> refreshStrategy = MetaDataRefreshStrategyFactory.newInstance(sqlStatementContext);
+        if (refreshStrategy.isPresent()) {
+            refreshStrategy.get().refreshMetaData(getMetaData(), sqlStatementContext, this::loadTableMetaData);
+            if (null != ShardingOrchestrationFacade.getInstance()) {
+                ShardingOrchestrationFacade.getInstance().getMetaDataCenter().persistMetaDataCenterNode(getName(), getMetaData().getSchema());
             }
         }
     }
     
-    private SchemaMetaData loadSchemaMetaData() throws SQLException {
-        int maxConnectionsSizePerQuery = ShardingProxyContext.getInstance().getProperties().<Integer>getValue(ConfigurationPropertyKey.MAX_CONNECTIONS_SIZE_PER_QUERY);
-        boolean isCheckingMetaData = ShardingProxyContext.getInstance().getProperties().<Boolean>getValue(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED);
-        SchemaMetaData result = new ShardingMetaDataLoader(getBackendDataSource().getDataSources(),
-            shardingRule, maxConnectionsSizePerQuery, isCheckingMetaData).load(LogicSchemas.getInstance().getDatabaseType());
-        result = SchemaMetaDataDecorator.decorate(result, shardingRule, new ShardingTableMetaDataDecorator());
-        if (!shardingRule.getEncryptRule().getEncryptTableNames().isEmpty()) {
-            result = SchemaMetaDataDecorator.decorate(result, shardingRule, new ShardingTableMetaDataDecorator());
-        }
-        return result;
-    }
-    
-    private TableMetaData loadTableMeta(final String tableName) throws SQLException {
-        int maxConnectionsSizePerQuery = ShardingProxyContext.getInstance().getProperties().<Integer>getValue(ConfigurationPropertyKey.MAX_CONNECTIONS_SIZE_PER_QUERY);
-        boolean isCheckingMetaData = ShardingProxyContext.getInstance().getProperties().<Boolean>getValue(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED);
-        TableMetaData result = new ShardingMetaDataLoader(getBackendDataSource().getDataSources(),
-            shardingRule, maxConnectionsSizePerQuery, isCheckingMetaData).load(tableName, LogicSchemas.getInstance().getDatabaseType());
-        result = new ShardingTableMetaDataDecorator().decorate(result, tableName, shardingRule);
-        if (!shardingRule.getEncryptRule().getEncryptTableNames().isEmpty()) {
-            result = new EncryptTableMetaDataDecorator().decorate(result, tableName, shardingRule.getEncryptRule());
-        }
-        return result;
-    }
-    
-    private Collection<String> getIndexNames(final DropIndexStatement dropIndexStatement) {
-        Collection<String> result = new LinkedList<>();
-        for (IndexSegment each : dropIndexStatement.getIndexes()) {
-            result.add(each.getIdentifier().getValue());
-        }
-        return result;
-    }
-    
-    private Optional<String> findLogicTableName(final SchemaMetaData schemaMetaData, final String logicIndexName) {
-        for (String each : schemaMetaData.getAllTableNames()) {
-            if (schemaMetaData.get(each).getIndexes().containsKey(logicIndexName)) {
-                return Optional.of(each);
-            }
-        }
-        return Optional.empty();
+    private Optional<TableMetaData> loadTableMetaData(final String tableName) throws SQLException {
+        RuleSchemaMetaDataLoader loader = new RuleSchemaMetaDataLoader(shardingRule.toRules());
+        return loader.load(LogicSchemas.getInstance().getDatabaseType(), getBackendDataSource().getDataSources(), tableName, ShardingProxyContext.getInstance().getProperties());
     }
 }

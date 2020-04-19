@@ -59,7 +59,7 @@ public final class ShardingRouteDecorator implements RouteDecorator<ShardingRule
         List<Object> parameters = routeContext.getParameters();
         ShardingStatementValidatorFactory.newInstance(
                 sqlStatementContext.getSqlStatement()).ifPresent(validator -> validator.validate(shardingRule, sqlStatementContext.getSqlStatement(), parameters));
-        ShardingConditions shardingConditions = getShardingConditions(parameters, sqlStatementContext, metaData.getSchema(), shardingRule);
+        ShardingConditions shardingConditions = getShardingConditions(parameters, sqlStatementContext, metaData.getSchema().getConfiguredSchemaMetaData(), shardingRule);
         boolean needMergeShardingValues = isNeedMergeShardingValues(sqlStatementContext, shardingRule);
         if (sqlStatementContext.getSqlStatement() instanceof DMLStatement && needMergeShardingValues) {
             checkSubqueryShardingValues(sqlStatementContext, shardingRule, shardingConditions);
@@ -150,5 +150,15 @@ public final class ShardingRouteDecorator implements RouteDecorator<ShardingRule
             shardingConditions.getConditions().clear();
             shardingConditions.getConditions().add(shardingCondition);
         }
+    }
+    
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+    
+    @Override
+    public Class<ShardingRule> getTypeClass() {
+        return ShardingRule.class;
     }
 }

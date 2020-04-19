@@ -18,7 +18,6 @@
 package org.apache.shardingsphere.shardingproxy.backend.communication.jdbc.wrapper;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.shadow.rewrite.context.ShadowSQLRewriteContextDecorator;
 import org.apache.shardingsphere.shadow.rewrite.judgement.ShadowJudgementEngine;
 import org.apache.shardingsphere.shadow.rewrite.judgement.impl.SimpleJudgementEngine;
 import org.apache.shardingsphere.shardingproxy.backend.schema.LogicSchema;
@@ -28,22 +27,29 @@ import org.apache.shardingsphere.shardingproxy.backend.schema.impl.ShadowSchema;
 import org.apache.shardingsphere.shardingproxy.backend.schema.impl.ShardingSchema;
 import org.apache.shardingsphere.shardingproxy.context.ShardingProxyContext;
 import org.apache.shardingsphere.sql.parser.binder.SQLStatementContextFactory;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
 import org.apache.shardingsphere.sql.parser.binder.statement.CommonSQLStatementContext;
 import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
 import org.apache.shardingsphere.sql.parser.sql.statement.SQLStatement;
+import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
+import org.apache.shardingsphere.underlying.common.metadata.schema.RuleSchemaMetaData;
+import org.apache.shardingsphere.underlying.common.rule.BaseRule;
 import org.apache.shardingsphere.underlying.executor.context.ExecutionContext;
+import org.apache.shardingsphere.underlying.executor.context.ExecutionContextBuilder;
 import org.apache.shardingsphere.underlying.executor.context.ExecutionUnit;
 import org.apache.shardingsphere.underlying.executor.context.SQLUnit;
-import org.apache.shardingsphere.underlying.pluggble.SimpleQueryPrepareEngine;
+import org.apache.shardingsphere.underlying.executor.group.ExecuteGroupEngine;
+import org.apache.shardingsphere.underlying.executor.group.StatementExecuteGroupEngine;
 import org.apache.shardingsphere.underlying.rewrite.SQLRewriteEntry;
-import org.apache.shardingsphere.underlying.rewrite.context.SQLRewriteContext;
-import org.apache.shardingsphere.underlying.rewrite.engine.SQLRewriteEngine;
-import org.apache.shardingsphere.underlying.rewrite.engine.SQLRewriteResult;
+import org.apache.shardingsphere.underlying.rewrite.engine.result.GenericSQLRewriteResult;
+import org.apache.shardingsphere.underlying.rewrite.engine.result.SQLRewriteResult;
+import org.apache.shardingsphere.underlying.rewrite.engine.result.SQLRewriteUnit;
+import org.apache.shardingsphere.underlying.route.DataNodeRouter;
+import org.apache.shardingsphere.underlying.route.context.RouteContext;
+import org.apache.shardingsphere.underlying.route.context.RouteResult;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 
@@ -75,54 +81,61 @@ public final class StatementExecutorWrapper implements JDBCExecutorWrapper {
     }
     
     private ExecutionContext doShardingRoute(final String sql) {
-        SimpleQueryPrepareEngine prepareEngine = new SimpleQueryPrepareEngine(
-                logicSchema.getShardingRule().toRules(), ShardingProxyContext.getInstance().getProperties(), logicSchema.getMetaData(), logicSchema.getSqlParserEngine());
-        return prepareEngine.prepare(sql, Collections.emptyList());
+        Collection<BaseRule> rules = logicSchema.getShardingRule().toRules();
+        SQLStatement sqlStatement = logicSchema.getSqlParserEngine().parse(sql, false);
+        RouteContext routeContext = new DataNodeRouter(logicSchema.getMetaData(), SHARDING_PROXY_CONTEXT.getProperties(), rules).route(sqlStatement, sql, Collections.emptyList());
+        SQLRewriteResult sqlRewriteResult = new SQLRewriteEntry(logicSchema.getMetaData().getSchema().getConfiguredSchemaMetaData(),
+                SHARDING_PROXY_CONTEXT.getProperties(), rules).rewrite(sql, Collections.emptyList(), routeContext);
+        return new ExecutionContext(routeContext.getSqlStatementContext(), ExecutionContextBuilder.build(logicSchema.getMetaData(), sqlRewriteResult));
     }
     
     @SuppressWarnings("unchecked")
     private ExecutionContext doMasterSlaveRoute(final String sql) {
-        SimpleQueryPrepareEngine prepareEngine = new SimpleQueryPrepareEngine(Collections.singletonList(((MasterSlaveSchema) logicSchema).getMasterSlaveRule()),
-                SHARDING_PROXY_CONTEXT.getProperties(), logicSchema.getMetaData(), logicSchema.getSqlParserEngine());
-        return prepareEngine.prepare(sql, Collections.emptyList());
+        Collection<BaseRule> rules = Collections.singletonList(((MasterSlaveSchema) logicSchema).getMasterSlaveRule());
+        SQLStatement sqlStatement = logicSchema.getSqlParserEngine().parse(sql, false);
+        RouteContext routeContext = new DataNodeRouter(logicSchema.getMetaData(), SHARDING_PROXY_CONTEXT.getProperties(), rules).route(sqlStatement, sql, Collections.emptyList());
+        SQLRewriteResult sqlRewriteResult = new SQLRewriteEntry(logicSchema.getMetaData().getSchema().getConfiguredSchemaMetaData(),
+                SHARDING_PROXY_CONTEXT.getProperties(), rules).rewrite(sql, Collections.emptyList(), routeContext);
+        return new ExecutionContext(routeContext.getSqlStatementContext(), ExecutionContextBuilder.build(logicSchema.getMetaData(), sqlRewriteResult));
     }
     
     @SuppressWarnings("unchecked")
     private ExecutionContext doEncryptRoute(final String sql) {
-        SimpleQueryPrepareEngine prepareEngine = new SimpleQueryPrepareEngine(Collections.singletonList(((EncryptSchema) logicSchema).getEncryptRule()), 
-                SHARDING_PROXY_CONTEXT.getProperties(), logicSchema.getMetaData(), logicSchema.getSqlParserEngine());
-        return prepareEngine.prepare(sql, Collections.emptyList());
+        Collection<BaseRule> rules = Collections.singletonList(((EncryptSchema) logicSchema).getEncryptRule());
+        SQLStatement sqlStatement = logicSchema.getSqlParserEngine().parse(sql, false);
+        RouteContext routeContext = new DataNodeRouter(logicSchema.getMetaData(), SHARDING_PROXY_CONTEXT.getProperties(), rules).route(sqlStatement, sql, Collections.emptyList());
+        SQLRewriteResult sqlRewriteResult = new SQLRewriteEntry(logicSchema.getMetaData().getSchema().getConfiguredSchemaMetaData(),
+                SHARDING_PROXY_CONTEXT.getProperties(), rules).rewrite(sql, Collections.emptyList(), routeContext);
+        return new ExecutionContext(routeContext.getSqlStatementContext(), ExecutionContextBuilder.build(logicSchema.getMetaData(), sqlRewriteResult));
     }
     
     private ExecutionContext doShadowRoute(final String sql) {
         ShadowSchema shadowSchema = (ShadowSchema) logicSchema;
         SQLStatement sqlStatement = shadowSchema.getSqlParserEngine().parse(sql, true);
-        SchemaMetaData schemaMetaData = logicSchema.getMetaData().getSchema();
-        SQLStatementContext sqlStatementContext = SQLStatementContextFactory.newInstance(schemaMetaData, sql, new LinkedList<>(), sqlStatement);
+        RuleSchemaMetaData ruleSchemaMetaData = logicSchema.getMetaData().getSchema();
+        SQLStatementContext sqlStatementContext = SQLStatementContextFactory.newInstance(ruleSchemaMetaData.getConfiguredSchemaMetaData(), sql, new LinkedList<>(), sqlStatement);
         ShadowJudgementEngine shadowJudgementEngine = new SimpleJudgementEngine(shadowSchema.getShadowRule(), sqlStatementContext);
         String dataSourceName = shadowJudgementEngine.isShadowSQL()
                 ? shadowSchema.getShadowRule().getRuleConfiguration().getShadowMappings().get(logicSchema.getDataSources().keySet().iterator().next())
                 : logicSchema.getDataSources().keySet().iterator().next();
-        SQLRewriteEntry sqlRewriteEntry = new SQLRewriteEntry(logicSchema.getMetaData().getSchema(), ShardingProxyContext.getInstance().getProperties());
-        sqlRewriteEntry.registerDecorator(shadowSchema.getShadowRule(), new ShadowSQLRewriteContextDecorator());
-        SQLRewriteContext sqlRewriteContext = sqlRewriteEntry.createSQLRewriteContext(sql, Collections.emptyList(), sqlStatementContext, null);
-        SQLRewriteResult sqlRewriteResult = new SQLRewriteEngine().rewrite(sqlRewriteContext);
-        ExecutionContext result = new ExecutionContext(sqlStatementContext);
-        result.getExecutionUnits().add(new ExecutionUnit(dataSourceName, new SQLUnit(sqlRewriteResult.getSql(), sqlRewriteResult.getParameters())));
-        return result;
+        SQLRewriteEntry sqlRewriteEntry = new SQLRewriteEntry(
+                logicSchema.getMetaData().getSchema().getConfiguredSchemaMetaData(), ShardingProxyContext.getInstance().getProperties(), Collections.singletonList(shadowSchema.getShadowRule()));
+        SQLRewriteUnit sqlRewriteResult = ((GenericSQLRewriteResult) sqlRewriteEntry.rewrite(sql, Collections.emptyList(), 
+                new RouteContext(sqlStatementContext, Collections.emptyList(), new RouteResult()))).getSqlRewriteUnit();
+        return new ExecutionContext(sqlStatementContext, new ExecutionUnit(dataSourceName, new SQLUnit(sqlRewriteResult.getSql(), sqlRewriteResult.getParameters())));
     }
     
     @SuppressWarnings("unchecked")
     private ExecutionContext doTransparentRoute(final String sql) {
         SQLStatement sqlStatement = logicSchema.getSqlParserEngine().parse(sql, false);
-        ExecutionContext result = new ExecutionContext(new CommonSQLStatementContext(sqlStatement));
-        result.getExecutionUnits().add(new ExecutionUnit(logicSchema.getDataSources().keySet().iterator().next(), new SQLUnit(sql, Collections.emptyList())));
-        return result;
+        return new ExecutionContext(
+                new CommonSQLStatementContext(sqlStatement), new ExecutionUnit(logicSchema.getDataSources().keySet().iterator().next(), new SQLUnit(sql, Collections.emptyList())));
     }
     
     @Override
-    public Statement createStatement(final Connection connection, final SQLUnit sqlUnit, final boolean isReturnGeneratedKeys) throws SQLException {
-        return connection.createStatement();
+    public ExecuteGroupEngine getExecuteGroupEngine() {
+        int maxConnectionsSizePerQuery = ShardingProxyContext.getInstance().getProperties().<Integer>getValue(ConfigurationPropertyKey.MAX_CONNECTIONS_SIZE_PER_QUERY);
+        return new StatementExecuteGroupEngine(maxConnectionsSizePerQuery);
     }
     
     @Override

@@ -20,16 +20,16 @@ package org.apache.shardingsphere.shardingjdbc.orchestration.spring;
 import org.apache.shardingsphere.api.config.sharding.strategy.InlineShardingStrategyConfiguration;
 import org.apache.shardingsphere.api.config.sharding.strategy.StandardShardingStrategyConfiguration;
 import org.apache.shardingsphere.core.rule.BindingTableRule;
-import org.apache.shardingsphere.underlying.common.rule.DataNode;
 import org.apache.shardingsphere.core.rule.ShardingRule;
 import org.apache.shardingsphere.core.rule.TableRule;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource;
 import org.apache.shardingsphere.shardingjdbc.orchestration.spring.datasource.OrchestrationSpringShardingDataSource;
-import org.apache.shardingsphere.shardingjdbc.orchestration.spring.fixture.IncrementKeyGenerator;
+import org.apache.shardingsphere.shardingjdbc.orchestration.spring.fixture.IncrementKeyGenerateAlgorithm;
 import org.apache.shardingsphere.shardingjdbc.orchestration.spring.util.EmbedTestingServer;
 import org.apache.shardingsphere.shardingjdbc.orchestration.spring.util.FieldValueUtil;
-import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
 import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationProperties;
+import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
+import org.apache.shardingsphere.underlying.common.rule.DataNode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -69,12 +69,11 @@ public class OrchestrationShardingNamespaceTest extends AbstractJUnit4SpringCont
         ShardingRule shardingRule = getShardingRule("shardingRuleWithAttributesDataSourceOrchestration");
         assertNotNull(dataSourceMap.get("dbtbl_0"));
         assertNotNull(dataSourceMap.get("dbtbl_1"));
-        assertThat(shardingRule.getShardingDataSourceNames().getDefaultDataSourceName(), is("dbtbl_0"));
         assertTrue(Arrays.equals(shardingRule.getDefaultDatabaseShardingStrategy().getShardingColumns().toArray(new String[]{}),
                 new String[]{applicationContext.getBean("standardStrategy", StandardShardingStrategyConfiguration.class).getShardingColumn()}));
         assertTrue(Arrays.equals(shardingRule.getDefaultTableShardingStrategy().getShardingColumns().toArray(new String[]{}),
                 new String[]{applicationContext.getBean("inlineStrategy", InlineShardingStrategyConfiguration.class).getShardingColumn()}));
-        assertThat(shardingRule.getDefaultShardingKeyGenerator().getClass().getName(), is(IncrementKeyGenerator.class.getCanonicalName()));
+        assertThat(shardingRule.getDefaultKeyGenerateAlgorithm().getClass().getName(), is(IncrementKeyGenerateAlgorithm.class.getCanonicalName()));
     }
     
     @Test
@@ -98,7 +97,7 @@ public class OrchestrationShardingNamespaceTest extends AbstractJUnit4SpringCont
                 new String[]{applicationContext.getBean("inlineStrategy", InlineShardingStrategyConfiguration.class).getShardingColumn()}));
         assertTrue(tableRule.getGenerateKeyColumn().isPresent());
         assertThat(tableRule.getGenerateKeyColumn().get(), is("order_id"));
-        assertThat(tableRule.getShardingKeyGenerator().getClass().getName(), is(IncrementKeyGenerator.class.getCanonicalName()));
+        assertThat(tableRule.getKeyGenerateAlgorithm().getClass().getName(), is(IncrementKeyGenerateAlgorithm.class.getCanonicalName()));
     }
     
     @Test

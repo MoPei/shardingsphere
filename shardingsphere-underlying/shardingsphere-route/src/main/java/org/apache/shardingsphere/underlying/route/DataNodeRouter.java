@@ -17,8 +17,7 @@
 
 package org.apache.shardingsphere.underlying.route;
 
-import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.sql.parser.SQLParserEngine;
+import org.apache.shardingsphere.spi.order.OrderedSPIRegistry;
 import org.apache.shardingsphere.sql.parser.binder.SQLStatementContextFactory;
 import org.apache.shardingsphere.sql.parser.binder.statement.CommonSQLStatementContext;
 import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
@@ -31,6 +30,7 @@ import org.apache.shardingsphere.underlying.route.context.RouteResult;
 import org.apache.shardingsphere.underlying.route.decorator.RouteDecorator;
 import org.apache.shardingsphere.underlying.route.hook.SPIRoutingHook;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,42 +39,37 @@ import java.util.Map.Entry;
 /**
  * Data node router.
  */
-@RequiredArgsConstructor
 public final class DataNodeRouter {
     
     private final ShardingSphereMetaData metaData;
     
     private final ConfigurationProperties properties;
     
-    private final SQLParserEngine parserEngine;
+    private final Map<BaseRule, RouteDecorator> decorators;
     
-    private final Map<BaseRule, RouteDecorator> routeDecorators = new LinkedHashMap<>();
+    private SPIRoutingHook routingHook;
     
-    private SPIRoutingHook routingHook = new SPIRoutingHook();
-    
-    /**
-     * Register route decorator.
-     *
-     * @param rule rule
-     * @param decorator route decorator
-     */
-    public void registerDecorator(final BaseRule rule, final RouteDecorator decorator) {
-        routeDecorators.put(rule, decorator);
+    public DataNodeRouter(final ShardingSphereMetaData metaData, final ConfigurationProperties properties, final Collection<BaseRule> rules) {
+        this.metaData = metaData;
+        this.properties = properties;
+        decorators = new LinkedHashMap<>();
+        routingHook = new SPIRoutingHook();
+        OrderedSPIRegistry.getRegisteredServices(rules, RouteDecorator.class).forEach(decorators::put);
     }
     
     /**
      * Route SQL.
      *
+     * @param sqlStatement SQL statement
      * @param sql SQL
      * @param parameters SQL parameters
-     * @param useCache whether cache SQL parse result
      * @return route context
      */
-    public RouteContext route(final String sql, final List<Object> parameters, final boolean useCache) {
+    public RouteContext route(final SQLStatement sqlStatement, final String sql, final List<Object> parameters) {
         routingHook.start(sql);
         try {
-            RouteContext result = executeRoute(sql, parameters, useCache);
-            routingHook.finishSuccess(result, metaData.getSchema());
+            RouteContext result = executeRoute(sqlStatement, sql, parameters);
+            routingHook.finishSuccess(result, metaData.getSchema().getConfiguredSchemaMetaData());
             return result;
             // CHECKSTYLE:OFF
         } catch (final Exception ex) {
@@ -85,18 +80,17 @@ public final class DataNodeRouter {
     }
     
     @SuppressWarnings("unchecked")
-    private RouteContext executeRoute(final String sql, final List<Object> parameters, final boolean useCache) {
-        RouteContext result = createRouteContext(sql, parameters, useCache);
-        for (Entry<BaseRule, RouteDecorator> entry : routeDecorators.entrySet()) {
+    private RouteContext executeRoute(final SQLStatement sqlStatement, final String sql, final List<Object> parameters) {
+        RouteContext result = createRouteContext(sqlStatement, sql, parameters);
+        for (Entry<BaseRule, RouteDecorator> entry : decorators.entrySet()) {
             result = entry.getValue().decorate(result, metaData, entry.getKey(), properties);
         }
         return result;
     }
     
-    private RouteContext createRouteContext(final String sql, final List<Object> parameters, final boolean useCache) {
-        SQLStatement sqlStatement = parserEngine.parse(sql, useCache);
+    private RouteContext createRouteContext(final SQLStatement sqlStatement, final String sql, final List<Object> parameters) {
         try {
-            SQLStatementContext sqlStatementContext = SQLStatementContextFactory.newInstance(metaData.getSchema(), sql, parameters, sqlStatement);
+            SQLStatementContext sqlStatementContext = SQLStatementContextFactory.newInstance(metaData.getSchema().getConfiguredSchemaMetaData(), sql, parameters, sqlStatement);
             return new RouteContext(sqlStatementContext, parameters, new RouteResult());
             // TODO should pass parameters for master-slave
         } catch (final IndexOutOfBoundsException ex) {

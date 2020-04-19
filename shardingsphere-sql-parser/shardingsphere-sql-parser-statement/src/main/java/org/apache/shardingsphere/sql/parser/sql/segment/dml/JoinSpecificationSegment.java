@@ -21,7 +21,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.shardingsphere.sql.parser.sql.segment.SQLSegment;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.AndPredicate;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.PredicateSegment;
+import org.apache.shardingsphere.sql.parser.sql.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.sql.segment.generic.table.SimpleTableSegment;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -34,7 +37,28 @@ public final class JoinSpecificationSegment implements SQLSegment {
     
     private int stopIndex;
     
-    private PredicateSegment predicateSegment;
+    private final Collection<AndPredicate> andPredicates = new LinkedList<>();
     
-    private Collection<ColumnSegment> usingColumns = new LinkedList<>();
+    private final Collection<ColumnSegment> usingColumns = new LinkedList<>();
+    
+    /**
+     * get tables.
+     * @return tables.
+     */
+    public Collection<SimpleTableSegment> getSimpleTableSegments() {
+        Collection<SimpleTableSegment> tables = new LinkedList<>();
+        for (AndPredicate each : andPredicates) {
+            for (PredicateSegment e : each.getPredicates()) {
+                if (null != e.getColumn() && (e.getColumn().getOwner().isPresent())) {
+                    OwnerSegment ownerSegment = e.getColumn().getOwner().get();
+                    tables.add(new SimpleTableSegment(ownerSegment.getStartIndex(), ownerSegment.getStopIndex(), ownerSegment.getIdentifier()));
+                }
+                if (null != e.getRightValue() && (e.getRightValue() instanceof ColumnSegment) && ((ColumnSegment) e.getRightValue()).getOwner().isPresent()) {
+                    OwnerSegment ownerSegment = ((ColumnSegment) e.getRightValue()).getOwner().get();
+                    tables.add(new SimpleTableSegment(ownerSegment.getStartIndex(), ownerSegment.getStopIndex(), ownerSegment.getIdentifier()));
+                }
+            }
+        }
+        return tables;
+    }
 }

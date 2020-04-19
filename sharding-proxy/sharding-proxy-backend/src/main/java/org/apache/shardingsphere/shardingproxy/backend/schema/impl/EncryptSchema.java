@@ -24,22 +24,13 @@ import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.core.log.ConfigurationLogger;
 import org.apache.shardingsphere.core.rule.ShardingRule;
 import org.apache.shardingsphere.encrypt.api.EncryptRuleConfiguration;
-import org.apache.shardingsphere.encrypt.metadata.EncryptTableMetaDataDecorator;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.orchestration.core.common.event.EncryptRuleChangedEvent;
 import org.apache.shardingsphere.shardingproxy.backend.schema.LogicSchema;
-import org.apache.shardingsphere.shardingproxy.backend.schema.LogicSchemas;
 import org.apache.shardingsphere.shardingproxy.config.yaml.YamlDataSourceParameter;
-import org.apache.shardingsphere.shardingproxy.context.ShardingProxyContext;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaDataLoader;
-import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
-import org.apache.shardingsphere.underlying.common.metadata.ShardingSphereMetaData;
-import org.apache.shardingsphere.underlying.common.metadata.datasource.DataSourceMetas;
-import org.apache.shardingsphere.underlying.common.metadata.decorator.SchemaMetaDataDecorator;
 
-import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -48,30 +39,14 @@ import java.util.Map;
 @Getter
 public final class EncryptSchema extends LogicSchema {
     
-    private final ShardingSphereMetaData metaData;
-    
     private final ShardingRule shardingRule;
     
     private EncryptRule encryptRule;
     
     public EncryptSchema(final String name, final Map<String, YamlDataSourceParameter> dataSources, final EncryptRuleConfiguration encryptRuleConfiguration) throws SQLException {
-        super(name, dataSources);
+        super(name, dataSources, Collections.singletonList(new EncryptRule(encryptRuleConfiguration)));
         encryptRule = new EncryptRule(encryptRuleConfiguration);
         shardingRule = new ShardingRule(new ShardingRuleConfiguration(), getDataSources().keySet());
-        metaData = createMetaData();
-    }
-    
-    private ShardingSphereMetaData createMetaData() throws SQLException {
-        DataSourceMetas dataSourceMetas = new DataSourceMetas(LogicSchemas.getInstance().getDatabaseType(), getDatabaseAccessConfigurationMap());
-        SchemaMetaData schemaMetaData = createSchemaMetaData();
-        return new ShardingSphereMetaData(dataSourceMetas, schemaMetaData);
-    }
-    
-    private SchemaMetaData createSchemaMetaData() throws SQLException {
-        DataSource dataSource = getBackendDataSource().getDataSources().values().iterator().next();
-        int maxConnectionsSizePerQuery = ShardingProxyContext.getInstance().getProperties().<Integer>getValue(ConfigurationPropertyKey.MAX_CONNECTIONS_SIZE_PER_QUERY);
-        return SchemaMetaDataDecorator.decorate(SchemaMetaDataLoader.load(dataSource, maxConnectionsSizePerQuery,
-            LogicSchemas.getInstance().getDatabaseType().getName()), encryptRule, new EncryptTableMetaDataDecorator());
     }
     
     /**

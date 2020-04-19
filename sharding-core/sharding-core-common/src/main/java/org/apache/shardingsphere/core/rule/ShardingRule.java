@@ -19,7 +19,6 @@ package org.apache.shardingsphere.core.rule;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import lombok.Getter;
 import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.KeyGeneratorConfiguration;
@@ -30,13 +29,16 @@ import org.apache.shardingsphere.core.strategy.route.ShardingStrategyFactory;
 import org.apache.shardingsphere.core.strategy.route.none.NoneShardingStrategy;
 import org.apache.shardingsphere.encrypt.api.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
-import org.apache.shardingsphere.spi.algorithm.keygen.ShardingKeyGeneratorServiceLoader;
-import org.apache.shardingsphere.spi.keygen.ShardingKeyGenerator;
+import org.apache.shardingsphere.spi.ShardingSphereServiceLoader;
+import org.apache.shardingsphere.spi.keygen.KeyGenerateAlgorithm;
+import org.apache.shardingsphere.spi.type.TypedSPIRegistry;
 import org.apache.shardingsphere.underlying.common.config.exception.ShardingSphereConfigurationException;
 import org.apache.shardingsphere.underlying.common.rule.BaseRule;
 import org.apache.shardingsphere.underlying.common.rule.DataNode;
+import org.apache.shardingsphere.underlying.common.rule.TablesAggregationRule;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,7 +51,11 @@ import java.util.stream.Collectors;
  * Databases and tables sharding rule.
  */
 @Getter
-public class ShardingRule implements BaseRule {
+public class ShardingRule implements TablesAggregationRule {
+    
+    static {
+        ShardingSphereServiceLoader.register(KeyGenerateAlgorithm.class);
+    }
     
     private final ShardingRuleConfiguration ruleConfiguration;
     
@@ -65,7 +71,7 @@ public class ShardingRule implements BaseRule {
     
     private final ShardingStrategy defaultTableShardingStrategy;
     
-    private final ShardingKeyGenerator defaultShardingKeyGenerator;
+    private final KeyGenerateAlgorithm defaultKeyGenerateAlgorithm;
     
     private final Collection<MasterSlaveRule> masterSlaveRules;
     
@@ -81,7 +87,7 @@ public class ShardingRule implements BaseRule {
         bindingTableRules = createBindingTableRules(shardingRuleConfig.getBindingTableGroups());
         defaultDatabaseShardingStrategy = createDefaultShardingStrategy(shardingRuleConfig.getDefaultDatabaseShardingStrategyConfig());
         defaultTableShardingStrategy = createDefaultShardingStrategy(shardingRuleConfig.getDefaultTableShardingStrategyConfig());
-        defaultShardingKeyGenerator = createDefaultKeyGenerator(shardingRuleConfig.getDefaultKeyGeneratorConfig());
+        defaultKeyGenerateAlgorithm = createDefaultKeyGenerateAlgorithm(shardingRuleConfig.getDefaultKeyGeneratorConfig());
         masterSlaveRules = createMasterSlaveRules(shardingRuleConfig.getMasterSlaveRuleConfigs());
         encryptRule = createEncryptRule(shardingRuleConfig.getEncryptRuleConfig());
     }
@@ -108,14 +114,12 @@ public class ShardingRule implements BaseRule {
         return Optional.ofNullable(shardingStrategyConfiguration).map(ShardingStrategyFactory::newInstance).orElse(new NoneShardingStrategy());
     }
     
-    private ShardingKeyGenerator createDefaultKeyGenerator(final KeyGeneratorConfiguration keyGeneratorConfiguration) {
-        ShardingKeyGeneratorServiceLoader serviceLoader = new ShardingKeyGeneratorServiceLoader();
-        return containsKeyGeneratorConfiguration(keyGeneratorConfiguration)
-                ? serviceLoader.newService(keyGeneratorConfiguration.getType(), keyGeneratorConfiguration.getProperties()) : serviceLoader.newService();
+    private KeyGenerateAlgorithm createDefaultKeyGenerateAlgorithm(final KeyGeneratorConfiguration keyGeneratorConfiguration) {
+        return containsKeyGenerateAlgorithm(keyGeneratorConfiguration) ? keyGeneratorConfiguration.getKeyGenerateAlgorithm() : TypedSPIRegistry.getRegisteredService(KeyGenerateAlgorithm.class);
     }
     
-    private boolean containsKeyGeneratorConfiguration(final KeyGeneratorConfiguration keyGeneratorConfiguration) {
-        return null != keyGeneratorConfiguration && !Strings.isNullOrEmpty(keyGeneratorConfiguration.getType());
+    private boolean containsKeyGenerateAlgorithm(final KeyGeneratorConfiguration keyGeneratorConfiguration) {
+        return null != keyGeneratorConfiguration && null != keyGeneratorConfiguration.getKeyGenerateAlgorithm();
     }
     
     private Collection<MasterSlaveRule> createMasterSlaveRules(final Collection<MasterSlaveRuleConfiguration> masterSlaveRuleConfigurations) {
@@ -160,10 +164,7 @@ public class ShardingRule implements BaseRule {
         if (isBroadcastTable(logicTableName)) {
             return new TableRule(shardingDataSourceNames.getDataSourceNames(), logicTableName);
         }
-        if (!Strings.isNullOrEmpty(shardingDataSourceNames.getDefaultDataSourceName())) {
-            return new TableRule(shardingDataSourceNames.getDefaultDataSourceName(), logicTableName);
-        }
-        throw new ShardingSphereConfigurationException("Cannot find table rule and default data source with logic table: '%s'", logicTableName);
+        throw new ShardingSphereConfigurationException("Cannot find table rule with logic table: '%s'", logicTableName);
     }
     
     /**
@@ -256,24 +257,6 @@ public class ShardingRule implements BaseRule {
     }
     
     /**
-     * Judge logic tables is all belong to default data source.
-     *
-     * @param logicTableNames logic table names
-     * @return logic tables is all belong to default data source
-     */
-    public boolean isAllInDefaultDataSource(final Collection<String> logicTableNames) {
-        if (!hasDefaultDataSourceName()) {
-            return false;
-        }
-        for (String each : logicTableNames) {
-            if (findTableRule(each).isPresent() || isBroadcastTable(each)) {
-                return false;
-            }
-        }
-        return !logicTableNames.isEmpty();
-    }
-    
-    /**
      * Judge if there is at least one table rule for logic tables.
      *
      * @param logicTableNames logic table names
@@ -320,7 +303,7 @@ public class ShardingRule implements BaseRule {
         if (!tableRule.isPresent()) {
             throw new ShardingSphereConfigurationException("Cannot find strategy for generate keys.");
         }
-        return Optional.ofNullable(tableRule.get().getShardingKeyGenerator()).orElse(defaultShardingKeyGenerator).generateKey();
+        return Optional.ofNullable(tableRule.get().getKeyGenerateAlgorithm()).orElse(defaultKeyGenerateAlgorithm).generateKey();
     }
     
     /**
@@ -356,36 +339,6 @@ public class ShardingRule implements BaseRule {
         return tableRule.getActualDataNodes().stream().filter(each -> shardingDataSourceNames.getDataSourceNames().contains(each.getDataSourceName())
                 && each.getDataSourceName().equals(dataSourceName)).findFirst()
                 .orElseThrow(() -> new ShardingSphereConfigurationException("Cannot find actual data node for data source name: '%s' and logic table name: '%s'", dataSourceName, logicTableName));
-    }
-    
-    /**
-     * Judge if default data source mame exists.
-     *
-     * @return if default data source name exists
-     */
-    public boolean hasDefaultDataSourceName() {
-        String defaultDataSourceName = shardingDataSourceNames.getDefaultDataSourceName();
-        return !Strings.isNullOrEmpty(defaultDataSourceName);
-    }
-    
-    /**
-     * Find actual default data source name.
-     *
-     * <p>If use master-slave rule, return master data source name.</p>
-     *
-     * @return actual default data source name
-     */
-    public Optional<String> findActualDefaultDataSourceName() {
-        String defaultDataSourceName = shardingDataSourceNames.getDefaultDataSourceName();
-        if (Strings.isNullOrEmpty(defaultDataSourceName)) {
-            return Optional.empty();
-        }
-        Optional<String> masterDefaultDataSourceName = findMasterDataSourceName(defaultDataSourceName);
-        return masterDefaultDataSourceName.isPresent() ? masterDefaultDataSourceName : Optional.of(defaultDataSourceName);
-    }
-    
-    private Optional<String> findMasterDataSourceName(final String masterSlaveRuleName) {
-        return masterSlaveRules.stream().filter(each -> each.getName().equalsIgnoreCase(masterSlaveRuleName)).map(e -> Optional.of(e.getMasterDataSourceName())).findFirst().orElse(Optional.empty());
     }
     
     /**
@@ -437,6 +390,15 @@ public class ShardingRule implements BaseRule {
             result.add(encryptRule);
         }
         result.addAll(masterSlaveRules);
+        return result;
+    }
+    
+    @Override
+    public final Collection<String> getAllActualTables() {
+        Collection<String> result = new HashSet<>();
+        for (TableRule each : tableRules) {
+            result.addAll(each.getActualDataNodes().stream().map(DataNode::getTableName).collect(Collectors.toSet()));
+        }
         return result;
     }
 }
