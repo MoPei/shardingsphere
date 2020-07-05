@@ -30,30 +30,21 @@
     <name>${project.artifactId}</name>
     
     <modules>
-        <module>shardingsphere-spi</module>
-        
         <module>shardingsphere-sql-parser</module>
-        <module>shardingsphere-database-protocol</module>
-        <module>shardingsphere-underlying</module>
+        <module>shardingsphere-db-protocol</module>
+        <module>shardingsphere-infra</module>
+        <module>shardingsphere-kernel</module>
         
-        <module>sharding-core</module>
-        <module>encrypt-core</module>
+        <module>shardingsphere-jdbc</module>
+        <module>shardingsphere-proxy</module>
         
-        <module>sharding-jdbc</module>
-        <module>sharding-proxy</module>
-        <module>sharding-scaling</module>
+        <module>shardingsphere-features</module>
+        <module>shardingsphere-scaling</module>
+        <module>shardingsphere-transaction</module>
+        <module>shardingsphere-control-panel</module>
         
-        <module>sharding-transaction</module>
-        <module>sharding-orchestration</module> 
-        <module>sharding-opentracing</module>
-        
-        <module>sharding-spring</module>
-        <module>sharding-sql-test</module>
-        
-        <module>sharding-distribution</module>
-        <module>sharding-integration-test</module>
-        <module>shadow-core</module>
-        <module>master-slave-core</module>
+        <module>shardingsphere-integration-test</module>
+        <module>shardingsphere-distribution</module>
     </modules>
     
     <properties>
@@ -68,7 +59,7 @@
         
         <antlr4.version>4.7.2</antlr4.version>
         
-        <groovy.version>2.4.5</groovy.version>
+        <groovy.version>2.4.19</groovy.version>
         <snakeyaml.version>1.16</snakeyaml.version>
         
         <netty.version>4.1.42.Final</netty.version>
@@ -87,6 +78,7 @@
         <opentracing.version>0.30.0</opentracing.version>
         <apollo.client.version>1.5.0</apollo.client.version>
         <nacos.client.verison>1.1.4</nacos.client.verison>
+        <jetcd.version>0.5.0</jetcd.version>
         
         <lombok.version>1.16.20</lombok.version>
         
@@ -106,6 +98,7 @@
         <postgresql.version>42.2.5</postgresql.version>
         <mssql.version>6.1.7.jre8-preview</mssql.version>
         <mariadb-java-client.version>2.4.2</mariadb-java-client.version>
+        <prometheus-java-client.version>0.6.0</prometheus-java-client.version>
 
         <!-- Plugin versions -->
         <apache-rat-plugin.version>0.12</apache-rat-plugin.version>
@@ -134,7 +127,8 @@
         <jdepend-maven-plugin.version>2.0</jdepend-maven-plugin.version>
         <taglist-maven-plugin.version>2.4</taglist-maven-plugin.version>
         <os-maven-plugin.version>1.5.0.Final</os-maven-plugin.version>
-        <docker-maven-plugin.version>0.4.14</docker-maven-plugin.version>
+        <dockerfile-maven.version>1.4.6</dockerfile-maven.version>
+        <docker-compose-maven-plugin.version>2.3.0</docker-compose-maven-plugin.version>
         
         <javadocExecutable>${java.home}/../bin/javadoc</javadocExecutable>
         <maven.deploy.skip>false</maven.deploy.skip>
@@ -206,6 +200,17 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-collections4</artifactId>
                 <version>${commons-collections4.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient</artifactId>
+                <version>${prometheus-java-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_httpserver</artifactId>
+                <version>${prometheus-java-client.version}</version>
             </dependency>
             
             <dependency>
@@ -497,7 +502,7 @@
     </dependencies>
     
     <build>
-        <finalName>apache-shardingsphere-incubating-${project.version}</finalName>
+        <finalName>apache-shardingsphere-${project.version}</finalName>
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>
@@ -637,6 +642,16 @@
                     <artifactId>antlr4-maven-plugin</artifactId>
                     <version>${antlr4.version}</version>
                 </plugin>
+                <plugin>
+                    <groupId>com.spotify</groupId>
+                    <artifactId>dockerfile-maven-plugin</artifactId>
+                    <version>${dockerfile-maven.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.dkanejs.maven.plugins</groupId>
+                    <artifactId>docker-compose-maven-plugin</artifactId>
+                    <version>${docker-compose-maven-plugin.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -769,11 +784,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.spotify</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>${docker-maven-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
@@ -925,18 +935,18 @@
     </licenses>
     
     <scm>
-        <connection>scm:git:https://github.com/apache/incubator-shardingsphere.git</connection>
-        <developerConnection>scm:git:https://github.com/apache/incubator-shardingsphere.git</developerConnection>
-        <url>https://github.com/apache/incubator-shardingsphere.git</url>
+        <connection>scm:git:https://github.com/apache/shardingsphere.git</connection>
+        <developerConnection>scm:git:https://github.com/apache/shardingsphere.git</developerConnection>
+        <url>https://github.com/apache/shardingsphere.git</url>
       <tag>HEAD</tag>
     </scm>
     
     <mailingLists>
         <mailingList>
             <name>ShardingSphere Developer List</name>
-            <post>dev@shardingsphere.incubator.apache.org</post>
-            <subscribe>dev-subscribe@shardingsphere.incubator.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@shardingsphere.incubator.apache.org</unsubscribe>
+            <post>dev@shardingsphere.apache.org</post>
+            <subscribe>dev-subscribe@shardingsphere.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@shardingsphere.apache.org</unsubscribe>
         </mailingList>
     </mailingLists>
 </project>

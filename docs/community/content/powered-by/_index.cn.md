@@ -9,7 +9,7 @@ chapter = true
 
 欢迎采用了ShardingSphere的公司在此登记，您的支持是我们最大的动力。
 
-请按`公司名` + `首页` + `应用案例（可选）` 的格式在[此处](https://github.com/sharding-sphere/sharding-sphere/issues/234)登记。
+请按`公司名` + `首页` + `应用案例（可选）` 的格式在[此处](https://github.com/apache/shardingsphere/issues/234)登记。
 
 ## 谁在使用ShardingSphere?
 
@@ -146,5 +146,15 @@ chapter = true
 1. <a href="https://www.can-dao.com/" rel="nofollow">餐道</a>
 1. <a href="https://www.yy.com/" rel="nofollow">欢聚时代(YY)</a>
 1. <a href="https://www.ddky.com/" rel="nofollow">叮当快药</a>
+1. 中移动金融科技
+1. <a href="https://www.idengyun.com/" rel="nofollow">登云</a>
+1. <a href="http://www.aicmonitor.com/" rel="nofollow">航天智控</a>
+1. <a href="https://www.tansun.com/" rel="nofollow">天阳宏业</a>
+1. <a href="https://www.keking.com" rel="nofollow">凯京科技</a>
+1. <a href="http://www.dzzd.com" rel="nofollow">玺信阳光</a>
+1. <a href="https://zowiesunglasses.com/" rel="nofollow">卓唯眼镜</a>
+1. <a href="http://www.hydee.cn/" rel="nofollow">海典软件</a>
+1. <a href="http://www.chiscdc.com/" rel="nofollow">中卫信</a>
+1. <a href="https://kada.hhdd.com/" rel="nofollow">KaDa故事</a>
 
 <img src="https://shardingsphere.apache.org/community/image/powered-by.png" width = "30%" height = "30%" align="right" alt="Powered By ShardingSphere" />

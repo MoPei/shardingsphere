@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.sql.parser.binder.segment.table;
 
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
 import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.impl.ColumnProjection;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.ColumnSegment;
@@ -32,6 +33,7 @@ import java.util.Optional;
  * Tables context.
  */
 @RequiredArgsConstructor
+@ToString
 public final class TablesContext {
     
     private final Collection<SimpleTableSegment> tables;
@@ -87,7 +89,12 @@ public final class TablesContext {
         return findTableNameFromMetaData(column.getName(), schemaMetaData);
     }
     
-    private String findTableNameFromSQL(final String tableNameOrAlias) {
+    /**
+     * Find table name from SQL.
+     * @param tableNameOrAlias table name or alias
+     * @return table name
+     */
+    public String findTableNameFromSQL(final String tableNameOrAlias) {
         for (SimpleTableSegment each : tables) {
             if (tableNameOrAlias.equalsIgnoreCase(each.getTableName().getIdentifier().getValue()) || tableNameOrAlias.equals(each.getAlias().orElse(null))) {
                 return each.getTableName().getIdentifier().getValue();
