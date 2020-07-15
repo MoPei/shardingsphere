@@ -29,6 +29,8 @@ import org.apache.shardingsphere.encrypt.api.config.EncryptRuleConfiguration;
 import org.apache.shardingsphere.infra.auth.Authentication;
 import org.apache.shardingsphere.infra.auth.yaml.config.YamlAuthenticationConfiguration;
 import org.apache.shardingsphere.infra.auth.yaml.swapper.AuthenticationYamlSwapper;
+import org.apache.shardingsphere.infra.callback.orchestration.DataSourceCallback;
+import org.apache.shardingsphere.infra.callback.orchestration.RuleCallback;
 import org.apache.shardingsphere.infra.config.DataSourceConfiguration;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.YamlRootRuleConfigurations;
@@ -68,6 +70,8 @@ public final class ConfigCenter {
     public ConfigCenter(final String name, final ConfigCenterRepository configCenterRepository) {
         this.node = new ConfigCenterNode(name);
         this.repository = configCenterRepository;
+        DataSourceCallback.getInstance().register(this::persistDataSourceConfiguration);
+        RuleCallback.getInstance().register(this::persistRuleConfigurations);
     }
     
     /**
@@ -82,7 +86,8 @@ public final class ConfigCenter {
                                       final Collection<RuleConfiguration> ruleConfigurations, final boolean isOverwrite) {
         persistDataSourceConfiguration(shardingSchemaName, dataSourceConfigs, isOverwrite);
         persistRuleConfigurations(shardingSchemaName, ruleConfigurations, isOverwrite);
-        persistShardingSchemaName(shardingSchemaName);
+        // TODO Consider removing the following one.
+        persistShardingSchemaName(shardingSchemaName, isOverwrite);
     }
     
     /**
@@ -98,31 +103,23 @@ public final class ConfigCenter {
     }
     
     private void persistDataSourceConfiguration(final String shardingSchemaName, final Map<String, DataSourceConfiguration> dataSourceConfigurations, final boolean isOverwrite) {
-        if (isOverwrite || !hasDataSourceConfiguration(shardingSchemaName)) {
-            Preconditions.checkState(null != dataSourceConfigurations && !dataSourceConfigurations.isEmpty(), "No available data source in `%s` for orchestration.", shardingSchemaName);
-            Map<String, YamlDataSourceConfiguration> yamlDataSourceConfigurations = dataSourceConfigurations.entrySet().stream()
-                    .collect(Collectors.toMap(Entry::getKey, entry -> new DataSourceConfigurationYamlSwapper().swapToYamlConfiguration(entry.getValue())));
-            repository.persist(node.getDataSourcePath(shardingSchemaName), YamlEngine.marshal(yamlDataSourceConfigurations));
+        if (isOverwrite) {
+            persistDataSourceConfiguration(shardingSchemaName, dataSourceConfigurations);
         }
     }
     
-    /**
-     * Judge whether schema has data source configuration.
-     *
-     * @param shardingSchemaName shading schema name
-     * @return has data source configuration or not
-     */
-    public boolean hasDataSourceConfiguration(final String shardingSchemaName) {
-        return !Strings.isNullOrEmpty(repository.get(node.getDataSourcePath(shardingSchemaName)));
+    private void persistDataSourceConfiguration(final String shardingSchemaName, final Map<String, DataSourceConfiguration> dataSourceConfigurations) {
+        Preconditions.checkState(null != dataSourceConfigurations && !dataSourceConfigurations.isEmpty(), "No available data source in `%s` for orchestration.", shardingSchemaName);
+        Map<String, YamlDataSourceConfiguration> yamlDataSourceConfigurations = dataSourceConfigurations.entrySet().stream()
+                .collect(Collectors.toMap(Entry::getKey, entry -> new DataSourceConfigurationYamlSwapper().swapToYamlConfiguration(entry.getValue())));
+        repository.persist(node.getDataSourcePath(shardingSchemaName), YamlEngine.marshal(yamlDataSourceConfigurations));
     }
     
     private void persistRuleConfigurations(final String shardingSchemaName, final Collection<RuleConfiguration> ruleConfigurations, final boolean isOverwrite) {
-        if (ruleConfigurations.isEmpty()) {
+        if (ruleConfigurations.isEmpty() || !isOverwrite) {
             return;
         }
-        if (isOverwrite || !hasRuleConfiguration(shardingSchemaName)) {
-            persistRuleConfigurations(shardingSchemaName, ruleConfigurations);
-        }
+        persistRuleConfigurations(shardingSchemaName, ruleConfigurations);
     }
     
     private void persistRuleConfigurations(final String shardingSchemaName, final Collection<RuleConfiguration> ruleConfigurations) {
@@ -168,23 +165,13 @@ public final class ConfigCenter {
     }
     
     /**
-     * Judge whether schema has rule configuration.
-     *
-     * @param shardingSchemaName sharding schema name
-     * @return has rule configuration or not
-     */
-    public boolean hasRuleConfiguration(final String shardingSchemaName) {
-        return !Strings.isNullOrEmpty(repository.get(node.getRulePath(shardingSchemaName)));
-    }
-    
-    /**
      * Persist metrics configuration.
      *
      * @param metricsConfiguration  metrics configuration.
      * @param isOverwrite is overwrite config center's configuration
      */
     public void persistMetricsConfiguration(final MetricsConfiguration metricsConfiguration, final boolean isOverwrite) {
-        if (null != metricsConfiguration && (isOverwrite || !hasMetricsConfiguration())) {
+        if (null != metricsConfiguration && isOverwrite) {
             repository.persist(node.getMetricsPath(), YamlEngine.marshal(new MetricsConfigurationYamlSwapper().swapToYamlConfiguration(metricsConfiguration)));
         }
     }
@@ -196,40 +183,27 @@ public final class ConfigCenter {
      * @param isOverwrite is overwrite config center's configuration
      */
     public void persistClusterConfiguration(final ClusterConfiguration clusterConfiguration, final boolean isOverwrite) {
-        if (null != clusterConfiguration && (isOverwrite || !hasClusterConfiguration())) {
+        if (null != clusterConfiguration && isOverwrite) {
             repository.persist(node.getClusterPath(), YamlEngine.marshal(new ClusterConfigurationYamlSwapper().swapToYamlConfiguration(clusterConfiguration)));
         }
     }
     
-    private boolean hasClusterConfiguration() {
-        return !Strings.isNullOrEmpty(repository.get(node.getClusterPath()));
-    }
-    
-    private boolean hasMetricsConfiguration() {
-        return !Strings.isNullOrEmpty(repository.get(node.getMetricsPath()));
-    }
-    
     private void persistAuthentication(final Authentication authentication, final boolean isOverwrite) {
-        if (null != authentication && (isOverwrite || !hasAuthentication())) {
+        if (null != authentication && isOverwrite) {
             repository.persist(node.getAuthenticationPath(), YamlEngine.marshal(new AuthenticationYamlSwapper().swapToYamlConfiguration(authentication)));
         }
     }
     
-    private boolean hasAuthentication() {
-        return !Strings.isNullOrEmpty(repository.get(node.getAuthenticationPath()));
-    }
-    
     private void persistProperties(final Properties props, final boolean isOverwrite) {
-        if (isOverwrite || !hasProperties()) {
+        if (!props.isEmpty() && isOverwrite) {
             repository.persist(node.getPropsPath(), YamlEngine.marshal(props));
         }
     }
     
-    private boolean hasProperties() {
-        return !Strings.isNullOrEmpty(repository.get(node.getPropsPath()));
-    }
-    
-    private void persistShardingSchemaName(final String shardingSchemaName) {
+    private void persistShardingSchemaName(final String shardingSchemaName, final boolean isOverwrite) {
+        if (!isOverwrite) {
+            return;
+        }
         String shardingSchemaNames = repository.get(node.getSchemaPath());
         if (Strings.isNullOrEmpty(shardingSchemaNames)) {
             repository.persist(node.getSchemaPath(), shardingSchemaName);
@@ -317,6 +291,30 @@ public final class ConfigCenter {
      */
     public Collection<String> getAllShardingSchemaNames() {
         String shardingSchemaNames = repository.get(node.getSchemaPath());
-        return node.splitShardingSchemaName(shardingSchemaNames);
+        return Strings.isNullOrEmpty(shardingSchemaNames) ? new LinkedList<>() : node.splitShardingSchemaName(shardingSchemaNames);
+    }
+    
+    /**
+     * Judge whether schema has rule configuration.
+     *
+     * @param shardingSchemaName sharding schema name
+     * @return has rule configuration or not
+     */
+    public boolean hasRuleConfiguration(final String shardingSchemaName) {
+        return !Strings.isNullOrEmpty(repository.get(node.getRulePath(shardingSchemaName)));
+    }
+    
+    /**
+     * Judge whether schema has data source configuration.
+     *
+     * @param shardingSchemaName shading schema name
+     * @return has data source configuration or not
+     */
+    public boolean hasDataSourceConfiguration(final String shardingSchemaName) {
+        return !Strings.isNullOrEmpty(repository.get(node.getDataSourcePath(shardingSchemaName)));
+    }
+    
+    private boolean hasAuthentication() {
+        return !Strings.isNullOrEmpty(repository.get(node.getAuthenticationPath()));
     }
 }

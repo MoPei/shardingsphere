@@ -65,7 +65,7 @@ public final class SelectStatement extends DMLStatement {
     
     /**
      * Get group by segment.
-     * 
+     *
      * @return group by segment
      */
     public Optional<GroupBySegment> getGroupBy() {
