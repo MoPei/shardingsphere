@@ -8,21 +8,21 @@ weight = 1
 ```xml
 <dependency>
     <groupId>org.apache.shardingsphere</groupId>
-    <artifactId>shardingsphere-jdbc-orchestration</artifactId>
+    <artifactId>shardingsphere-jdbc-governance</artifactId>
     <version>${shardingsphere.version}</version>
 </dependency>
 
 <!-- import if using ZooKeeper -->
 <dependency>
     <groupId>org.apache.shardingsphere</groupId>
-    <artifactId>shardingsphere-orchestration-center-zookeeper-curator</artifactId>
+    <artifactId>shardingsphere-governance-repository-zookeeper-curator</artifactId>
     <version>${shardingsphere.version}</version>
 </dependency>
 
 <!-- import if using Etcd -->
 <dependency>
     <groupId>org.apache.shardingsphere</groupId>
-    <artifactId>shardingsphere-orchestration-center-etcd</artifactId>
+    <artifactId>shardingsphere-governance-repository-etcd</artifactId>
     <version>${shardingsphere.version}</version>
 </dependency>
 ```
@@ -36,32 +36,29 @@ Using ZooKeeper as config center and registry center for example.
 // ...
 
 // Configure config/registry/metadata center
-Properties props = new Properties();
-props.setProperty("overwrite", overwrite);
-CenterConfiguration centerConfiguration = new CenterConfiguration("zookeeper", props);
-centerConfiguration.setServerLists("localhost:2181");
-centerConfiguration.setNamespace("shardingsphere-orchestration");
-centerConfiguration.setOrchestrationType("registry_center,config_center,metadata_center");
+GovernanceCenterConfiguration configuration = new GovernanceCenterConfiguration("Zookeeper", "localhost:2181", new Properties());
 
-// Configure orchestration
-Map<String, CenterConfiguration> instanceConfigurationMap = new HashMap<String, CenterConfiguration>();
-instanceConfigurationMap.put("orchestration-shardingsphere-data-source", centerConfiguration);
+// Configure governance
+Map<String, CenterConfiguration> configurationMap = new HashMap<String, CenterConfiguration>();
+configurationMap.put("governance-shardingsphere-data-source", configuration);
 
-// Create OrchestrationShardingSphereDataSource
-DataSource dataSource = OrchestrationShardingSphereDataSourceFactory.createDataSource(
-        createDataSourceMap(), createShardingRuleConfig(), new HashMap<String, Object>(), new Properties(), new OrchestrationConfiguration(instanceConfigurationMap));
+// Create GovernanceShardingSphereDataSource
+DataSource dataSource = GovernanceShardingSphereDataSourceFactory.createDataSource(
+        createDataSourceMap(), createShardingRuleConfig(), new HashMap<String, Object>(), new Properties(),
+        new GovernanceConfiguration("shardingsphere-governance", configurationMap, true));
 ```
 
-## Use OrchestrationShardingSphereDataSource
+## Use GovernanceShardingSphereDataSource
 
-The OrchestrationShardingSphereDataSource created by OrchestrationShardingSphereDataSourceFactory implements the standard JDBC DataSource interface.
+The GovernanceShardingSphereDataSource created by GovernanceShardingSphereDataSourceFactory implements the standard JDBC DataSource interface.
 Developer can choose to use native JDBC or ORM frameworks such as JPA or MyBatis through the DataSource.
 
 Take native JDBC usage as an example:
 
 ```java
-DataSource dataSource = OrchestrationShardingSphereDataSourceFactory.createDataSource(
-        createDataSourceMap(), createShardingRuleConfig(), new HashMap<String, Object>(), new Properties(), new OrchestrationConfiguration(instanceConfigurationMap));
+DataSource dataSource = GovernanceShardingSphereDataSourceFactory.createDataSource(
+        createDataSourceMap(), createShardingRuleConfig(), new HashMap<String, Object>(), new Properties(), 
+        new GovernanceConfiguration("shardingsphere-governance", configurationMap, true));
 String sql = "SELECT i.* FROM t_order o JOIN t_order_item i ON o.order_id=i.order_id WHERE o.user_id=? AND o.order_id=?";
 try (
         Connection conn = dataSource.getConnection();

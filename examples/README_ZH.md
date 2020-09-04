@@ -14,7 +14,7 @@
 
 ## 如果要使用`dev`分支，请在开始该example之前
 
-请确保已安装了来自[shardingsphere](https://github.com/apache/shardingsphere) 和 [shardingsphere-spi-impl](https://github.com/OpenSharding/shardingsphere-spi-impl)的某些依赖项，因为某些示例依赖于此。如果您是shardingsphere的新手，您可以准备如下依赖：
+请确保已安装了来自[shardingsphere](https://github.com/apache/shardingsphere) 的某些依赖项，因为某些示例依赖于此。如果您是shardingsphere的新手，您可以准备如下依赖：
 
 1.下载并安装[shardingsphere](https://github.com/apache/shardingsphere)：
 
@@ -22,24 +22,9 @@
 ## 下载shardingsphere代码
 git clone https://github.com/apache/shardingsphere.git
 
-## 检出一个指定版本，比如是 4.0.0-RC1
-cd shardingsphere && git checkout 4.0.0-RC1
-
 ## 安装依赖
+cd shardingsphere/examples
 mvn clean install -Prelease
-```
-
-2.下载并安装[shardingsphere-spi-impl](https://github.com/OpenSharding/shardingsphere-spi-impl)：
-
-```bash
-## 下载shardingsphere-SPI-implement的代码
-git clone https://github.com/OpenSharding/shardingsphere-spi-impl.git
-
-## 检出一个指定版本，比如是 4.0.0-RC1
-cd shardingsphere-spi-impl && git checkout 4.0.0-RC1
-
-## 安装依赖
-mvn clean install
 ```
 
 ## shardingsphere-example模块设计
@@ -61,13 +46,13 @@ shardingsphere-example
   │   │   ├── sharding-spring-boot-mybatis-example
   │   │   ├── sharding-spring-namespace-jpa-example
   │   │   └── sharding-spring-namespace-mybatis-example
-  │   ├── orchestration-example
-  │   │   ├── orchestration-raw-jdbc-example
-  │   │   ├── orchestration-spring-boot-example
-  │   │   └── orchestration-spring-namespace-example
+  │   ├── governance-example
+  │   │   ├── governance-raw-jdbc-example
+  │   │   ├── governance-spring-boot-example
+  │   │   └── governance-spring-namespace-example
   │   ├── transaction-example
   │   │   ├── transaction-2pc-xa-example
-  │   │   └──transaction-base-seata-example
+  │   │   └── transaction-base-seata-example
   │   ├── other-feature-example
   │   │   ├── hint-example
   │   │   └── encrypt-example
@@ -85,7 +70,7 @@ shardingsphere-example
 | [分片](shardingsphere-jdbc-example/sharding-example) | 演示了如何通过 ShardingSphere-JDBC 进行分库、分表、主从等 |
 | [springboot jpa](shardingsphere-jdbc-example/sharding-example/sharding-spring-boot-jpa-example) | 演示了如何通过 SpringBoot JPA 对接 ShardingSphere |
 | [springboot mybatis](shardingsphere-jdbc-example/sharding-example/sharding-spring-boot-mybatis-example) | 演示了如何通过 SpringBoot Mybatis 对接 ShardingSphere |
-| [orchestration](shardingsphere-jdbc-example/orchestration-example) | 演示了如何在 ShardingSphere 中使用 orchestration |
+| [governance](shardingsphere-jdbc-example/governance-example) | 演示了如何在 ShardingSphere 中使用 governance |
 | [事务](shardingsphere-jdbc-example/transaction-example) | 演示了如何在 ShardingSphere 中使用事务 |
 | [hint](shardingsphere-jdbc-example/other-feature-example/hint-example) | 演示了如何在 ShardingSphere 中使用 hint |
 | [加密](shardingsphere-jdbc-example/other-feature-example/encrypt-example) | 演示了如何在 ShardingSphere 中使用加密 |

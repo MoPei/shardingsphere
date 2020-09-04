@@ -22,8 +22,8 @@ import org.apache.shardingsphere.shadow.rule.ShadowRule;
 import org.apache.shardingsphere.shadow.route.engine.impl.PreparedShadowDataSourceRouter;
 import org.apache.shardingsphere.shadow.route.engine.impl.SimpleShadowDataSourceRouter;
 import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.DMLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DMLStatement;
 import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
@@ -94,7 +94,7 @@ public final class ShadowRouteDecorator implements RouteDecorator<ShadowRule> {
     private boolean isShadowSQL(final RouteContext routeContext, final ShadowRule shadowRule) {
         List<Object> parameters = routeContext.getParameters();
         SQLStatementContext sqlStatementContext = routeContext.getSqlStatementContext();
-        ShadowDataSourceRouter shadowDataSourceRouter = parameters.size() == 0 ? new SimpleShadowDataSourceRouter(shadowRule, sqlStatementContext)
+        ShadowDataSourceRouter shadowDataSourceRouter = parameters.isEmpty() ? new SimpleShadowDataSourceRouter(shadowRule, sqlStatementContext)
                 : new PreparedShadowDataSourceRouter(shadowRule, sqlStatementContext, parameters);
         return shadowDataSourceRouter.isShadowSQL();
     }

@@ -26,7 +26,7 @@ import org.apache.shardingsphere.db.protocol.packet.DatabasePacket;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
 import org.apache.shardingsphere.proxy.backend.schema.ProxySchemaContexts;
 import org.apache.shardingsphere.proxy.frontend.api.CommandExecutor;
-import org.apache.shardingsphere.sql.parser.sql.util.SQLUtil;
+import org.apache.shardingsphere.sql.parser.sql.common.util.SQLUtil;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,7 +42,7 @@ public final class MySQLComInitDbExecutor implements CommandExecutor {
     private final BackendConnection backendConnection;
     
     @Override
-    public Collection<DatabasePacket> execute() {
+    public Collection<DatabasePacket<?>> execute() {
         String schema = SQLUtil.getExactlyValue(packet.getSchema());
         if (ProxySchemaContexts.getInstance().schemaExists(schema) && isAuthorizedSchema(schema)) {
             backendConnection.setCurrentSchema(packet.getSchema());
@@ -52,7 +52,7 @@ public final class MySQLComInitDbExecutor implements CommandExecutor {
     }
     
     private boolean isAuthorizedSchema(final String schema) {
-        Collection<String> authorizedSchemas = ProxySchemaContexts.getInstance().getSchemaContexts().getAuthentication().getUsers().get(backendConnection.getUserName()).getAuthorizedSchemas();
+        Collection<String> authorizedSchemas = ProxySchemaContexts.getInstance().getSchemaContexts().getAuthentication().getUsers().get(backendConnection.getUsername()).getAuthorizedSchemas();
         return authorizedSchemas.isEmpty() || authorizedSchemas.contains(schema);
     }
 }

@@ -18,15 +18,16 @@
 package org.apache.shardingsphere.proxy.backend.text.sctl.explain;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.infra.context.SchemaContext;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.raw.execute.result.query.QueryHeader;
-import org.apache.shardingsphere.kernel.context.SchemaContext;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.wrapper.StatementExecutorWrapper;
 import org.apache.shardingsphere.proxy.backend.response.BackendResponse;
 import org.apache.shardingsphere.proxy.backend.response.error.ErrorResponse;
 import org.apache.shardingsphere.proxy.backend.response.query.QueryData;
 import org.apache.shardingsphere.proxy.backend.response.query.QueryResponse;
+import org.apache.shardingsphere.proxy.backend.schema.ProxySchemaContexts;
 import org.apache.shardingsphere.proxy.backend.text.TextProtocolBackendHandler;
 import org.apache.shardingsphere.proxy.backend.text.sctl.exception.InvalidShardingCTLFormatException;
 
@@ -56,9 +57,10 @@ public final class ShardingCTLExplainBackendHandler implements TextProtocolBacke
         if (!explainStatement.isPresent()) {
             return new ErrorResponse(new InvalidShardingCTLFormatException(sql));
         }
-        SchemaContext schema = backendConnection.getSchema();
-        StatementExecutorWrapper statementExecutorWrapper = new StatementExecutorWrapper(schema, schema.getRuntimeContext().getSqlParserEngine().parse(sql, false));
-        executionUnits = statementExecutorWrapper.execute(explainStatement.get().getSql()).getExecutionUnits().iterator();
+        SchemaContext schema = ProxySchemaContexts.getInstance().getSchema(backendConnection.getSchema());
+        StatementExecutorWrapper statementExecutorWrapper =
+                new StatementExecutorWrapper(schema, schema.getRuntimeContext().getSqlParserEngine().parse(explainStatement.get().getSql(), false));
+        executionUnits = statementExecutorWrapper.generateExecutionContext(explainStatement.get().getSql()).getExecutionUnits().iterator();
         queryHeaders = new ArrayList<>(2);
         queryHeaders.add(new QueryHeader("", "", "datasource_name", "", 255, Types.CHAR, 0, false, false, false, false));
         queryHeaders.add(new QueryHeader("", "", "sql", "", 255, Types.CHAR, 0, false, false, false, false));

@@ -21,21 +21,21 @@ import org.apache.shardingsphere.shadow.api.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.shadow.rule.ShadowRule;
 import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
 import org.apache.shardingsphere.sql.parser.binder.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.InsertColumnsSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.value.identifier.IdentifierValue;
-import org.junit.Assert;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.InsertColumnsSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PreparedShadowDataSourceRouterTest {
+public final class PreparedShadowDataSourceRouterTest {
     
     @Test
     public void isShadowSQL() {
@@ -50,6 +50,6 @@ public class PreparedShadowDataSourceRouterTest {
         insertStatement.setInsertColumns(insertColumnsSegment);
         InsertStatementContext insertStatementContext = new InsertStatementContext(schemaMetaData, Arrays.asList(1, "Tom", 2, "Jerry", 3, true), insertStatement);
         PreparedShadowDataSourceRouter preparedShadowDataSourceRouter = new PreparedShadowDataSourceRouter(shadowRule, insertStatementContext, Arrays.asList(1, "Tom", true));
-        Assert.assertTrue("should be shadow", preparedShadowDataSourceRouter.isShadowSQL());
+        assertTrue("should be shadow", preparedShadowDataSourceRouter.isShadowSQL());
     }
 }

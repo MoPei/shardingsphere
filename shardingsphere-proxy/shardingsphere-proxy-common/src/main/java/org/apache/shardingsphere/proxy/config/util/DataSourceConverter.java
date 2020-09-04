@@ -20,8 +20,8 @@ package org.apache.shardingsphere.proxy.config.util;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.config.DataSourceConfiguration;
-import org.apache.shardingsphere.kernel.context.schema.DataSourceParameter;
+import org.apache.shardingsphere.infra.config.datasource.DataSourceConfiguration;
+import org.apache.shardingsphere.infra.context.schema.DataSourceParameter;
 import org.apache.shardingsphere.proxy.config.yaml.YamlDataSourceParameter;
 
 import java.lang.reflect.Field;
@@ -44,7 +44,7 @@ public final class DataSourceConverter {
      */
     public static Map<String, DataSourceParameter> getDataSourceParameterMap(final Map<String, DataSourceConfiguration> dataSourceConfigurationMap) {
         return dataSourceConfigurationMap.entrySet().stream()
-                .collect(Collectors.toMap(Entry::getKey, entry -> createDataSourceParameter(entry.getValue()), (oldVal, currVal) -> oldVal, LinkedHashMap::new));
+                .collect(Collectors.toMap(Entry::getKey, entry -> createDataSourceParameter(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
     }
     
     /**
@@ -56,21 +56,6 @@ public final class DataSourceConverter {
     public static Map<String, DataSourceParameter> getDataSourceParameterMap2(final Map<String, YamlDataSourceParameter> dataSourceParameters) {
         return dataSourceParameters.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, entry -> createDataSourceParameter(entry.getValue()), (oldVal, currVal) -> oldVal, LinkedHashMap::new));
-    }
-    
-    private static DataSourceParameter createDataSourceParameter(final DataSourceConfiguration dataSourceConfiguration) {
-        bindAlias(dataSourceConfiguration);
-        DataSourceParameter result = new DataSourceParameter();
-        for (Field each : result.getClass().getDeclaredFields()) {
-            try {
-                each.setAccessible(true);
-                if (dataSourceConfiguration.getProps().containsKey(each.getName())) {
-                    each.set(result, dataSourceConfiguration.getProps().get(each.getName()));
-                }
-            } catch (final ReflectiveOperationException ignored) {
-            }
-        }
-        return result;
     }
     
     private static DataSourceParameter createDataSourceParameter(final YamlDataSourceParameter yamlDataSourceParameter) {
@@ -87,13 +72,28 @@ public final class DataSourceConverter {
         result.setUrl(yamlDataSourceParameter.getUrl());
         return result;
     }
+    
+    private static DataSourceParameter createDataSourceParameter(final DataSourceConfiguration dataSourceConfig) {
+        bindSynonym(dataSourceConfig);
+        DataSourceParameter result = new DataSourceParameter();
+        for (Field each : result.getClass().getDeclaredFields()) {
+            try {
+                each.setAccessible(true);
+                if (dataSourceConfig.getProps().containsKey(each.getName())) {
+                    each.set(result, dataSourceConfig.getProps().get(each.getName()));
+                }
+            } catch (final ReflectiveOperationException ignored) {
+            }
+        }
+        return result;
+    }
 
-    private static void bindAlias(final DataSourceConfiguration dataSourceConfiguration) {
-        dataSourceConfiguration.addAlias("url", "jdbcUrl");
-        dataSourceConfiguration.addAlias("user", "username");
-        dataSourceConfiguration.addAlias("connectionTimeout", "connectionTimeoutMilliseconds");
-        dataSourceConfiguration.addAlias("maxLifetime", "maxLifetimeMilliseconds");
-        dataSourceConfiguration.addAlias("idleTimeout", "idleTimeoutMilliseconds");
+    private static void bindSynonym(final DataSourceConfiguration dataSourceConfiguration) {
+        dataSourceConfiguration.addPropertySynonym("url", "jdbcUrl");
+        dataSourceConfiguration.addPropertySynonym("user", "username");
+        dataSourceConfiguration.addPropertySynonym("connectionTimeout", "connectionTimeoutMilliseconds");
+        dataSourceConfiguration.addPropertySynonym("maxLifetime", "maxLifetimeMilliseconds");
+        dataSourceConfiguration.addPropertySynonym("idleTimeout", "idleTimeoutMilliseconds");
     }
     
     /**

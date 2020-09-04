@@ -18,8 +18,6 @@ chapter = true
 
 ShardingSphere使用lombok实现极简代码。关于更多使用和安装细节，请参考[lombok官网](https://projectlombok.org/download.html)。
 
-shardingsphere-orchestration-reg模块需要先执行`mvn install`命令，根据protobuf文件生成gRPC相关的java文件。
-
 ## 3. 使用Spring命名空间时找不到xsd?
 
 回答：
@@ -109,7 +107,7 @@ com.dangdang.ddframe.rdb.sharding.merger.orderby.OrderByValue#getOrderValues()�
 ```
 
 使用了resultSet.getObject(int index)方法，针对TimeStamp oracle会根据oracle.jdbc.J2EE13Compliant属性判断返回java.sql.TimeStamp还是自定义oralce.sql.TIMESTAMP
-详见ojdbc源码oracle.jdbc.driver.TimestampAccessor#getObject(int var1)方法：
+详见 ojdbc 源码 oracle.jdbc.driver.TimestampAccessor#getObject(int var1) 方法:
 
 ```java
     Object getObject(int var1) throws SQLException {

@@ -29,19 +29,19 @@ import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser.Gr
 import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser.PrivilegeClauseContext;
 import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser.RevokeContext;
 import org.apache.shardingsphere.sql.parser.postgresql.visitor.PostgreSQLVisitor;
-import org.apache.shardingsphere.sql.parser.sql.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.AlterRoleStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.AlterUserStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.CreateRoleStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.CreateUserStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.DropRoleStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.DropUserStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.GrantStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.RevokeStatement;
-import org.apache.shardingsphere.sql.parser.sql.value.collection.CollectionValue;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.AlterRoleStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.AlterUserStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.CreateRoleStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.CreateUserStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.DropRoleStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.DropUserStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.GrantStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.RevokeStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Optional;
 
 /**
  * DCL visitor for PostgreSQL.
@@ -51,28 +51,27 @@ public final class PostgreSQLDCLVisitor extends PostgreSQLVisitor implements DCL
     @Override
     public ASTNode visitGrant(final GrantContext ctx) {
         GrantStatement result = new GrantStatement();
-        if (null != ctx.privilegeClause()) {
-            for (SimpleTableSegment each : getTableFromPrivilegeClause(ctx.privilegeClause())) {
-                result.getTables().add(each);
-            }
-        }
+        Optional<Collection<SimpleTableSegment>> tableSegmentOptional = null == ctx.privilegeClause() ? Optional.empty() : getTableFromPrivilegeClause(ctx.privilegeClause());
+        tableSegmentOptional.ifPresent(tableSegment -> result.getTables().addAll(tableSegment));
         return result;
     }
     
     @Override
     public ASTNode visitRevoke(final RevokeContext ctx) {
         RevokeStatement result = new RevokeStatement();
-        if (null != ctx.privilegeClause()) {
-            for (SimpleTableSegment each : getTableFromPrivilegeClause(ctx.privilegeClause())) {
-                result.getTables().add(each);
-            }
-        }
+        Optional<Collection<SimpleTableSegment>> tableSegmentOptional = null == ctx.privilegeClause() ? Optional.empty() : getTableFromPrivilegeClause(ctx.privilegeClause());
+        tableSegmentOptional.ifPresent(tableSegment -> result.getTables().addAll(tableSegment));
         return result;
     }
     
     @SuppressWarnings("unchecked")
-    private Collection<SimpleTableSegment> getTableFromPrivilegeClause(final PrivilegeClauseContext ctx) {
-        return null == ctx.onObjectClause().tableNames() ? Collections.emptyList() : ((CollectionValue<SimpleTableSegment>) visit(ctx.onObjectClause().tableNames())).getValue();
+    private Optional<Collection<SimpleTableSegment>> getTableFromPrivilegeClause(final PrivilegeClauseContext ctx) {
+        if (null != ctx.onObjectClause() && null != ctx.onObjectClause().privilegeLevel()) {
+            if (null != ctx.onObjectClause().privilegeLevel().tableNames()) {
+                return Optional.of(((CollectionValue<SimpleTableSegment>) visit(ctx.onObjectClause().privilegeLevel().tableNames())).getValue());
+            }
+        }
+        return Optional.empty();
     }
     
     @Override

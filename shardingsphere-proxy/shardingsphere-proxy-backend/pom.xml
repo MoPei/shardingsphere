@@ -54,12 +54,17 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-rdl-parser-binder</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-db-protocol-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-kernel-context</artifactId>
+            <artifactId>shardingsphere-infra-context</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

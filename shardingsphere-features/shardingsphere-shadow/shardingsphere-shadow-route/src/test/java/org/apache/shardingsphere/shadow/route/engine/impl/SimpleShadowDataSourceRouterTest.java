@@ -22,31 +22,32 @@ import org.apache.shardingsphere.shadow.rule.ShadowRule;
 import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
 import org.apache.shardingsphere.sql.parser.binder.statement.dml.InsertStatementContext;
 import org.apache.shardingsphere.sql.parser.binder.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.assignment.InsertValuesSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.InsertColumnsSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.expr.simple.LiteralExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.item.ExpressionProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.item.ProjectionsSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.AndPredicate;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.PredicateSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.WhereSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.value.PredicateCompareRightValue;
-import org.apache.shardingsphere.sql.parser.sql.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.value.identifier.IdentifierValue;
-import org.junit.Assert;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.InsertValuesSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.InsertColumnsSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.LiteralExpressionSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ExpressionProjectionSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionsSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.AndPredicate;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.PredicateSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.WhereSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.value.PredicateCompareRightValue;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SimpleShadowDataSourceRouterTest {
+public final class SimpleShadowDataSourceRouterTest {
     
     private SchemaMetaData schemaMetaData;
     
@@ -71,13 +72,13 @@ public class SimpleShadowDataSourceRouterTest {
                 0, 0, Arrays.asList(new LiteralExpressionSegment(0, 0, 1), new LiteralExpressionSegment(0, 0, "name"), new LiteralExpressionSegment(0, 0, true)))));
         InsertStatementContext insertStatementContext = new InsertStatementContext(schemaMetaData, Collections.emptyList(), insertStatement);
         SimpleShadowDataSourceRouter simpleShadowDataSourceRouter = new SimpleShadowDataSourceRouter(shadowRule, insertStatementContext);
-        Assert.assertTrue("should be shadow", simpleShadowDataSourceRouter.isShadowSQL());
+        assertTrue("should be shadow", simpleShadowDataSourceRouter.isShadowSQL());
         insertStatement.getValues().clear();
         insertStatement.getValues().addAll(Collections.singletonList(
                 new InsertValuesSegment(0, 0, Arrays.asList(new LiteralExpressionSegment(0, 0, 1), new LiteralExpressionSegment(0, 0, "name"), new LiteralExpressionSegment(0, 0, false)))));
         insertStatementContext = new InsertStatementContext(schemaMetaData, Collections.emptyList(), insertStatement);
         simpleShadowDataSourceRouter = new SimpleShadowDataSourceRouter(shadowRule, insertStatementContext);
-        Assert.assertFalse("should not be shadow", simpleShadowDataSourceRouter.isShadowSQL());
+        assertFalse("should not be shadow", simpleShadowDataSourceRouter.isShadowSQL());
     }
     
     @Test
@@ -86,21 +87,21 @@ public class SimpleShadowDataSourceRouterTest {
         WhereSegment whereSegment = new WhereSegment(0, 0);
         AndPredicate andPredicate = new AndPredicate();
         andPredicate.getPredicates().addAll(Collections.singletonList(
-                new PredicateSegment(0, 0, new ColumnSegment(0, 0, new IdentifierValue("shadow")), new PredicateCompareRightValue("=", new LiteralExpressionSegment(0, 0, true)))));
+                new PredicateSegment(0, 0, new ColumnSegment(0, 0, new IdentifierValue("shadow")), new PredicateCompareRightValue(0, 0, "=", new LiteralExpressionSegment(0, 0, true)))));
         whereSegment.getAndPredicates().addAll(Collections.singletonList(andPredicate));
         selectStatement.setWhere(whereSegment);
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         projectionsSegment.setDistinctRow(true);
         projectionsSegment.getProjections().addAll(Collections.singletonList(new ExpressionProjectionSegment(0, 0, "true")));
         selectStatement.setProjections(projectionsSegment);
-        SelectStatementContext selectStatementContext = new SelectStatementContext(schemaMetaData, "", Collections.emptyList(), selectStatement);
+        SelectStatementContext selectStatementContext = new SelectStatementContext(schemaMetaData, Collections.emptyList(), selectStatement);
         SimpleShadowDataSourceRouter simpleShadowDataSourceRouter = new SimpleShadowDataSourceRouter(shadowRule, selectStatementContext);
-        Assert.assertTrue("should be shadow", simpleShadowDataSourceRouter.isShadowSQL());
+        assertTrue("should be shadow", simpleShadowDataSourceRouter.isShadowSQL());
         andPredicate.getPredicates().clear();
         andPredicate.getPredicates().addAll(Collections.singletonList(
-                new PredicateSegment(0, 0, new ColumnSegment(0, 0, new IdentifierValue("shadow")), new PredicateCompareRightValue("=", new LiteralExpressionSegment(0, 0, false)))));
+                new PredicateSegment(0, 0, new ColumnSegment(0, 0, new IdentifierValue("shadow")), new PredicateCompareRightValue(0, 0, "=", new LiteralExpressionSegment(0, 0, false)))));
         projectionsSegment.getProjections().clear();
         projectionsSegment.getProjections().addAll(Collections.singletonList(new ExpressionProjectionSegment(0, 0, "false")));
-        Assert.assertFalse("should not be shadow", simpleShadowDataSourceRouter.isShadowSQL());
+        assertFalse("should not be shadow", simpleShadowDataSourceRouter.isShadowSQL());
     }
 }
