@@ -19,8 +19,8 @@ package org.apache.shardingsphere.infra.merge.engine.merger.impl;
 
 import org.apache.shardingsphere.infra.executor.sql.QueryResult;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.schema.PhysicalSchemaMetaData;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -37,7 +37,7 @@ public final class TransparentResultMergerTest {
         QueryResult queryResult = mock(QueryResult.class);
         when(queryResult.next()).thenReturn(true);
         TransparentResultMerger merger = new TransparentResultMerger();
-        MergedResult actual = merger.merge(Collections.singletonList(queryResult), mock(SQLStatementContext.class), mock(SchemaMetaData.class));
+        MergedResult actual = merger.merge(Collections.singletonList(queryResult), mock(SQLStatementContext.class), mock(PhysicalSchemaMetaData.class));
         assertTrue(actual.next());
     }
 }

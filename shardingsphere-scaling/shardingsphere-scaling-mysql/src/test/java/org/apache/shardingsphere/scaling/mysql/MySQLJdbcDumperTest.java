@@ -20,10 +20,13 @@ package org.apache.shardingsphere.scaling.mysql;
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.scaling.core.config.DumperConfiguration;
 import org.apache.shardingsphere.scaling.core.config.InventoryDumperConfiguration;
-import org.apache.shardingsphere.scaling.core.config.JDBCDataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.JDBCScalingDataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.datasource.DataSourceManager;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -34,17 +37,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class MySQLJdbcDumperTest {
     
     private DataSourceManager dataSourceManager;
     
     private MySQLJdbcDumper mySQLJdbcDumper;
+    
+    @Mock
+    private Connection connection;
     
     @Before
     public void setUp() {
@@ -53,16 +58,16 @@ public final class MySQLJdbcDumperTest {
     }
     
     private InventoryDumperConfiguration mockInventoryDumperConfiguration() {
-        DumperConfiguration dumperConfiguration = mockDumperConfiguration();
-        initTableData(dumperConfiguration);
-        InventoryDumperConfiguration result = new InventoryDumperConfiguration(dumperConfiguration);
+        DumperConfiguration dumperConfig = mockDumperConfiguration();
+        initTableData(dumperConfig);
+        InventoryDumperConfiguration result = new InventoryDumperConfiguration(dumperConfig);
         result.setTableName("t_order");
         return result;
     }
     
     private DumperConfiguration mockDumperConfiguration() {
         DumperConfiguration result = new DumperConfiguration();
-        result.setDataSourceConfiguration(new JDBCDataSourceConfiguration("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL", "root", "root"));
+        result.setDataSourceConfiguration(new JDBCScalingDataSourceConfiguration("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL", "root", "root"));
         return result;
     }
     
@@ -78,8 +83,7 @@ public final class MySQLJdbcDumperTest {
     }
     
     @Test
-    @SneakyThrows(SQLException.class)
-    public void assertReadValue() {
+    public void assertReadValue() throws SQLException {
         ResultSet resultSet = mock(ResultSet.class);
         ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
@@ -92,12 +96,9 @@ public final class MySQLJdbcDumperTest {
     }
     
     @Test
-    @SneakyThrows(SQLException.class)
-    public void assertCreatePreparedStatement() {
-        DataSource dataSource = dataSourceManager.getDataSource(mockDumperConfiguration().getDataSourceConfiguration());
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement preparedStatement = mySQLJdbcDumper.createPreparedStatement(connection, "SELECT * FROM t_order")) {
-            assertThat(preparedStatement.getFetchSize(), is(100));
-        }
+    public void assertCreatePreparedStatement() throws SQLException {
+        when(connection.prepareStatement("", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)).thenReturn(mock(PreparedStatement.class));
+        PreparedStatement preparedStatement = mySQLJdbcDumper.createPreparedStatement(connection, "");
+        verify(preparedStatement).setFetchSize(Integer.MIN_VALUE);
     }
 }

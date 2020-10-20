@@ -17,10 +17,12 @@
 
 package org.apache.shardingsphere.scaling.core.job.preparer.resumer;
 
-import org.apache.shardingsphere.scaling.core.config.DataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.ScalingDataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.config.DumperConfiguration;
 import org.apache.shardingsphere.scaling.core.config.ImporterConfiguration;
-import org.apache.shardingsphere.scaling.core.config.JDBCDataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.JDBCScalingDataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.JobConfiguration;
+import org.apache.shardingsphere.scaling.core.config.ScalingConfiguration;
 import org.apache.shardingsphere.scaling.core.config.ScalingContext;
 import org.apache.shardingsphere.scaling.core.config.ServerConfiguration;
 import org.apache.shardingsphere.scaling.core.config.SyncConfiguration;
@@ -60,9 +62,9 @@ public final class SyncPositionResumerTest {
     @Before
     public void setUp() {
         ScalingContext.getInstance().init(new ServerConfiguration());
-        shardingScalingJob = new ShardingScalingJob("scalingTest", 0);
+        shardingScalingJob = new ShardingScalingJob(mockScalingConfiguration());
         shardingScalingJob.getSyncConfigurations().add(mockSyncConfiguration());
-        resumeBreakPointManager = ResumeBreakPointManagerFactory.newInstance("MySQL", "/scalingTest/item-0");
+        resumeBreakPointManager = ResumeBreakPointManagerFactory.newInstance("MySQL", "/scalingTest/position/0");
         syncPositionResumer = new SyncPositionResumer();
     }
     
@@ -83,6 +85,12 @@ public final class SyncPositionResumerTest {
         verify(resumeBreakPointManager).persistInventoryPosition();
     }
     
+    private ScalingConfiguration mockScalingConfiguration() {
+        ScalingConfiguration result = new ScalingConfiguration();
+        result.setJobConfiguration(new JobConfiguration());
+        return result;
+    }
+    
     private SyncConfiguration mockSyncConfiguration() {
         DumperConfiguration dumperConfig = mockDumperConfig();
         ImporterConfiguration importerConfig = new ImporterConfiguration();
@@ -90,10 +98,10 @@ public final class SyncPositionResumerTest {
     }
     
     private DumperConfiguration mockDumperConfig() {
-        DataSourceConfiguration dataSourceConfiguration = new JDBCDataSourceConfiguration(DATA_SOURCE_URL, USERNAME, PASSWORD);
+        ScalingDataSourceConfiguration dataSourceConfig = new JDBCScalingDataSourceConfiguration(DATA_SOURCE_URL, USERNAME, PASSWORD);
         DumperConfiguration result = new DumperConfiguration();
         result.setDataSourceName("ds0");
-        result.setDataSourceConfiguration(dataSourceConfiguration);
+        result.setDataSourceConfiguration(dataSourceConfig);
         Map<String, String> tableMap = new HashMap<>();
         tableMap.put("t_order", "t_order");
         result.setTableNameMap(tableMap);

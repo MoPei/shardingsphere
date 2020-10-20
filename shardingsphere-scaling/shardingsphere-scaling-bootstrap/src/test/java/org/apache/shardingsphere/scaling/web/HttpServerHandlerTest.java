@@ -27,10 +27,12 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
-import org.apache.shardingsphere.governance.core.common.yaml.config.YamlDataSourceConfiguration;
-import org.apache.shardingsphere.scaling.core.config.ScalingConfiguration;
+import lombok.SneakyThrows;
 import org.apache.shardingsphere.scaling.core.config.ScalingContext;
 import org.apache.shardingsphere.scaling.core.config.ServerConfiguration;
+import org.apache.shardingsphere.scaling.core.execute.engine.ShardingScalingExecuteEngine;
+import org.apache.shardingsphere.scaling.utils.ReflectionUtil;
+import org.apache.shardingsphere.scaling.utils.ScalingConfigurationUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,8 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,42 +54,36 @@ public final class HttpServerHandlerTest {
     
     private static final Gson GSON = new Gson();
     
+    private final HttpServerHandler httpServerHandler = new HttpServerHandler();
+    
     @Mock
     private ChannelHandlerContext channelHandlerContext;
     
     private FullHttpRequest fullHttpRequest;
     
-    private HttpServerHandler httpServerHandler;
-    
-    private ScalingConfiguration scalingConfiguration;
-    
     @Before
+    @SneakyThrows(ReflectiveOperationException.class)
     public void setUp() {
-        initConfig("/config.json");
         ScalingContext.getInstance().init(new ServerConfiguration());
-        httpServerHandler = new HttpServerHandler();
+        ReflectionUtil.setFieldValue(ScalingContext.getInstance(), "taskExecuteEngine", mock(ShardingScalingExecuteEngine.class));
     }
     
     @Test
     public void assertChannelReadStartSuccess() {
-        startScalingJob();
+        startScalingJob("/config.json");
         ArgumentCaptor<FullHttpResponse> argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
         verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
         FullHttpResponse fullHttpResponse = argumentCaptor.getValue();
         assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("{\"success\":true"));
     }
     
-    private void startScalingJob() {
-        scalingConfiguration.getRuleConfiguration().setSourceDatasource("ds_0: !!" + YamlDataSourceConfiguration.class.getName() + "\n  "
-                + "dataSourceClassName: com.zaxxer.hikari.HikariDataSource\n  props:\n    "
-                + "jdbcUrl: jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL\n    username: root\n    password: 'password'\n    connectionTimeout: 30000\n    "
-                + "idleTimeout: 60000\n    maxLifetime: 1800000\n    maxPoolSize: 50\n    minPoolSize: 1\n    maintenanceIntervalMilliseconds: 30000\n    readOnly: false\n");
-        scalingConfiguration.getRuleConfiguration().getDestinationDataSources().setUrl("jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL");
-        scalingConfiguration.getRuleConfiguration().getDestinationDataSources().setName("root");
-        scalingConfiguration.getRuleConfiguration().getDestinationDataSources().setPassword("password");
-        ByteBuf byteBuf = Unpooled.copiedBuffer(GSON.toJson(scalingConfiguration), CharsetUtil.UTF_8);
-        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/scaling/job/start", byteBuf);
-        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
+    @Test
+    public void assertShardingSphereJDBCTargetChannelReadStartSuccess() {
+        startScalingJob("/config_sharding_sphere_jdbc_target.json");
+        ArgumentCaptor<FullHttpResponse> argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
+        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
+        FullHttpResponse fullHttpResponse = argumentCaptor.getValue();
+        assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("{\"success\":true"));
     }
     
     @Test
@@ -103,7 +98,7 @@ public final class HttpServerHandlerTest {
     
     @Test
     public void assertChannelReadProgressSuccess() {
-        startScalingJob();
+        startScalingJob("/config.json");
         fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/scaling/job/progress/1");
         httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
         ArgumentCaptor<FullHttpResponse> argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
@@ -162,9 +157,10 @@ public final class HttpServerHandlerTest {
         verify(channelHandlerContext).close();
     }
     
-    private void initConfig(final String configFile) {
-        InputStream fileInputStream = HttpServerHandlerTest.class.getResourceAsStream(configFile);
-        InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-        scalingConfiguration = GSON.fromJson(inputStreamReader, ScalingConfiguration.class);
+    @SneakyThrows(IOException.class)
+    private void startScalingJob(final String configFile) {
+        ByteBuf byteBuf = Unpooled.copiedBuffer(GSON.toJson(ScalingConfigurationUtil.initConfig(configFile)), CharsetUtil.UTF_8);
+        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/scaling/job/start", byteBuf);
+        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
     }
 }

@@ -18,30 +18,28 @@
 package org.apache.shardingsphere.infra.metadata.refresh;
 
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.metadata.model.ShardingSphereMetaData;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
 
-import javax.sql.DataSource;
 import java.sql.SQLException;
-import java.util.Map;
+import java.util.Collection;
 
 /**
  * Meta data refresh strategy.
  *
- * @param <T> type of SQL statement context
+ * @param <T> type of SQL statement
  */
-public interface MetaDataRefreshStrategy<T extends SQLStatementContext<?>> {
+public interface MetaDataRefreshStrategy<T extends SQLStatement> {
     
     /**
      * Refresh meta data.
      *
      * @param metaData ShardingSphere meta data
      * @param databaseType database type
-     * @param dataSourceMap dataSource map
-     * @param sqlStatementContext SQL statement context
+     * @param routeDataSourceNames route dataSource names
+     * @param sqlStatement SQL statement
      * @param callback callback
      * @throws SQLException SQL exception
      */
-    void refreshMetaData(ShardingSphereMetaData metaData, 
-                         DatabaseType databaseType, Map<String, DataSource> dataSourceMap, T sqlStatementContext, TableMetaDataLoaderCallback callback) throws SQLException;
+    void refreshMetaData(ShardingSphereMetaData metaData, DatabaseType databaseType, Collection<String> routeDataSourceNames, T sqlStatement, TableMetaDataLoaderCallback callback) throws SQLException;
 }

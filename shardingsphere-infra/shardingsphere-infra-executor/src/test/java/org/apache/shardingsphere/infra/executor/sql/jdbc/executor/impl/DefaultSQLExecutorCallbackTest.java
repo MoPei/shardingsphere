@@ -17,9 +17,8 @@
 
 package org.apache.shardingsphere.infra.executor.sql.jdbc.executor.impl;
 
-import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.database.metadata.DataSourceMetaData;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypes;
+import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.executor.sql.ConnectionMode;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.context.SQLUnit;
@@ -61,7 +60,7 @@ public final class DefaultSQLExecutorCallbackTest {
     private Collection<StatementExecuteUnit> units;
     
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws SQLException {
         when(preparedStatement.getConnection()).thenReturn(connection);
         when(connection.getMetaData()).thenReturn(metaData);
         when(metaData.getURL()).thenReturn("jdbc:mysql://localhost:3306/test");
@@ -69,11 +68,10 @@ public final class DefaultSQLExecutorCallbackTest {
                 new StatementExecuteUnit(new ExecutionUnit("ds", new SQLUnit("SELECT now()", Collections.emptyList())), ConnectionMode.CONNECTION_STRICTLY, preparedStatement));
     }
     
-    @Test
-    @SneakyThrows(ReflectiveOperationException.class)
     @SuppressWarnings("unchecked")
-    public void execute() throws SQLException {
-        SQLExecutorCallback sqlExecutorCallback = new DefaultSQLExecutorCallback<Integer>(DatabaseTypes.getActualDatabaseType("MySQL"), true) {
+    @Test
+    public void assertExecute() throws SQLException, NoSuchFieldException, IllegalAccessException {
+        SQLExecutorCallback<?> sqlExecutorCallback = new DefaultSQLExecutorCallback<Integer>(DatabaseTypeRegistry.getActualDatabaseType("MySQL"), true) {
             
             @Override
             protected Integer executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode) throws SQLException {

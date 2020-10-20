@@ -19,30 +19,28 @@ package org.apache.shardingsphere.driver.governance.internal.datasource;
 
 import com.google.common.base.Preconditions;
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.shardingsphere.driver.governance.internal.circuit.datasource.CircuitBreakerDataSource;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.jdbc.unsupported.AbstractUnsupportedOperationDataSource;
 import org.apache.shardingsphere.governance.core.config.ConfigCenter;
 import org.apache.shardingsphere.governance.core.facade.GovernanceFacade;
-import org.apache.shardingsphere.governance.core.schema.GovernanceSchemaContexts;
+import org.apache.shardingsphere.governance.context.schema.GovernanceSchemaContexts;
 import org.apache.shardingsphere.governance.repository.api.config.GovernanceConfiguration;
 import org.apache.shardingsphere.infra.auth.Authentication;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceConfiguration;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceConverter;
-import org.apache.shardingsphere.infra.context.SchemaContexts;
-import org.apache.shardingsphere.infra.context.SchemaContextsBuilder;
+import org.apache.shardingsphere.infra.context.schema.SchemaContexts;
+import org.apache.shardingsphere.infra.context.schema.SchemaContextsBuilder;
 import org.apache.shardingsphere.infra.database.DefaultSchema;
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypes;
+import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.transaction.ShardingTransactionManagerEngine;
 import org.apache.shardingsphere.transaction.context.TransactionContexts;
 import org.apache.shardingsphere.transaction.context.impl.StandardTransactionContexts;
 import org.apache.shardingsphere.transaction.core.TransactionTypeHolder;
 
 import javax.sql.DataSource;
-import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -50,7 +48,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Logger;
 
 /**
  * Governance ShardingSphere data source.
@@ -62,26 +59,22 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
     
     private final TransactionContexts transactionContexts;
     
-    @SuppressWarnings("UseOfSystemOutOrSystemErr")
-    @Setter
-    private PrintWriter logWriter = new PrintWriter(System.out);
-    
     public GovernanceShardingSphereDataSource(final GovernanceConfiguration governanceConfig) throws SQLException {
         GovernanceFacade governanceFacade = createGovernanceFacade(governanceConfig);
         schemaContexts = new GovernanceSchemaContexts(createSchemaContexts(governanceFacade), governanceFacade);
-        transactionContexts = createTransactionContexts(schemaContexts.getDatabaseType(), schemaContexts.getDefaultSchemaContext().getSchema().getDataSources());
+        transactionContexts = createTransactionContexts(schemaContexts.getDatabaseType(), schemaContexts.getDefaultSchema().getDataSources());
     }
     
-    public GovernanceShardingSphereDataSource(final Map<String, DataSource> dataSourceMap, final Collection<RuleConfiguration> ruleConfigurations,
-                                                 final Properties props, final GovernanceConfiguration governanceConfig) throws SQLException {
+    public GovernanceShardingSphereDataSource(final Map<String, DataSource> dataSourceMap, final Collection<RuleConfiguration> ruleConfigs, 
+                                              final Properties props, final GovernanceConfiguration governanceConfig) throws SQLException {
         GovernanceFacade governanceFacade = createGovernanceFacade(governanceConfig);
-        schemaContexts = new GovernanceSchemaContexts(createSchemaContexts(dataSourceMap, ruleConfigurations, props), governanceFacade);
-        transactionContexts = createTransactionContexts(schemaContexts.getDatabaseType(), schemaContexts.getDefaultSchemaContext().getSchema().getDataSources());
+        schemaContexts = new GovernanceSchemaContexts(createSchemaContexts(dataSourceMap, ruleConfigs, props), governanceFacade);
+        transactionContexts = createTransactionContexts(schemaContexts.getDatabaseType(), schemaContexts.getDefaultSchema().getDataSources());
         uploadLocalConfiguration(governanceFacade);
     }
     
     private GovernanceFacade createGovernanceFacade(final GovernanceConfiguration config) {
-        GovernanceFacade result = GovernanceFacade.getInstance();
+        GovernanceFacade result = new GovernanceFacade();
         result.init(config, Collections.singletonList(DefaultSchema.LOGIC_NAME));
         result.onlineInstance();
         return result;
@@ -97,10 +90,9 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
         return schemaContextsBuilder.build();
     }
     
-    private SchemaContexts createSchemaContexts(final Map<String, DataSource> dataSourceMap, final Collection<RuleConfiguration> ruleConfigurations,
-                                                final Properties props) throws SQLException {
+    private SchemaContexts createSchemaContexts(final Map<String, DataSource> dataSourceMap, final Collection<RuleConfiguration> ruleConfigs, final Properties props) throws SQLException {
         SchemaContextsBuilder schemaContextsBuilder = new SchemaContextsBuilder(createDatabaseType(dataSourceMap), Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceMap),
-                Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigurations), new Authentication(), props);
+                Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigs), new Authentication(), props);
         return schemaContextsBuilder.build();
     }
     
@@ -116,7 +108,7 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
     
     private DatabaseType createDatabaseType(final DataSource dataSource) throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
-            return DatabaseTypes.getDatabaseTypeByURL(connection.getMetaData().getURL());
+            return DatabaseTypeRegistry.getDatabaseTypeByURL(connection.getMetaData().getURL());
         }
     }
     
@@ -127,10 +119,10 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
     }
     
     private void uploadLocalConfiguration(final GovernanceFacade governanceFacade) {
-        Map<String, DataSourceConfiguration> dataSourceConfigs = DataSourceConverter.getDataSourceConfigurationMap(schemaContexts.getDefaultSchemaContext().getSchema().getDataSources());
-        Collection<RuleConfiguration> ruleConfigurations = schemaContexts.getDefaultSchemaContext().getSchema().getConfigurations();
-        Properties props = schemaContexts.getProps().getProps();
-        governanceFacade.onlineInstance(Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceConfigs), Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigurations), null, props);
+        Map<String, DataSourceConfiguration> dataSourceConfigs = DataSourceConverter.getDataSourceConfigurationMap(schemaContexts.getDefaultSchema().getDataSources());
+        Collection<RuleConfiguration> ruleConfigurations = schemaContexts.getDefaultSchema().getConfigurations();
+        governanceFacade.onlineInstance(Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceConfigs),
+                Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigurations), null, schemaContexts.getProps().getProps());
     }
     
     @Override
@@ -142,11 +134,6 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
     @Override
     public Connection getConnection(final String username, final String password) {
         return getConnection();
-    }
-    
-    @Override
-    public Logger getParentLogger() {
-        return Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     }
     
     @Override
@@ -165,6 +152,6 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
     }
     
     private Map<String, DataSource> getDataSourceMap() {
-        return schemaContexts.getSchemaContexts().get(DefaultSchema.LOGIC_NAME).getSchema().getDataSources();
+        return schemaContexts.getDefaultSchema().getDataSources();
     }
 }

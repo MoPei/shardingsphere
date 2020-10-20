@@ -20,7 +20,7 @@ package org.apache.shardingsphere.sql.parser.mysql.visitor.impl;
 import org.apache.shardingsphere.sql.parser.api.ASTNode;
 import org.apache.shardingsphere.sql.parser.api.visitor.statement.TCLVisitor;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.TransactionCharacteristicContext;
-import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.Scope_Context;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.ScopeContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.AutoCommitValueContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.BeginTransactionContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CommitContext;
@@ -30,12 +30,12 @@ import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.SetAuto
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.SetTransactionContext;
 import org.apache.shardingsphere.sql.parser.mysql.visitor.MySQLVisitor;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.tcl.AutoCommitSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.BeginTransactionStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.CommitStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.RollbackStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.SavepointStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.SetAutoCommitStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.SetTransactionStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.tcl.MySQLBeginTransactionStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.tcl.MySQLCommitStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.tcl.MySQLRollbackStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.tcl.MySQLSavepointStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.tcl.MySQLSetAutoCommitStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.tcl.MySQLSetTransactionStatement;
 
 /**
  * TCL visitor for MySQL.
@@ -44,9 +44,9 @@ public final class MySQLTCLVisitor extends MySQLVisitor implements TCLVisitor {
     
     @Override
     public ASTNode visitSetTransaction(final SetTransactionContext ctx) {
-        SetTransactionStatement result = new SetTransactionStatement();
-        if (null != ctx.scope_()) {
-            Scope_Context scopeContext = ctx.scope_();
+        MySQLSetTransactionStatement result = new MySQLSetTransactionStatement();
+        if (null != ctx.scope()) {
+            ScopeContext scopeContext = ctx.scope();
             if (null != scopeContext.GLOBAL()) {
                 result.setScope(scopeContext.GLOBAL().getText());
             } else if (null != scopeContext.SESSION()) {
@@ -55,20 +55,20 @@ public final class MySQLTCLVisitor extends MySQLVisitor implements TCLVisitor {
         }
         if (null != ctx.transactionCharacteristic()) {
             for (TransactionCharacteristicContext each : ctx.transactionCharacteristic()) {
-                if (null != each.level_()) {
-                    result.setIsolationLevel(each.level_().getText());
+                if (null != each.level()) {
+                    result.setIsolationLevel(each.level().getText());
                 }
-                if (null != each.accessMode_()) {
-                    result.setAccessMode(each.accessMode_().getText());
+                if (null != each.accessMode()) {
+                    result.setAccessMode(each.accessMode().getText());
                 }
             }
         }
-        return new SetTransactionStatement();
+        return new MySQLSetTransactionStatement();
     }
     
     @Override
     public ASTNode visitSetAutoCommit(final SetAutoCommitContext ctx) {
-        SetAutoCommitStatement result = new SetAutoCommitStatement();
+        MySQLSetAutoCommitStatement result = new MySQLSetAutoCommitStatement();
         result.setAutoCommit(((AutoCommitSegment) visit(ctx.autoCommitValue())).isAutoCommit());
         return result;
     }
@@ -81,21 +81,21 @@ public final class MySQLTCLVisitor extends MySQLVisitor implements TCLVisitor {
     
     @Override
     public ASTNode visitBeginTransaction(final BeginTransactionContext ctx) {
-        return new BeginTransactionStatement();
+        return new MySQLBeginTransactionStatement();
     }
     
     @Override
     public ASTNode visitCommit(final CommitContext ctx) {
-        return new CommitStatement();
+        return new MySQLCommitStatement();
     }
     
     @Override
     public ASTNode visitRollback(final RollbackContext ctx) {
-        return new RollbackStatement();
+        return new MySQLRollbackStatement();
     }
     
     @Override
     public ASTNode visitSavepoint(final SavepointContext ctx) {
-        return new SavepointStatement();
+        return new MySQLSavepointStatement();
     }
 }

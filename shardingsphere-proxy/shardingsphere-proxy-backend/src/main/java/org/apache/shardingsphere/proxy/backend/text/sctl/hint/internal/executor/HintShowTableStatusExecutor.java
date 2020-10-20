@@ -22,8 +22,11 @@ import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.executor.sql.raw.execute.result.query.QueryHeader;
 import org.apache.shardingsphere.infra.hint.HintManager;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
+import org.apache.shardingsphere.infra.schema.ShardingSphereSchema;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
-import org.apache.shardingsphere.proxy.backend.schema.ProxySchemaContexts;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
+import org.apache.shardingsphere.proxy.backend.exception.NoDatabaseSelectedException;
+import org.apache.shardingsphere.proxy.backend.exception.RuleNotExistsException;
 import org.apache.shardingsphere.proxy.backend.text.sctl.hint.internal.command.HintShowTableStatusCommand;
 import org.apache.shardingsphere.proxy.backend.text.sctl.hint.internal.result.HintShowTableStatusResult;
 import org.apache.shardingsphere.sharding.merge.dal.common.MultipleLocalDataMergedResult;
@@ -46,18 +49,24 @@ public final class HintShowTableStatusExecutor extends AbstractHintQueryExecutor
     
     @Override
     protected List<QueryHeader> createQueryHeaders() {
-        List<QueryHeader> queryHeaders = new ArrayList<>(3);
-        queryHeaders.add(new QueryHeader("", "", "table_name", "", 255, Types.CHAR, 0, false, false, false, false));
-        queryHeaders.add(new QueryHeader("", "", "database_sharding_values", "", 255, Types.CHAR, 0, false, false, false, false));
-        queryHeaders.add(new QueryHeader("", "", "table_sharding_values", "", 255, Types.CHAR, 0, false, false, false, false));
-        return queryHeaders;
+        List<QueryHeader> result = new ArrayList<>(3);
+        result.add(new QueryHeader("", "", "table_name", "", 255, Types.CHAR, 0, false, false, false, false));
+        result.add(new QueryHeader("", "", "database_sharding_values", "", 255, Types.CHAR, 0, false, false, false, false));
+        result.add(new QueryHeader("", "", "table_sharding_values", "", 255, Types.CHAR, 0, false, false, false, false));
+        return result;
     }
     
     @Override
     protected MergedResult createMergedResult() {
         Map<String, HintShowTableStatusResult> results = new HashMap<>();
-        Collection<String> tableNames =
-                ProxySchemaContexts.getInstance().getSchema(backendConnection.getSchema()).getSchema().getMetaData().getSchema().getConfiguredSchemaMetaData().getAllTableNames();
+        ShardingSphereSchema schema = ProxyContext.getInstance().getSchema(backendConnection.getSchemaName());
+        if (null == schema) {
+            throw new NoDatabaseSelectedException();
+        }
+        if (!schema.isComplete()) {
+            throw new RuleNotExistsException();
+        }
+        Collection<String> tableNames = schema.getMetaData().getSchemaMetaData().getConfiguredSchemaMetaData().getAllTableNames();
         for (String each : tableNames) {
             if (HintManager.isDatabaseShardingOnly()) {
                 fillShardingValues(results, each, HintManager.getDatabaseShardingValues(), Collections.emptyList());

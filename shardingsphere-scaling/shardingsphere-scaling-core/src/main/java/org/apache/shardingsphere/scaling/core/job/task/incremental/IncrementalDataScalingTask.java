@@ -49,29 +49,29 @@ public final class IncrementalDataScalingTask extends AbstractShardingScalingExe
     
     private final int concurrency;
     
-    private final DumperConfiguration dumperConfiguration;
+    private final DumperConfiguration dumperConfig;
     
-    private final ImporterConfiguration importerConfiguration;
+    private final ImporterConfiguration importerConfig;
     
     private final DataSourceManager dataSourceManager;
     
     private Dumper dumper;
     
-    private long delayMillisecond;
+    private long delayMillisecond = Long.MAX_VALUE;
     
     @SuppressWarnings("unchecked")
-    public IncrementalDataScalingTask(final int concurrency, final DumperConfiguration dumperConfiguration, final ImporterConfiguration importerConfiguration) {
+    public IncrementalDataScalingTask(final int concurrency, final DumperConfiguration dumperConfig, final ImporterConfiguration importerConfig) {
         this.concurrency = concurrency;
-        this.dumperConfiguration = dumperConfiguration;
-        this.importerConfiguration = importerConfiguration;
+        this.dumperConfig = dumperConfig;
+        this.importerConfig = importerConfig;
         dataSourceManager = new DataSourceManager();
-        setTaskId(dumperConfiguration.getDataSourceName());
-        setPositionManager(dumperConfiguration.getPositionManager());
+        setTaskId(dumperConfig.getDataSourceName());
+        setPositionManager(dumperConfig.getPositionManager());
     }
     
     @Override
     public void start() {
-        dumper = DumperFactory.newInstanceLogDumper(dumperConfiguration, getPositionManager().getPosition());
+        dumper = DumperFactory.newInstanceLogDumper(dumperConfig, getPositionManager().getPosition());
         Collection<Importer> importers = instanceImporters();
         instanceChannel(importers);
         Future<?> future = ScalingContext.getInstance().getTaskExecuteEngine().submitAll(importers, new ExecuteCallback() {
@@ -94,7 +94,7 @@ public final class IncrementalDataScalingTask extends AbstractShardingScalingExe
     private List<Importer> instanceImporters() {
         List<Importer> result = new ArrayList<>(concurrency);
         for (int i = 0; i < concurrency; i++) {
-            result.add(ImporterFactory.newInstance(importerConfiguration, dataSourceManager));
+            result.add(ImporterFactory.newInstance(importerConfig, dataSourceManager));
         }
         return result;
     }
@@ -134,5 +134,4 @@ public final class IncrementalDataScalingTask extends AbstractShardingScalingExe
     public SyncProgress getProgress() {
         return new IncrementalDataSyncTaskProgress(getTaskId(), delayMillisecond, getPositionManager().getPosition());
     }
-    
 }

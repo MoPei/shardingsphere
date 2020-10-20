@@ -25,7 +25,6 @@ import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.shardingsphere.sql.parser.api.ASTNode;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementBaseVisitor;
-import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.IntervalExpressionContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.AggregationFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.BitExprContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.BitValueLiteralsContext;
@@ -41,6 +40,7 @@ import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.ExprCon
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.FunctionCallContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.HexadecimalLiteralsContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.IdentifierContext;
+import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.IntervalExpressionContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.LiteralsContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.NullValueLiteralsContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.NumberLiteralsContext;
@@ -54,15 +54,18 @@ import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.SchemaN
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.SimpleExprContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.SpecialFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.StringLiteralsContext;
-import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.SubqueryContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.TableNameContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.TableNamesContext;
 import org.apache.shardingsphere.sql.parser.autogen.SQL92StatementParser.UnreservedWordContext;
 import org.apache.shardingsphere.sql.parser.sql.common.constant.AggregationType;
 import org.apache.shardingsphere.sql.parser.sql.common.constant.OrderDirection;
-import org.apache.shardingsphere.sql.parser.sql.common.util.predicate.PredicateBuildUtils;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BetweenExpression;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BinaryOperationExpression;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.InExpression;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ListExpression;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.NotExpression;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.complex.CommonExpressionSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.LiteralExpressionSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
@@ -75,17 +78,11 @@ import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.OrderBy
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.ColumnOrderByItemSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.IndexOrderByItemSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.OrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.PredicateSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.value.PredicateBetweenRightValue;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.value.PredicateCompareRightValue;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.value.PredicateInRightValue;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.value.PredicateRightValue;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeLengthSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
 import org.apache.shardingsphere.sql.parser.sql.common.util.SQLUtil;
 import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
 import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
@@ -95,6 +92,7 @@ import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.Number
 import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.OtherLiteralValue;
 import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.StringLiteralValue;
 import org.apache.shardingsphere.sql.parser.sql.common.value.parametermarker.ParameterMarkerValue;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.sql92.dml.SQL92SelectStatement;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -229,113 +227,102 @@ public abstract class SQL92Visitor extends SQL92StatementBaseVisitor<ASTNode> {
         if (null != ctx.booleanPrimary()) {
             return visit(ctx.booleanPrimary());
         }
-        if (null != ctx.logicalOperator()) {
-            return new PredicateBuildUtils(visit(ctx.expr(0)), visit(ctx.expr(1)), ctx.logicalOperator().getText()).mergePredicate();
+        if (null != ctx.LP_()) {
+            return visit(ctx.expr(0));
         }
-        // TODO deal with XOR
-        return visit(ctx.expr().get(0));
+        if (null != ctx.logicalOperator()) {
+            ExpressionSegment left = (ExpressionSegment) visit(ctx.expr(0));
+            ExpressionSegment right = (ExpressionSegment) visit(ctx.expr(1));
+            String operator = ctx.logicalOperator().getText();
+            String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
+            BinaryOperationExpression result = new BinaryOperationExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), left, right, operator, text);
+            return result;
+        }
+        NotExpression result = new NotExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), (ExpressionSegment) visit(ctx.expr(0)));
+        return result;
     }
     
     @Override
     public final ASTNode visitBooleanPrimary(final BooleanPrimaryContext ctx) {
+        if (null != ctx.IS()) {
+            ExpressionSegment left = (ExpressionSegment) visit(ctx.booleanPrimary());
+            ExpressionSegment right = new LiteralExpressionSegment(ctx.IS().getSymbol().getStopIndex() + 1, ctx.stop.getStopIndex(), new Interval(ctx.IS().getSymbol().getStopIndex() + 1,
+                    ctx.stop.getStopIndex()));
+            String operator = "IS";
+            String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
+            BinaryOperationExpression result = new BinaryOperationExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), left, right, operator, text);
+            return result;
+        }
         if (null != ctx.comparisonOperator() || null != ctx.SAFE_EQ_()) {
             return createCompareSegment(ctx);
         }
-        if (null != ctx.predicate()) {
-            return visit(ctx.predicate());
-        }
-        if (null != ctx.subquery()) {
-            return new SubquerySegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), (SelectStatement) visit(ctx.subquery()));
-        }
-        //TODO deal with IS NOT? (TRUE | FALSE | UNKNOWN | NULL)
-        String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
-        return new CommonExpressionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), text);
+        return visit(ctx.predicate());
     }
     
     private ASTNode createCompareSegment(final BooleanPrimaryContext ctx) {
-        ASTNode leftValue = visit(ctx.booleanPrimary());
-        if (!(leftValue instanceof ColumnSegment)) {
-            return leftValue;
+        ExpressionSegment left = (ExpressionSegment) visit(ctx.booleanPrimary());
+        ExpressionSegment right;
+        if (null != ctx.predicate()) {
+            right = (ExpressionSegment) visit(ctx.predicate());
+        } else {
+            right = (ExpressionSegment) visit(ctx.subquery());
         }
-        PredicateRightValue rightValue = (PredicateRightValue) createPredicateRightValue(ctx);
-        return new PredicateSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), (ColumnSegment) leftValue, rightValue);
-    }
-    
-    private ASTNode createPredicateRightValue(final BooleanPrimaryContext ctx) {
-        if (null != ctx.subquery()) {
-            return new SubquerySegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), (SelectStatement) visit(ctx.subquery()));
-        }
-        ASTNode rightValue = visit(ctx.predicate());
-        return createPredicateRightValue(ctx, rightValue);
-    }
-    
-    private ASTNode createPredicateRightValue(final BooleanPrimaryContext ctx, final ASTNode rightValue) {
-        if (rightValue instanceof ColumnSegment) {
-            return rightValue;
-        }
-        return rightValue instanceof SubquerySegment ? new PredicateCompareRightValue(ctx.subquery().start.getStartIndex(), ctx.subquery().stop.getStopIndex(),
-                ctx.comparisonOperator().getText(), new SubqueryExpressionSegment((SubquerySegment) rightValue))
-                : new PredicateCompareRightValue(ctx.predicate().start.getStartIndex(), ctx.predicate().stop.getStopIndex(), ctx.comparisonOperator().getText(),
-                (ExpressionSegment) rightValue);
+        String operator = null != ctx.SAFE_EQ_() ? ctx.SAFE_EQ_().getText() : ctx.comparisonOperator().getText();
+        String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
+        BinaryOperationExpression result = new BinaryOperationExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), left, right, operator, text);
+        return result;
     }
     
     @Override
     public final ASTNode visitPredicate(final PredicateContext ctx) {
-        if (null != ctx.IN() && null == ctx.NOT()) {
+        if (null != ctx.IN()) {
             return createInSegment(ctx);
         }
-        if (null != ctx.BETWEEN() && null == ctx.NOT()) {
+        if (null != ctx.BETWEEN()) {
             return createBetweenSegment(ctx);
         }
-        if (1 == ctx.children.size()) {
-            return visit(ctx.bitExpr(0));
+        if (null != ctx.LIKE()) {
+            return createBinaryOperationExpressionFromLike(ctx);
         }
-        return visitRemainPredicate(ctx);
+        return visit(ctx.bitExpr(0));
     }
     
-    private PredicateSegment createInSegment(final PredicateContext ctx) {
-        ColumnSegment column = (ColumnSegment) visit(ctx.bitExpr(0));
-        PredicateInRightValue predicateInRightValue = null != ctx.subquery() ? new PredicateInRightValue(ctx.subquery().start.getStartIndex(), ctx.subquery().stop.getStopIndex(),
-                getExpressionSegments(ctx))
-                : new PredicateInRightValue(ctx.LP_().getSymbol().getStartIndex(), ctx.RP_().getSymbol().getStopIndex(), getExpressionSegments(ctx));
-        return new PredicateSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, predicateInRightValue);
-    }
-    
-    private Collection<ExpressionSegment> getExpressionSegments(final PredicateContext ctx) {
-        Collection<ExpressionSegment> result = new LinkedList<>();
-        if (null != ctx.subquery()) {
-            SubqueryContext subquery = ctx.subquery();
-            result.add(new SubqueryExpressionSegment(new SubquerySegment(subquery.getStart().getStartIndex(), subquery.getStop().getStopIndex(), (SelectStatement) visit(ctx.subquery()))));
-            return result;
+    private BinaryOperationExpression createBinaryOperationExpressionFromLike(final PredicateContext ctx) {
+        ExpressionSegment left = (ExpressionSegment) visit(ctx.bitExpr(0));
+        ListExpression right = new ListExpression(ctx.simpleExpr(0).start.getStartIndex(), ctx.simpleExpr().get(ctx.simpleExpr().size() - 1).stop.getStopIndex());
+        for (SimpleExprContext each : ctx.simpleExpr()) {
+            right.getItems().add((ExpressionSegment) visit(each));
         }
-        for (ExprContext each : ctx.expr()) {
-            result.add((ExpressionSegment) visit(each));
-        }
+        String operator = null != ctx.NOT() ? "NOT LIKE" : "LIKE";
+        String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
+        BinaryOperationExpression result = new BinaryOperationExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), left, right, operator, text);
         return result;
     }
     
-    private PredicateSegment createBetweenSegment(final PredicateContext ctx) {
-        ColumnSegment column = (ColumnSegment) visit(ctx.bitExpr(0));
-        ExpressionSegment between = (ExpressionSegment) visit(ctx.bitExpr(1));
-        ExpressionSegment and = (ExpressionSegment) visit(ctx.predicate());
-        return new PredicateSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, new PredicateBetweenRightValue(between.getStartIndex(), and.getStopIndex(), between, and));
+    private InExpression createInSegment(final PredicateContext ctx) {
+        ExpressionSegment left = (ExpressionSegment) visit(ctx.bitExpr(0));
+        ExpressionSegment right;
+        if (null != ctx.subquery()) {
+            right = new SubqueryExpressionSegment(new SubquerySegment(ctx.subquery().start.getStartIndex(), ctx.subquery().stop.getStopIndex(), (SQL92SelectStatement) visit(ctx.subquery())));
+        } else {
+            ListExpression listExpression = new ListExpression(ctx.LP_().getSymbol().getStartIndex(), ctx.RP_().getSymbol().getStopIndex());
+            for (ExprContext each : ctx.expr()) {
+                listExpression.getItems().add((ExpressionSegment) visit(each));
+            }
+            right = listExpression;
+        }
+        boolean not = null != ctx.NOT() ? true : false;
+        InExpression result = new InExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), left, right, not);
+        return result;
     }
     
-    private ASTNode visitRemainPredicate(final PredicateContext ctx) {
-        for (BitExprContext each : ctx.bitExpr()) {
-            visit(each);
-        }
-        for (ExprContext each : ctx.expr()) {
-            visit(each);
-        }
-        for (SimpleExprContext each : ctx.simpleExpr()) {
-            visit(each);
-        }
-        if (null != ctx.predicate()) {
-            visit(ctx.predicate());
-        }
-        String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
-        return new CommonExpressionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), text);
+    private BetweenExpression createBetweenSegment(final PredicateContext ctx) {
+        ExpressionSegment left = (ExpressionSegment) visit(ctx.bitExpr(0));
+        ExpressionSegment between = (ExpressionSegment) visit(ctx.bitExpr(1));
+        ExpressionSegment and = (ExpressionSegment) visit(ctx.predicate());
+        boolean not = null != ctx.NOT() ? true : false;
+        BetweenExpression result = new BetweenExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), left, between, and, not);
+        return result;
     }
     
     @Override
@@ -343,9 +330,12 @@ public abstract class SQL92Visitor extends SQL92StatementBaseVisitor<ASTNode> {
         if (null != ctx.simpleExpr()) {
             return createExpressionSegment(visit(ctx.simpleExpr()), ctx);
         }
-        visitRemainBitExpr(ctx);
+        ExpressionSegment left = (ExpressionSegment) visit(ctx.getChild(0));
+        ExpressionSegment right = (ExpressionSegment) visit(ctx.getChild(2));
+        String operator = ctx.getChild(1).getText();
         String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
-        return new CommonExpressionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), text);
+        BinaryOperationExpression result = new BinaryOperationExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), left, right, operator, text);
+        return result;
     }
     
     private ASTNode createExpressionSegment(final ASTNode astNode, final ParserRuleContext context) {
@@ -370,17 +360,10 @@ public abstract class SQL92Visitor extends SQL92StatementBaseVisitor<ASTNode> {
         return astNode;
     }
     
-    private void visitRemainBitExpr(final BitExprContext ctx) {
-        if (null != ctx.intervalExpression()) {
-            visit(ctx.intervalExpression().expr());
-        }
-        ctx.bitExpr().forEach(this::visit);
-    }
-    
     @Override
     public final ASTNode visitSimpleExpr(final SimpleExprContext ctx) {
         if (null != ctx.subquery()) {
-            return new SubquerySegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), (SelectStatement) visit(ctx.subquery()));
+            return new SubquerySegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), (SQL92SelectStatement) visit(ctx.subquery()));
         }
         if (null != ctx.parameterMarker()) {
             return visit(ctx.parameterMarker());

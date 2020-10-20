@@ -17,16 +17,19 @@
 
 package org.apache.shardingsphere.scaling.core;
 
-import org.apache.shardingsphere.scaling.core.job.ShardingScalingJob;
+import org.apache.shardingsphere.scaling.core.check.DataConsistencyCheckResult;
+import org.apache.shardingsphere.scaling.core.exception.ScalingJobNotFoundException;
 import org.apache.shardingsphere.scaling.core.job.ScalingJobProgress;
+import org.apache.shardingsphere.scaling.core.job.ShardingScalingJob;
 import org.apache.shardingsphere.scaling.core.job.SyncProgress;
+import org.apache.shardingsphere.scaling.core.job.preparer.ShardingScalingJobPreparer;
 import org.apache.shardingsphere.scaling.core.schedule.ScalingTaskScheduler;
 import org.apache.shardingsphere.scaling.core.schedule.SyncTaskControlStatus;
-import org.apache.shardingsphere.scaling.core.exception.ScalingJobNotFoundException;
-import org.apache.shardingsphere.scaling.core.job.preparer.ShardingScalingJobPreparer;
+import org.apache.shardingsphere.scaling.core.check.DataConsistencyChecker;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -85,6 +88,25 @@ public final class ScalingJobController {
         if (scalingTaskSchedulerMap.containsKey(shardingScalingJobId)) {
             result.getInventoryDataTasks().addAll(scalingTaskSchedulerMap.get(shardingScalingJobId).getInventoryDataTaskProgress());
             result.getIncrementalDataTasks().addAll(scalingTaskSchedulerMap.get(shardingScalingJobId).getIncrementalDataTaskProgress());
+        }
+        return result;
+    }
+    
+    /**
+     * Execute data consistency check.
+     *
+     * @param shardingScalingJobId sharding scaling job id
+     * @return check result
+     */
+    public Map<String, DataConsistencyCheckResult> check(final int shardingScalingJobId) {
+        if (!scalingJobMap.containsKey(shardingScalingJobId)) {
+            throw new ScalingJobNotFoundException(String.format("Can't find scaling job id %s", shardingScalingJobId));
+        }
+        DataConsistencyChecker dataConsistencyChecker = scalingJobMap.get(shardingScalingJobId).getDataConsistencyChecker();
+        Map<String, DataConsistencyCheckResult> result = dataConsistencyChecker.countCheck();
+        if (result.values().stream().allMatch(DataConsistencyCheckResult::isCountValid)) {
+            Map<String, Boolean> dataCheckResult = dataConsistencyChecker.dataCheck();
+            result.forEach((key, value) -> value.setDataValid(dataCheckResult.getOrDefault(key, false)));
         }
         return result;
     }

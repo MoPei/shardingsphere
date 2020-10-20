@@ -385,7 +385,7 @@ tableReference
 	| selectWithParens aliasClause?
 	| LATERAL selectWithParens aliasClause?
 	| tableReference joinedTable
-	| tableReference LP_ joinedTable RP_ aliasClause
+	| LP_ tableReference joinedTable RP_ aliasClause?
 	;
 
 joinedTable
@@ -431,17 +431,6 @@ whereOrCurrentClause
 
 havingClause
     : HAVING aExpr
-    ;
-
-call
-    : CALL funcName LP_ callClauses? RP_
-    ;
-
-callClauses
-    : (ALL | DISTINCT)? funcArgList sortClause?
-    | VARIADIC funcArgExpr sortClause
-    | funcArgList COMMA_ VARIADIC funcArgExpr sortClause
-    | ASTERISK_
     ;
 
 doStatement

@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.scaling.postgresql;
 
-import lombok.SneakyThrows;
 import org.apache.shardingsphere.scaling.core.exception.PrepareFailedException;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,8 +66,7 @@ public final class PostgreSQLDataSourceCheckerTest {
         dataSources.add(dataSource);
     }
 
-    @SneakyThrows
-    private Connection mockConnection() {
+    private Connection mockConnection() throws SQLException {
         when(connection.getMetaData()).thenReturn(metaData);
         when(connection.getCatalog()).thenReturn(CATALOG);
         when(connection.prepareStatement("SELECT * FROM test LIMIT 1")).thenReturn(preparedStatement);
@@ -95,7 +93,7 @@ public final class PostgreSQLDataSourceCheckerTest {
     public void assertCheckPrivilegeFailure() throws SQLException {
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getString(3)).thenReturn("test");
-        when(connection.prepareStatement("SELECT * FROM test LIMIT 1")).thenThrow(new SQLException());
+        when(connection.prepareStatement("SELECT * FROM test LIMIT 1")).thenThrow(new SQLException(""));
         PostgreSQLDataSourceChecker dataSourceChecker = new PostgreSQLDataSourceChecker();
         dataSourceChecker.checkPrivilege(dataSources);
     }

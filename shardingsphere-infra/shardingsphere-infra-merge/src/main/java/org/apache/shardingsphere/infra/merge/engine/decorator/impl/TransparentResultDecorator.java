@@ -21,8 +21,8 @@ import org.apache.shardingsphere.infra.executor.sql.QueryResult;
 import org.apache.shardingsphere.infra.merge.engine.decorator.ResultDecorator;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.merge.result.impl.transparent.TransparentMergedResult;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.schema.PhysicalSchemaMetaData;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
 
 /**
  * Transparent result decorator.
@@ -30,12 +30,12 @@ import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext
 public final class TransparentResultDecorator implements ResultDecorator {
     
     @Override
-    public MergedResult decorate(final QueryResult queryResult, final SQLStatementContext<?> sqlStatementContext, final SchemaMetaData schemaMetaData) {
+    public MergedResult decorate(final QueryResult queryResult, final SQLStatementContext<?> sqlStatementContext, final PhysicalSchemaMetaData schemaMetaData) {
         return new TransparentMergedResult(queryResult);
     }
     
     @Override
-    public MergedResult decorate(final MergedResult mergedResult, final SQLStatementContext<?> sqlStatementContext, final SchemaMetaData schemaMetaData) {
+    public MergedResult decorate(final MergedResult mergedResult, final SQLStatementContext<?> sqlStatementContext, final PhysicalSchemaMetaData schemaMetaData) {
         return mergedResult;
     }
 }

@@ -27,9 +27,9 @@ import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser.Sh
 import org.apache.shardingsphere.sql.parser.postgresql.visitor.PostgreSQLVisitor;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableAssignSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.SetStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLAnalyzeTableStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLAnalyzeTableStatement;
 import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLResetParameterStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLSetStatement;
 import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLShowStatement;
 
 import java.util.Collection;
@@ -47,7 +47,7 @@ public final class PostgreSQLDALVisitor extends PostgreSQLVisitor implements DAL
     
     @Override
     public ASTNode visitSet(final SetContext ctx) {
-        SetStatement result = new SetStatement();
+        PostgreSQLSetStatement result = new PostgreSQLSetStatement();
         Collection<VariableAssignSegment> variableAssigns = new LinkedList<>();
         if (null != ctx.configurationParameterClause()) {
             VariableAssignSegment variableAssignSegment = (VariableAssignSegment) visit(ctx.configurationParameterClause());
@@ -66,18 +66,15 @@ public final class PostgreSQLDALVisitor extends PostgreSQLVisitor implements DAL
         result.setStartIndex(ctx.start.getStartIndex());
         result.setStopIndex(ctx.stop.getStopIndex());
         VariableSegment variable = new VariableSegment();
-        variable.setStartIndex(ctx.identifier(0).start.getStartIndex());
-        variable.setStopIndex(ctx.identifier(0).stop.getStopIndex());
-        variable.setVariable(ctx.identifier(0).getText());
+        variable.setStartIndex(ctx.varName().start.getStartIndex());
+        variable.setStopIndex(ctx.varName().stop.getStopIndex());
+        variable.setVariable(ctx.varName().getText());
         result.setVariable(variable);
-        if (null != ctx.identifier(1)) {
-            result.setAssignValue(ctx.identifier(1).getText());
+        if (null != ctx.varList()) {
+            result.setAssignValue(ctx.varList().getText());
         }
         if (null != ctx.DEFAULT()) {
             result.setAssignValue(ctx.DEFAULT().getText());
-        }
-        if (null != ctx.STRING_()) {
-            result.setAssignValue(ctx.STRING_().getText());
         }
         return result;
     }
@@ -89,6 +86,6 @@ public final class PostgreSQLDALVisitor extends PostgreSQLVisitor implements DAL
     
     @Override
     public ASTNode visitAnalyze(final AnalyzeContext ctx) {
-        return new MySQLAnalyzeTableStatement();
+        return new PostgreSQLAnalyzeTableStatement();
     }
 }

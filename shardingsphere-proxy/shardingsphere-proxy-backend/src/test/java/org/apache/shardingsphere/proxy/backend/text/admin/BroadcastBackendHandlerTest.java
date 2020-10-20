@@ -20,16 +20,16 @@ package org.apache.shardingsphere.proxy.backend.text.admin;
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.auth.Authentication;
 import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
-import org.apache.shardingsphere.infra.context.SchemaContext;
-import org.apache.shardingsphere.infra.context.impl.StandardSchemaContexts;
+import org.apache.shardingsphere.infra.context.schema.impl.StandardSchemaContexts;
 import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
+import org.apache.shardingsphere.infra.executor.kernel.ExecutorKernel;
+import org.apache.shardingsphere.infra.schema.ShardingSphereSchema;
 import org.apache.shardingsphere.proxy.backend.communication.DatabaseCommunicationEngine;
 import org.apache.shardingsphere.proxy.backend.communication.DatabaseCommunicationEngineFactory;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.response.BackendResponse;
-import org.apache.shardingsphere.proxy.backend.response.error.ErrorResponse;
 import org.apache.shardingsphere.proxy.backend.response.update.UpdateResponse;
-import org.apache.shardingsphere.proxy.backend.schema.ProxySchemaContexts;
 import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,6 +48,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,6 +56,8 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class BroadcastBackendHandlerTest {
+    
+    private static final String SCHEMA_PATTERN = "schema_%s";
     
     @Mock
     private BackendConnection backendConnection;
@@ -66,17 +69,16 @@ public final class BroadcastBackendHandlerTest {
     private DatabaseCommunicationEngine databaseCommunicationEngine;
     
     @Before
-    @SneakyThrows(ReflectiveOperationException.class)
-    public void setUp() {
-        Field schemaContexts = ProxySchemaContexts.getInstance().getClass().getDeclaredField("schemaContexts");
+    public void setUp() throws IllegalAccessException, NoSuchFieldException {
+        Field schemaContexts = ProxyContext.getInstance().getClass().getDeclaredField("schemaContexts");
         schemaContexts.setAccessible(true);
-        schemaContexts.set(ProxySchemaContexts.getInstance(),
-                new StandardSchemaContexts(getSchemaContextMap(), new Authentication(), new ConfigurationProperties(new Properties()), new MySQLDatabaseType()));
-        when(backendConnection.getSchema()).thenReturn("schema_0");
+        schemaContexts.set(ProxyContext.getInstance(), 
+                new StandardSchemaContexts(getSchemas(), mock(ExecutorKernel.class), new Authentication(), new ConfigurationProperties(new Properties()), new MySQLDatabaseType()));
+        when(backendConnection.getSchemaName()).thenReturn(String.format(SCHEMA_PATTERN, 0));
     }
     
     @Test
-    public void assertExecuteSuccess() {
+    public void assertExecuteSuccess() throws SQLException {
         mockDatabaseCommunicationEngine(new UpdateResponse());
         BroadcastBackendHandler broadcastBackendHandler = new BroadcastBackendHandler("SET timeout = 1000", mock(SQLStatement.class), backendConnection);
         setBackendHandlerFactory(broadcastBackendHandler);
@@ -87,25 +89,17 @@ public final class BroadcastBackendHandlerTest {
         verify(databaseCommunicationEngine, times(10)).execute();
     }
     
-    private Map<String, SchemaContext> getSchemaContextMap() {
-        Map<String, SchemaContext> result = new HashMap<>(10);
+    private Map<String, ShardingSphereSchema> getSchemas() {
+        Map<String, ShardingSphereSchema> result = new HashMap<>(10);
         for (int i = 0; i < 10; i++) {
-            result.put("schema_" + i, mock(SchemaContext.class));
+            ShardingSphereSchema schema = mock(ShardingSphereSchema.class, RETURNS_DEEP_STUBS);
+            when(schema.isComplete()).thenReturn(true);
+            result.put(String.format(SCHEMA_PATTERN, i), schema);
         }
         return result;
     }
     
-    @Test
-    public void assertExecuteFailure() {
-        ErrorResponse errorResponse = new ErrorResponse(new SQLException("no reason", "X999", -1));
-        mockDatabaseCommunicationEngine(errorResponse);
-        BroadcastBackendHandler broadcastBackendHandler = new BroadcastBackendHandler("SET timeout = 1000", mock(SQLStatement.class), backendConnection);
-        setBackendHandlerFactory(broadcastBackendHandler);
-        assertThat(broadcastBackendHandler.execute(), instanceOf(ErrorResponse.class));
-        verify(databaseCommunicationEngine, times(10)).execute();
-    }
-    
-    private void mockDatabaseCommunicationEngine(final BackendResponse backendResponse) {
+    private void mockDatabaseCommunicationEngine(final BackendResponse backendResponse) throws SQLException {
         when(databaseCommunicationEngine.execute()).thenReturn(backendResponse);
         when(databaseCommunicationEngineFactory.newTextProtocolInstance(any(), anyString(), any())).thenReturn(databaseCommunicationEngine);
     }

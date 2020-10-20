@@ -18,22 +18,32 @@
 package org.apache.shardingsphere.infra.metadata.refresh.impl;
 
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
+import org.apache.shardingsphere.infra.metadata.model.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.refresh.MetaDataRefreshStrategy;
 import org.apache.shardingsphere.infra.metadata.refresh.TableMetaDataLoaderCallback;
-import org.apache.shardingsphere.sql.parser.binder.statement.ddl.DropTableStatementContext;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DropTableStatement;
 
-import javax.sql.DataSource;
-import java.util.Map;
+import java.util.Collection;
 
 /**
  * Drop table statement meta data refresh strategy.
  */
-public final class DropTableStatementMetaDataRefreshStrategy implements MetaDataRefreshStrategy<DropTableStatementContext> {
+public final class DropTableStatementMetaDataRefreshStrategy implements MetaDataRefreshStrategy<DropTableStatement> {
     
     @Override
-    public void refreshMetaData(final ShardingSphereMetaData metaData, final DatabaseType databaseType,
-                                final Map<String, DataSource> dataSourceMap, final DropTableStatementContext sqlStatementContext, final TableMetaDataLoaderCallback callback) {
-        sqlStatementContext.getSqlStatement().getTables().forEach(each -> metaData.getSchema().getConfiguredSchemaMetaData().remove(each.getTableName().getIdentifier().getValue()));
+    public void refreshMetaData(final ShardingSphereMetaData metaData, final DatabaseType databaseType, final Collection<String> routeDataSourceNames, 
+                                final DropTableStatement sqlStatement, final TableMetaDataLoaderCallback callback) {
+        sqlStatement.getTables().forEach(each -> removeMetaData(metaData, each.getTableName().getIdentifier().getValue(), routeDataSourceNames));
+    }
+    
+    private void removeMetaData(final ShardingSphereMetaData metaData, final String tableName, final Collection<String> routeDataSourceNames) {
+        metaData.getSchemaMetaData().getConfiguredSchemaMetaData().remove(tableName);
+        for (String each : routeDataSourceNames) {
+            Collection<String> schemaMetaData = metaData.getSchemaMetaData().getUnconfiguredSchemaMetaDataMap().get(each);
+            if (null != schemaMetaData) {
+                schemaMetaData.remove(tableName);
+            }
+        }
+        metaData.getSchemaMetaData().getSchemaMetaData().remove(tableName);
     }
 }

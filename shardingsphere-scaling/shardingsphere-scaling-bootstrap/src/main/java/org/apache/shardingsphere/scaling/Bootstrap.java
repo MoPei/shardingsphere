@@ -39,7 +39,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Bootstrap of ShardingScaling.
+ * Bootstrap of ShardingSphere-Scaling.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
@@ -58,7 +58,7 @@ public final class Bootstrap {
      */
     public static void main(final String[] args) throws IOException, InterruptedException {
         initServerConfig();
-        log.info("ShardingScaling Startup");
+        log.info("ShardingSphere-Scaling Startup");
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -68,9 +68,9 @@ public final class Bootstrap {
                     .channel(NioServerSocketChannel.class)
                     .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new HttpServerInitializer());
-            int port = ScalingContext.getInstance().getServerConfiguration().getPort();
+            int port = ScalingContext.getInstance().getServerConfig().getPort();
             Channel channel = bootstrap.bind(port).sync().channel();
-            log.info("ShardingScaling is server on http://127.0.0.1:" + port + '/');
+            log.info("ShardingSphere-Scaling is server on http://127.0.0.1:{}/", port);
             channel.closeFuture().sync();
         } finally {
             bossGroup.shutdownGracefully();
@@ -81,8 +81,8 @@ public final class Bootstrap {
     private static void initServerConfig() throws IOException {
         log.info("Init server config");
         File yamlFile = new File(Resources.getResource(DEFAULT_CONFIG_PATH + DEFAULT_CONFIG_FILE_NAME).getPath());
-        ServerConfiguration serverConfiguration = YamlEngine.unmarshal(yamlFile, ServerConfiguration.class);
-        Preconditions.checkNotNull(serverConfiguration, "Server configuration file `%s` is invalid.", yamlFile.getName());
-        ScalingContext.getInstance().init(serverConfiguration);
+        ServerConfiguration serverConfig = YamlEngine.unmarshal(yamlFile, ServerConfiguration.class);
+        Preconditions.checkNotNull(serverConfig, "Server configuration file `%s` is invalid.", yamlFile.getName());
+        ScalingContext.getInstance().init(serverConfig);
     }
 }

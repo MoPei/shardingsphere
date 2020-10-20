@@ -21,40 +21,40 @@ chapter = true
 | SQLServerDatabaseType  | SQLServer database      |
 | H2DatabaseType         | H2 database             |
 
-## RuleMetaDataLoader
+## LogicMetaDataLoader
 
 | *SPI Name*             | *Description*                           |
 | ---------------------- | --------------------------------------- |
-| RuleMetaDataLoader     | Used to initialize meta data            |
+| LogicMetaDataLoader    | Used to initialize meta data            |
 
 | *Implementation Class* | *Description*                           |
 | ---------------------- | --------------------------------------- |
 | ShardingMetaDataLoader | Used to initialize sharding meta data   |
 | EncryptMetaDataLoader  | Used to initialize encryption meta data |
 
-## RuleMetaDataDecorator
+## LogicMetaDataDecorator
 
 | *SPI Name*                | *Description*                        |
 | ------------------------- | ------------------------------------ |
-| RuleMetaDataDecorator     | Used to update meta data             |
+| LogicMetaDataDecorator    | Used to update meta data             |
 
 | *Implementation Class*    | *Description*                        |
 | ------------------------- | ------------------------------------ |
 | ShardingMetaDataDecorator | Used to update sharding meta data    |
 | EncryptMetaDataDecorator  | Used to update encryption meta data  |
 
-## RouteDecorator
+## SQLRouter
 
-| *SPI Name*                | *Description*                                   |
-| ------------------------- | ----------------------------------------------- |
-| RouteDecorator            | Used to process routing results                 |
+| *SPI Name*           | *Description*                                   |
+| -------------------- | ----------------------------------------------- |
+| SQLRouter            | Used to process routing results                 |
 
-| *Implementation Class*    | *Description*                                   |
-| ------------------------- | ----------------------------------------------- |
-| ShardingRouteDecorator    | Used to process sharding routing results        |
-| MasterSlaveRouteDecorator | Used to process master-slave routing results    |
-| ReplicaRouteDecorator     | Used to process multi replica routing results   |
-| ShadowRouteDecorator      | Used to process shadow database routing results |
+| *Implementation Class*             | *Description*                                               |
+| ---------------------------------- | ----------------------------------------------------------- |
+| ShardingSQLRouter                  | Used to process sharding routing results                    |
+| PrimaryReplicaReplicationSQLRouter | Used to process primary-replica replication routing results |
+| ConsensusReplicationSQLRouter      | Used to process consensus replication routing results       |
+| ShadowRouteSQLRouter               | Used to process shadow database routing results             |
 
 ## SQLRewriteContextDecorator
 
@@ -74,9 +74,9 @@ chapter = true
 | ---------------------------- | -------------------------------------- |
 | ExecuteGroupDecorator        | Used by update data nodes group result |
 
-| *Implementation Class*       | *Description*                          |
-| ---------------------------- | -------------------------------------- |
-| ReplicaExecuteGroupDecorator | Used by multi replica data nodes group |
+| *Implementation Class*                    | *Description*                                  |
+| ----------------------------------------- | ---------------------------------------------- |
+| ConsensusReplicationExecuteGroupDecorator | Used by consensus replication data nodes group |
 
 ## SQLExecutionHook
 

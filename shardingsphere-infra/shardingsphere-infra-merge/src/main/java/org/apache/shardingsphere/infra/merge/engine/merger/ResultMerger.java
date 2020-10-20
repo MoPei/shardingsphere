@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.infra.merge.engine.merger;
 
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.schema.PhysicalSchemaMetaData;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.executor.sql.QueryResult;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 
@@ -39,5 +39,5 @@ public interface ResultMerger {
      * @return merged result
      * @throws SQLException SQL exception
      */
-    MergedResult merge(List<QueryResult> queryResults, SQLStatementContext<?> sqlStatementContext, SchemaMetaData schemaMetaData) throws SQLException;
+    MergedResult merge(List<QueryResult> queryResults, SQLStatementContext<?> sqlStatementContext, PhysicalSchemaMetaData schemaMetaData) throws SQLException;
 }

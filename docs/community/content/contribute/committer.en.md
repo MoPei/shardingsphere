@@ -7,14 +7,7 @@ chapter = true
 ## Committer Promotion
 
 The ShardingSphere community follows the [Apache Community’s process](http://community.apache.org/newcommitter.html) on accepting a new committer.
-After a contributor participate ShardingSphere community actively, (P)PMC and Committers will make decision to invite the contributor join Committers and (P)PMC.
-
-Processes are:
-
- - Start the discussion and vote in @private. Only current PMC member could nominate;
- - If the vote passes, send an offer to become a committer with @private CC’ed;
- - New committer sign ICLA and apply Apache ID and email address;
- - Update [Team](/en/team/) page.
+After a contributor participate ShardingSphere community actively, PMC and Committers will make decision to invite the contributor join Committers and PMC.
 
 ## Committer Responsibilities
 
@@ -37,7 +30,9 @@ Processes are:
  - Judge whether it is a long-term issue. If it is, please mark it as pending.
  - Add issue labels, such as bug, enhancement, discussion, etc.
  - Add Milestone labels.
+ 
+3. Pull Request that committer submits needs to mark labels and milestone based on the type and time.
 
-**Notice**
+4. When committer reviewed and approved any Pull Request, committer could squash and merge to master. If there is any question you concerned about this Pull Request, contact us and we could disscuss.
 
-At least one committer is expected to be in the assignee list of that issue before it is completed.
+> To be noticed: At least one committer is expected to be in the assignee list of that issue before it is completed.

@@ -21,7 +21,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.shardingsphere.driver.governance.internal.datasource.GovernanceShardingSphereDataSource;
 import org.apache.shardingsphere.encrypt.algorithm.config.AlgorithmProvidedEncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
-import org.apache.shardingsphere.infra.context.SchemaContexts;
+import org.apache.shardingsphere.infra.context.schema.SchemaContexts;
 import org.apache.shardingsphere.spring.boot.governance.util.EmbedTestingServer;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -59,11 +59,11 @@ public class GovernanceSpringBootEncryptTest {
         Field field = GovernanceShardingSphereDataSource.class.getDeclaredField("schemaContexts");
         field.setAccessible(true);
         SchemaContexts schemaContexts = (SchemaContexts) field.get(dataSource);
-        BasicDataSource embedDataSource = (BasicDataSource) schemaContexts.getDefaultSchemaContext().getSchema().getDataSources().values().iterator().next();
+        BasicDataSource embedDataSource = (BasicDataSource) schemaContexts.getDefaultSchema().getDataSources().values().iterator().next();
         assertThat(embedDataSource.getMaxTotal(), is(100));
         assertThat(embedDataSource.getUsername(), is("sa"));
         AlgorithmProvidedEncryptRuleConfiguration configuration =
-                (AlgorithmProvidedEncryptRuleConfiguration) schemaContexts.getDefaultSchemaContext().getSchema().getConfigurations().iterator().next();
+                (AlgorithmProvidedEncryptRuleConfiguration) schemaContexts.getDefaultSchema().getConfigurations().iterator().next();
         assertThat(configuration.getEncryptors().size(), is(1));
         EncryptAlgorithm encryptAlgorithm = configuration.getEncryptors().get("order_encrypt");
         assertThat(encryptAlgorithm.getType(), is("AES"));

@@ -17,19 +17,20 @@
 
 package org.apache.shardingsphere.scaling.fixture;
 
-import org.apache.shardingsphere.scaling.core.job.position.IncrementalPosition;
-import org.apache.shardingsphere.scaling.core.job.preparer.checker.DataSourceChecker;
-import org.apache.shardingsphere.scaling.core.job.position.PositionManager;
 import org.apache.shardingsphere.scaling.core.execute.executor.dumper.JDBCDumper;
 import org.apache.shardingsphere.scaling.core.execute.executor.dumper.LogDumper;
 import org.apache.shardingsphere.scaling.core.execute.executor.importer.Importer;
+import org.apache.shardingsphere.scaling.core.job.position.IncrementalPosition;
+import org.apache.shardingsphere.scaling.core.job.position.PositionManager;
+import org.apache.shardingsphere.scaling.core.job.preparer.checker.DataSourceChecker;
 import org.apache.shardingsphere.scaling.core.spi.ScalingEntry;
+import org.apache.shardingsphere.scaling.core.check.DataConsistencyChecker;
 
 public final class FixtureH2ScalingEntry implements ScalingEntry {
     
     @Override
     public Class<? extends JDBCDumper> getJdbcDumperClass() {
-        return null;
+        return FixtureH2JDBCDumper.class;
     }
     
     @Override
@@ -44,12 +45,17 @@ public final class FixtureH2ScalingEntry implements ScalingEntry {
     
     @Override
     public Class<? extends Importer> getImporterClass() {
-        return null;
+        return FixtureNopImporter.class;
     }
-
+    
     @Override
-    public Class<? extends DataSourceChecker> getCheckerClass() {
+    public Class<? extends DataSourceChecker> getDataSourceCheckerClass() {
         return FixtureH2DataSourceChecker.class;
+    }
+    
+    @Override
+    public Class<? extends DataConsistencyChecker> getDataConsistencyCheckerClass() {
+        return FixtureDataConsistencyChecker.class;
     }
     
     @Override

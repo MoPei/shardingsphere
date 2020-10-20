@@ -18,11 +18,11 @@
 package org.apache.shardingsphere.encrypt.metadata;
 
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
-import org.apache.shardingsphere.infra.metadata.schema.spi.RuleMetaDataDecorator;
+import org.apache.shardingsphere.infra.metadata.model.logic.spi.LogicMetaDataDecorator;
 import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
-import org.apache.shardingsphere.infra.spi.order.OrderedSPIRegistry;
-import org.apache.shardingsphere.sql.parser.binder.metadata.column.ColumnMetaData;
-import org.apache.shardingsphere.sql.parser.binder.metadata.table.TableMetaData;
+import org.apache.shardingsphere.infra.spi.ordered.OrderedSPIRegistry;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.column.PhysicalColumnMetaData;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.table.PhysicalTableMetaData;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -38,14 +38,14 @@ import static org.mockito.Mockito.when;
 public final class EncryptMetaDataDecoratorTest {
     
     static {
-        ShardingSphereServiceLoader.register(RuleMetaDataDecorator.class);
+        ShardingSphereServiceLoader.register(LogicMetaDataDecorator.class);
     }
     
     @Test
     public void assertDecorate() {
         EncryptRule rule = createEncryptRule();
-        EncryptMetaDataDecorator decorator = (EncryptMetaDataDecorator) OrderedSPIRegistry.getRegisteredServices(Collections.singletonList(rule), RuleMetaDataDecorator.class).get(rule);
-        TableMetaData actual = decorator.decorate("t_encrypt", createTableMetaData(), rule);
+        EncryptMetaDataDecorator decorator = (EncryptMetaDataDecorator) OrderedSPIRegistry.getRegisteredServices(Collections.singletonList(rule), LogicMetaDataDecorator.class).get(rule);
+        PhysicalTableMetaData actual = decorator.decorate("t_encrypt", createTableMetaData(), rule);
         assertThat(actual.getColumns().size(), is(2));
         assertTrue(actual.getColumns().containsKey("id"));
         assertTrue(actual.getColumns().containsKey("pwd"));
@@ -59,9 +59,9 @@ public final class EncryptMetaDataDecoratorTest {
         return result;
     }
     
-    private TableMetaData createTableMetaData() {
-        Collection<ColumnMetaData> columns = Arrays.asList(new ColumnMetaData("id", 1, "int", true, true, true), 
-                new ColumnMetaData("pwd_cipher", 2, "varchar", false, false, true), new ColumnMetaData("pwd_plain", 2, "varchar", false, false, true));
-        return new TableMetaData(columns, Collections.emptyList());
+    private PhysicalTableMetaData createTableMetaData() {
+        Collection<PhysicalColumnMetaData> columns = Arrays.asList(new PhysicalColumnMetaData("id", 1, "int", true, true, true), 
+                new PhysicalColumnMetaData("pwd_cipher", 2, "varchar", false, false, true), new PhysicalColumnMetaData("pwd_plain", 2, "varchar", false, false, true));
+        return new PhysicalTableMetaData(columns, Collections.emptyList());
     }
 }

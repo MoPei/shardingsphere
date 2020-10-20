@@ -23,13 +23,13 @@ import com.google.common.collect.Multimap;
 import lombok.Getter;
 import org.apache.shardingsphere.driver.jdbc.adapter.executor.ForceExecuteTemplate;
 import org.apache.shardingsphere.driver.jdbc.unsupported.AbstractUnsupportedOperationConnection;
-import org.apache.shardingsphere.infra.context.SchemaContexts;
+import org.apache.shardingsphere.infra.context.schema.SchemaContexts;
 import org.apache.shardingsphere.infra.executor.sql.ConnectionMode;
 import org.apache.shardingsphere.infra.executor.sql.resourced.jdbc.connection.JDBCExecutionConnection;
 import org.apache.shardingsphere.infra.executor.sql.resourced.jdbc.group.StatementOption;
 import org.apache.shardingsphere.infra.hook.RootInvokeHook;
 import org.apache.shardingsphere.infra.hook.SPIRootInvokeHook;
-import org.apache.shardingsphere.masterslave.route.engine.impl.MasterVisitedManager;
+import org.apache.shardingsphere.replication.primaryreplica.route.engine.impl.PrimaryVisitedManager;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -194,7 +194,7 @@ public abstract class AbstractConnectionAdapter extends AbstractUnsupportedOpera
     @Override
     public final void close() throws SQLException {
         closed = true;
-        MasterVisitedManager.clear();
+        PrimaryVisitedManager.clear();
         int connectionSize = cachedConnections.size();
         try {
             forceExecuteTemplateForClose.execute(cachedConnections.entries(), cachedConnections -> cachedConnections.getValue().close());

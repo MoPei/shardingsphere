@@ -20,7 +20,7 @@ package org.apache.shardingsphere.scaling.mysql;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.scaling.core.config.DumperConfiguration;
-import org.apache.shardingsphere.scaling.core.config.JDBCDataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.JDBCScalingDataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.constant.ScalingConstant;
 import org.apache.shardingsphere.scaling.core.datasource.DataSourceFactory;
 import org.apache.shardingsphere.scaling.core.execute.executor.AbstractShardingScalingExecutor;
@@ -44,7 +44,7 @@ import org.apache.shardingsphere.scaling.mysql.binlog.event.UpdateRowsEvent;
 import org.apache.shardingsphere.scaling.mysql.binlog.event.WriteRowsEvent;
 import org.apache.shardingsphere.scaling.mysql.client.ConnectInfo;
 import org.apache.shardingsphere.scaling.mysql.client.MySQLClient;
-import org.apache.shardingsphere.sql.parser.binder.metadata.table.TableMetaData;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.table.PhysicalTableMetaData;
 
 import java.io.Serializable;
 import java.security.SecureRandom;
@@ -59,7 +59,7 @@ public final class MySQLBinlogDumper extends AbstractShardingScalingExecutor<Bin
     
     private final BinlogPosition binlogPosition;
     
-    private final DumperConfiguration dumperConfiguration;
+    private final DumperConfiguration dumperConfig;
     
     private final MetaDataManager metaDataManager;
     
@@ -68,13 +68,13 @@ public final class MySQLBinlogDumper extends AbstractShardingScalingExecutor<Bin
     @Setter
     private Channel channel;
     
-    public MySQLBinlogDumper(final DumperConfiguration dumperConfiguration, final Position binlogPosition) {
+    public MySQLBinlogDumper(final DumperConfiguration dumperConfig, final Position binlogPosition) {
         this.binlogPosition = (BinlogPosition) binlogPosition;
-        if (!JDBCDataSourceConfiguration.class.equals(dumperConfiguration.getDataSourceConfiguration().getClass())) {
+        if (!JDBCScalingDataSourceConfiguration.class.equals(dumperConfig.getDataSourceConfiguration().getClass())) {
             throw new UnsupportedOperationException("MySQLBinlogDumper only support JDBCDataSourceConfiguration");
         }
-        this.dumperConfiguration = dumperConfiguration;
-        metaDataManager = new MetaDataManager(new DataSourceFactory().newInstance(dumperConfiguration.getDataSourceConfiguration()));
+        this.dumperConfig = dumperConfig;
+        metaDataManager = new MetaDataManager(new DataSourceFactory().newInstance(dumperConfig.getDataSourceConfiguration()));
     }
     
     @Override
@@ -84,7 +84,7 @@ public final class MySQLBinlogDumper extends AbstractShardingScalingExecutor<Bin
     }
     
     private void dump() {
-        JDBCDataSourceConfiguration jdbcDataSourceConfig = (JDBCDataSourceConfiguration) dumperConfiguration.getDataSourceConfiguration();
+        JDBCScalingDataSourceConfiguration jdbcDataSourceConfig = (JDBCScalingDataSourceConfiguration) dumperConfig.getDataSourceConfiguration();
         JdbcUri uri = new JdbcUri(jdbcDataSourceConfig.getJdbcUrl());
         MySQLClient client = new MySQLClient(new ConnectInfo(random.nextInt(), uri.getHostname(), uri.getPort(), jdbcDataSourceConfig.getUsername(), jdbcDataSourceConfig.getPassword()));
         client.connect();
@@ -113,11 +113,11 @@ public final class MySQLBinlogDumper extends AbstractShardingScalingExecutor<Bin
     }
     
     private boolean filter(final String database, final AbstractRowsEvent event) {
-        return !event.getSchemaName().equals(database) || !dumperConfiguration.getTableNameMap().containsKey(event.getTableName());
+        return !event.getSchemaName().equals(database) || !dumperConfig.getTableNameMap().containsKey(event.getTableName());
     }
     
     private void handleWriteRowsEvent(final WriteRowsEvent event) {
-        TableMetaData tableMetaData = metaDataManager.getTableMetaData(event.getTableName());
+        PhysicalTableMetaData tableMetaData = metaDataManager.getTableMetaData(event.getTableName());
         for (Serializable[] each : event.getAfterRows()) {
             DataRecord record = createDataRecord(event, each.length);
             record.setType(ScalingConstant.INSERT);
@@ -129,7 +129,7 @@ public final class MySQLBinlogDumper extends AbstractShardingScalingExecutor<Bin
     }
     
     private void handleUpdateRowsEvent(final UpdateRowsEvent event) {
-        TableMetaData tableMetaData = metaDataManager.getTableMetaData(event.getTableName());
+        PhysicalTableMetaData tableMetaData = metaDataManager.getTableMetaData(event.getTableName());
         for (int i = 0; i < event.getBeforeRows().size(); i++) {
             Serializable[] beforeValues = event.getBeforeRows().get(i);
             Serializable[] afterValues = event.getAfterRows().get(i);
@@ -145,7 +145,7 @@ public final class MySQLBinlogDumper extends AbstractShardingScalingExecutor<Bin
     }
     
     private void handleDeleteRowsEvent(final DeleteRowsEvent event) {
-        TableMetaData tableMetaData = metaDataManager.getTableMetaData(event.getTableName());
+        PhysicalTableMetaData tableMetaData = metaDataManager.getTableMetaData(event.getTableName());
         for (Serializable[] each : event.getBeforeRows()) {
             DataRecord record = createDataRecord(event, each.length);
             record.setType(ScalingConstant.DELETE);
@@ -158,7 +158,7 @@ public final class MySQLBinlogDumper extends AbstractShardingScalingExecutor<Bin
     
     private DataRecord createDataRecord(final AbstractRowsEvent rowsEvent, final int columnCount) {
         DataRecord result = new DataRecord(new BinlogPosition(rowsEvent.getFileName(), rowsEvent.getPosition(), rowsEvent.getServerId()), columnCount);
-        result.setTableName(dumperConfiguration.getTableNameMap().get(rowsEvent.getTableName()));
+        result.setTableName(dumperConfig.getTableNameMap().get(rowsEvent.getTableName()));
         result.setCommitTime(rowsEvent.getTimestamp() * 1000);
         return result;
     }

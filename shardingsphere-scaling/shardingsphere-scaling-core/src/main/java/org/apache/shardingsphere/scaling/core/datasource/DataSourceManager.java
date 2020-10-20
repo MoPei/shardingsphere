@@ -20,7 +20,7 @@ package org.apache.shardingsphere.scaling.core.datasource;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.scaling.core.config.DataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.ScalingDataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.config.SyncConfiguration;
 
 import javax.sql.DataSource;
@@ -39,30 +39,30 @@ public final class DataSourceManager implements AutoCloseable {
     private final DataSourceFactory dataSourceFactory = new DataSourceFactory();
 
     @Getter
-    private final Map<DataSourceConfiguration, DataSourceWrapper> cachedDataSources = new ConcurrentHashMap<>();
+    private final Map<ScalingDataSourceConfiguration, DataSourceWrapper> cachedDataSources = new ConcurrentHashMap<>();
 
     @Getter
-    private final Map<DataSourceConfiguration, DataSourceWrapper> sourceDatasources = new ConcurrentHashMap<>();
+    private final Map<ScalingDataSourceConfiguration, DataSourceWrapper> sourceDataSources = new ConcurrentHashMap<>();
 
     public DataSourceManager(final List<SyncConfiguration> syncConfigs) {
-        createDatasources(syncConfigs);
+        createDataSources(syncConfigs);
     }
     
-    private void createDatasources(final List<SyncConfiguration> syncConfigs) {
-        createSourceDatasources(syncConfigs);
-        createTargetDatasources(syncConfigs.iterator().next().getImporterConfiguration().getDataSourceConfiguration());
+    private void createDataSources(final List<SyncConfiguration> syncConfigs) {
+        createSourceDataSources(syncConfigs);
+        createTargetDataSources(syncConfigs.iterator().next().getImporterConfiguration().getDataSourceConfiguration());
     }
     
-    private void createSourceDatasources(final List<SyncConfiguration> syncConfigs) {
+    private void createSourceDataSources(final List<SyncConfiguration> syncConfigs) {
         for (SyncConfiguration syncConfiguration : syncConfigs) {
-            DataSourceConfiguration dataSourceConfig = syncConfiguration.getDumperConfiguration().getDataSourceConfiguration();
-            DataSourceWrapper hikariDataSource = dataSourceFactory.newInstance(dataSourceConfig);
-            cachedDataSources.put(dataSourceConfig, hikariDataSource);
-            sourceDatasources.put(dataSourceConfig, hikariDataSource);
+            ScalingDataSourceConfiguration dataSourceConfig = syncConfiguration.getDumperConfiguration().getDataSourceConfiguration();
+            DataSourceWrapper dataSource = dataSourceFactory.newInstance(dataSourceConfig);
+            cachedDataSources.put(dataSourceConfig, dataSource);
+            sourceDataSources.put(dataSourceConfig, dataSource);
         }
     }
     
-    private void createTargetDatasources(final DataSourceConfiguration dataSourceConfig) {
+    private void createTargetDataSources(final ScalingDataSourceConfiguration dataSourceConfig) {
         cachedDataSources.put(dataSourceConfig, dataSourceFactory.newInstance(dataSourceConfig));
     }
     
@@ -72,7 +72,7 @@ public final class DataSourceManager implements AutoCloseable {
      * @param dataSourceConfig data source configuration
      * @return data source
      */
-    public DataSource getDataSource(final DataSourceConfiguration dataSourceConfig) {
+    public DataSource getDataSource(final ScalingDataSourceConfiguration dataSourceConfig) {
         if (cachedDataSources.containsKey(dataSourceConfig)) {
             return cachedDataSources.get(dataSourceConfig);
         }
@@ -94,11 +94,11 @@ public final class DataSourceManager implements AutoCloseable {
         for (DataSourceWrapper each : cachedDataSources.values()) {
             try {
                 each.close();
-            } catch (IOException e) {
-                log.warn("An exception occurred while closing the data source", e);
+            } catch (final IOException ex) {
+                log.error("An exception occurred while closing the data source", ex);
             }
         }
         cachedDataSources.clear();
-        sourceDatasources.clear();
+        sourceDataSources.clear();
     }
 }

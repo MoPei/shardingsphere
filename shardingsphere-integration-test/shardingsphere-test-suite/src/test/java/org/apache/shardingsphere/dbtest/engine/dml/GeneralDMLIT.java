@@ -17,13 +17,12 @@
 
 package org.apache.shardingsphere.dbtest.engine.dml;
 
-import java.sql.ResultSet;
 import org.apache.shardingsphere.dbtest.cases.assertion.dml.DMLIntegrateTestCaseAssertion;
-import org.apache.shardingsphere.dbtest.cases.assertion.root.SQLValue;
 import org.apache.shardingsphere.dbtest.cases.assertion.root.SQLCaseType;
+import org.apache.shardingsphere.dbtest.cases.assertion.root.SQLValue;
 import org.apache.shardingsphere.dbtest.engine.SQLType;
 import org.apache.shardingsphere.dbtest.engine.util.IntegrateTestParameters;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypes;
+import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,6 +32,7 @@ import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
@@ -47,7 +47,7 @@ public final class GeneralDMLIT extends BaseDMLIT {
     
     public GeneralDMLIT(final String path, final DMLIntegrateTestCaseAssertion assertion, final String ruleType,
                         final String databaseType, final SQLCaseType caseType, final String sql) throws IOException, JAXBException, SQLException, ParseException {
-        super(path, assertion, ruleType, DatabaseTypes.getActualDatabaseType(databaseType), caseType, sql);
+        super(path, assertion, ruleType, DatabaseTypeRegistry.getActualDatabaseType(databaseType), caseType, sql);
         this.assertion = assertion;
     }
     
@@ -58,8 +58,8 @@ public final class GeneralDMLIT extends BaseDMLIT {
     
     @Test
     public void assertExecuteUpdate() throws JAXBException, IOException, SQLException, ParseException {
-        // TODO fix masterslave
-        if ("masterslave".equals(getRuleType())) {
+        // TODO fix primary-replica-replication
+        if ("primary_replica_replication".equals(getRuleType())) {
             return;
         }
         // TODO fix shadow
@@ -96,8 +96,8 @@ public final class GeneralDMLIT extends BaseDMLIT {
     
     @Test
     public void assertExecute() throws JAXBException, IOException, SQLException, ParseException {
-        // TODO fix masterslave
-        if ("masterslave".equals(getRuleType())) {
+        // TODO fix primary_replica_replication
+        if ("primary_replica_replication".equals(getRuleType())) {
             return;
         }
         // TODO fix shadow

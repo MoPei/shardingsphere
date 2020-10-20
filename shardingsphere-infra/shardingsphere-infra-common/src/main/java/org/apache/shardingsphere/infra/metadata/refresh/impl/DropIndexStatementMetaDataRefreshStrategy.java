@@ -18,38 +18,37 @@
 package org.apache.shardingsphere.infra.metadata.refresh.impl;
 
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
+import org.apache.shardingsphere.infra.metadata.model.ShardingSphereMetaData;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.schema.PhysicalSchemaMetaData;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.table.PhysicalTableMetaData;
 import org.apache.shardingsphere.infra.metadata.refresh.MetaDataRefreshStrategy;
 import org.apache.shardingsphere.infra.metadata.refresh.TableMetaDataLoaderCallback;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.metadata.table.TableMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.ddl.DropIndexStatementContext;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DropIndexStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.handler.ddl.DropIndexStatementHandler;
 
-import javax.sql.DataSource;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Drop index statement meta data refresh strategy.
  */
-public final class DropIndexStatementMetaDataRefreshStrategy implements MetaDataRefreshStrategy<DropIndexStatementContext> {
+public final class DropIndexStatementMetaDataRefreshStrategy implements MetaDataRefreshStrategy<DropIndexStatement> {
     
     @Override
-    public void refreshMetaData(final ShardingSphereMetaData metaData, final DatabaseType databaseType,
-                                final Map<String, DataSource> dataSourceMap, final DropIndexStatementContext sqlStatementContext, final TableMetaDataLoaderCallback callback) {
-        DropIndexStatement dropIndexStatement = sqlStatementContext.getSqlStatement();
-        Collection<String> indexNames = getIndexNames(dropIndexStatement);
-        String tableName = dropIndexStatement.getTable().getTableName().getIdentifier().getValue();
-        TableMetaData tableMetaData = metaData.getSchema().getConfiguredSchemaMetaData().get(tableName);
-        if (null != dropIndexStatement.getTable()) {
+    public void refreshMetaData(final ShardingSphereMetaData metaData, final DatabaseType databaseType, final Collection<String> routeDataSourceNames, 
+                                final DropIndexStatement sqlStatement, final TableMetaDataLoaderCallback callback) {
+        Collection<String> indexNames = getIndexNames(sqlStatement);
+        Optional<SimpleTableSegment> simpleTableSegment = DropIndexStatementHandler.getSimpleTableSegment(sqlStatement);
+        String tableName = simpleTableSegment.map(tableSegment -> tableSegment.getTableName().getIdentifier().getValue()).orElse("");
+        PhysicalTableMetaData tableMetaData = metaData.getSchemaMetaData().getConfiguredSchemaMetaData().get(tableName);
+        if (simpleTableSegment.isPresent()) {
             indexNames.forEach(each -> tableMetaData.getIndexes().remove(each));
         }
         for (String each : indexNames) {
-            if (findLogicTableName(metaData.getSchema().getConfiguredSchemaMetaData(), each).isPresent()) {
+            if (findLogicTableName(metaData.getSchemaMetaData().getConfiguredSchemaMetaData(), each).isPresent()) {
                 tableMetaData.getIndexes().remove(each);
             }
         }
@@ -59,7 +58,7 @@ public final class DropIndexStatementMetaDataRefreshStrategy implements MetaData
         return dropIndexStatement.getIndexes().stream().map(each -> each.getIdentifier().getValue()).collect(Collectors.toCollection(LinkedList::new));
     }
     
-    private Optional<String> findLogicTableName(final SchemaMetaData schemaMetaData, final String logicIndexName) {
+    private Optional<String> findLogicTableName(final PhysicalSchemaMetaData schemaMetaData, final String logicIndexName) {
         return schemaMetaData.getAllTableNames().stream().filter(each -> schemaMetaData.get(each).getIndexes().containsKey(logicIndexName)).findFirst();
     }
 }

@@ -64,7 +64,7 @@
         <groovy.version>2.4.19</groovy.version>
         <snakeyaml.version>1.16</snakeyaml.version>
         
-        <netty.version>4.1.42.Final</netty.version>
+        <netty.version>4.1.45.Final</netty.version>
         <commons-codec.version>1.10</commons-codec.version>
         <commons-cli.version>1.4</commons-cli.version>
         <commons-collections4.version>4.2</commons-collections4.version>
@@ -299,8 +299,8 @@
                 <version>${curator.version}</version>
                 <exclusions>
                     <exclusion>
-                        <artifactId>netty</artifactId>
                         <groupId>io.netty</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -511,7 +511,6 @@
     </dependencies>
     
     <build>
-        <finalName>apache-shardingsphere-${project.version}</finalName>
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>
@@ -749,13 +748,13 @@
                 <version>${cobertura-maven-plugin.version}</version>
                 <configuration>
                     <check>
-                        <!--<branchRate>85</branchRate>-->
-                        <!--<lineRate>85</lineRate>-->
-                        <!--<haltOnFailure>true</haltOnFailure>-->
-                        <!--<totalBranchRate>85</totalBranchRate>-->
-                        <!--<totalLineRate>85</totalLineRate>-->
-                        <!--<packageLineRate>85</packageLineRate>-->
-                        <!--<packageBranchRate>85</packageBranchRate>-->
+                        <branchRate>70</branchRate>
+                        <lineRate>70</lineRate>
+                        <haltOnFailure>true</haltOnFailure>
+                        <totalBranchRate>70</totalBranchRate>
+                        <totalLineRate>70</totalLineRate>
+                        <packageLineRate>70</packageLineRate>
+                        <packageBranchRate>70</packageBranchRate>
                     </check>
                     <aggregate>true</aggregate>
                     <encoding>${project.build.sourceEncoding}</encoding>
@@ -800,9 +799,11 @@
                 <version>${apache-rat-plugin.version}</version>
                 <configuration>
                     <excludes>
+                        <exclude>**/gen/**</exclude>
                         <exclude>**/target/**</exclude>
                         <exclude>**/logs/**</exclude>
                         <exclude>**/*.log</exclude>
+                        <exclude>**/*.tokens</exclude>
                         <!-- IDE files -->
                         <exclude>**/*.iml</exclude>
                         <exclude>**/.idea/**</exclude>
@@ -816,6 +817,7 @@
                         <exclude>**/.git/**</exclude>
                         <!-- CI files -->
                         <exclude>**/.travis.yml</exclude>
+ 			<exclude>**/.codecov.yml</exclude>
                         <exclude>**/.mvn/jvm.config</exclude>
                         <exclude>**/.mvn/wrapper/maven-wrapper.properties</exclude>
                         <!-- GitHub files -->

@@ -19,9 +19,9 @@ package org.apache.shardingsphere.encrypt.metadata;
 
 import org.apache.shardingsphere.encrypt.constant.EncryptOrder;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
-import org.apache.shardingsphere.sql.parser.binder.metadata.column.ColumnMetaData;
-import org.apache.shardingsphere.sql.parser.binder.metadata.table.TableMetaData;
-import org.apache.shardingsphere.infra.metadata.schema.spi.RuleMetaDataDecorator;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.column.PhysicalColumnMetaData;
+import org.apache.shardingsphere.infra.metadata.model.physical.model.table.PhysicalTableMetaData;
+import org.apache.shardingsphere.infra.metadata.model.logic.spi.LogicMetaDataDecorator;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -29,17 +29,18 @@ import java.util.LinkedList;
 /**
  * Table meta data decorator for encrypt.
  */
-public final class EncryptMetaDataDecorator implements RuleMetaDataDecorator<EncryptRule> {
+public final class EncryptMetaDataDecorator implements LogicMetaDataDecorator<EncryptRule> {
     
     @Override
-    public TableMetaData decorate(final String tableName, final TableMetaData tableMetaData, final EncryptRule encryptRule) {
-        return new TableMetaData(getEncryptColumnMetaDataList(tableName, tableMetaData.getColumns().values(), encryptRule), tableMetaData.getIndexes().values());
+    public PhysicalTableMetaData decorate(final String tableName, final PhysicalTableMetaData tableMetaData, final EncryptRule encryptRule) {
+        return new PhysicalTableMetaData(getEncryptColumnMetaDataList(tableName, tableMetaData.getColumns().values(), encryptRule), tableMetaData.getIndexes().values());
     }
     
-    private Collection<ColumnMetaData> getEncryptColumnMetaDataList(final String tableName, final Collection<ColumnMetaData> originalColumnMetaDataList, final EncryptRule encryptRule) {
-        Collection<ColumnMetaData> result = new LinkedList<>();
+    private Collection<PhysicalColumnMetaData> getEncryptColumnMetaDataList(final String tableName, 
+                                                                            final Collection<PhysicalColumnMetaData> originalColumnMetaDataList, final EncryptRule encryptRule) {
+        Collection<PhysicalColumnMetaData> result = new LinkedList<>();
         Collection<String> derivedColumns = encryptRule.getAssistedQueryAndPlainColumns(tableName);
-        for (ColumnMetaData each : originalColumnMetaDataList) {
+        for (PhysicalColumnMetaData each : originalColumnMetaDataList) {
             if (!derivedColumns.contains(each.getName())) {
                 result.add(getEncryptColumnMetaData(tableName, each, encryptRule));
             }
@@ -47,7 +48,7 @@ public final class EncryptMetaDataDecorator implements RuleMetaDataDecorator<Enc
         return result;
     }
     
-    private ColumnMetaData getEncryptColumnMetaData(final String tableName, final ColumnMetaData originalColumnMetaData, final EncryptRule encryptRule) {
+    private PhysicalColumnMetaData getEncryptColumnMetaData(final String tableName, final PhysicalColumnMetaData originalColumnMetaData, final EncryptRule encryptRule) {
         if (!encryptRule.isCipherColumn(tableName, originalColumnMetaData.getName())) {
             return originalColumnMetaData;
         }

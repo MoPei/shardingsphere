@@ -17,12 +17,11 @@
 
 package org.apache.shardingsphere.governance.core.registry.listener;
 
-import org.apache.shardingsphere.governance.core.common.event.GovernanceEvent;
-import org.apache.shardingsphere.governance.core.common.listener.PostGovernanceRepositoryEventListener;
+import org.apache.shardingsphere.governance.core.event.model.GovernanceEvent;
+import org.apache.shardingsphere.governance.core.event.listener.PostGovernanceRepositoryEventListener;
 import org.apache.shardingsphere.governance.core.registry.RegistryCenterNode;
 import org.apache.shardingsphere.governance.core.registry.RegistryCenterNodeStatus;
 import org.apache.shardingsphere.governance.core.registry.event.DisabledStateChangedEvent;
-import org.apache.shardingsphere.governance.core.registry.schema.GovernanceSchema;
 import org.apache.shardingsphere.governance.repository.api.RegistryRepository;
 import org.apache.shardingsphere.governance.repository.api.listener.DataChangedEvent;
 import org.apache.shardingsphere.governance.repository.api.listener.DataChangedEvent.ChangedType;
@@ -38,21 +37,16 @@ public final class DataSourceStateChangedListener extends PostGovernanceReposito
     private final RegistryCenterNode registryCenterNode;
     
     public DataSourceStateChangedListener(final RegistryRepository registryRepository, final Collection<String> schemaNames) {
-        super(registryRepository, new RegistryCenterNode().getAllDataSourcesSchemaPaths(schemaNames));
+        super(registryRepository, new RegistryCenterNode().getAllSchemaPaths(schemaNames));
         registryCenterNode = new RegistryCenterNode();
     }
     
     @Override
     protected Optional<GovernanceEvent> createGovernanceEvent(final DataChangedEvent event) {
-        Optional<GovernanceSchema> governanceSchema = registryCenterNode.getGovernanceShardingSchema(event.getKey());
-        if (governanceSchema.isPresent()) {
-            return Optional.of(new DisabledStateChangedEvent(governanceSchema.get(), isDataSourceDisabled(event)));
-        }
-        return Optional.empty();
+        return registryCenterNode.getGovernanceSchema(event.getKey()).map(schema -> new DisabledStateChangedEvent(schema, isDataSourceDisabled(event)));
     }
     
     private boolean isDataSourceDisabled(final DataChangedEvent event) {
-        return RegistryCenterNodeStatus.DISABLED.toString().equalsIgnoreCase(event.getValue())
-                && (ChangedType.UPDATED == event.getChangedType() || ChangedType.ADDED == event.getChangedType());
+        return RegistryCenterNodeStatus.DISABLED.toString().equalsIgnoreCase(event.getValue()) && (ChangedType.UPDATED == event.getChangedType() || ChangedType.ADDED == event.getChangedType());
     }
 }

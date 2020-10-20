@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.proxy.convert;
 
-import org.apache.shardingsphere.infra.context.schema.DataSourceParameter;
+import org.apache.shardingsphere.infra.config.datasource.DataSourceParameter;
 import org.apache.shardingsphere.proxy.config.yaml.YamlDataSourceParameter;
 import org.apache.shardingsphere.rdl.parser.binder.context.CreateDataSourcesStatementContext;
 import org.apache.shardingsphere.rdl.parser.binder.generator.SQLStatementContextConverter;
@@ -27,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Create dataSource statement context converter.
+ * Create data source statement context converter.
  */
 public final class CreateDataSourcesStatementContextConverter implements SQLStatementContextConverter<CreateDataSourcesStatementContext, Map<String, YamlDataSourceParameter>> {
     

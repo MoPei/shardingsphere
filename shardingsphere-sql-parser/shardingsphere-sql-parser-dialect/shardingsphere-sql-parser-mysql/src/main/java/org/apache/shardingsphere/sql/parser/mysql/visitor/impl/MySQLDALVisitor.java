@@ -65,7 +65,7 @@ import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableAssig
 import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.SchemaSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.SetStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLSetStatement;
 import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLAnalyzeTableStatement;
 import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLCacheIndexStatement;
 import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLChecksumTableStatement;
@@ -290,7 +290,7 @@ public final class MySQLDALVisitor extends MySQLVisitor implements DALVisitor {
     
     @Override
     public ASTNode visitSetVariable(final SetVariableContext ctx) {
-        SetStatement result = new SetStatement();
+        MySQLSetStatement result = new MySQLSetStatement();
         Collection<VariableAssignSegment> variableAssigns = new LinkedList<>();
         for (VariableAssignContext each : ctx.variableAssign()) {
             variableAssigns.add((VariableAssignSegment) visit(each));
@@ -301,13 +301,13 @@ public final class MySQLDALVisitor extends MySQLVisitor implements DALVisitor {
     
     @Override
     public ASTNode visitSetName(final SetNameContext ctx) {
-        SetStatement result = new SetStatement();
-        if (null != ctx.characterSetName_() || null != ctx.DEFAULT()) {
+        MySQLSetStatement result = new MySQLSetStatement();
+        if (null != ctx.characterSetName() || null != ctx.DEFAULT()) {
             VariableAssignSegment characterSet = new VariableAssignSegment();
             VariableSegment variable = new VariableSegment();
             variable.setVariable("charset");
             characterSet.setVariable(variable);
-            String assignValue = (null != ctx.DEFAULT()) ? ctx.DEFAULT().getText() : ctx.characterSetName_().getText();
+            String assignValue = (null != ctx.DEFAULT()) ? ctx.DEFAULT().getText() : ctx.characterSetName().getText();
             characterSet.setAssignValue(assignValue);
         }
         if (null != ctx.collationName_()) {
@@ -322,12 +322,12 @@ public final class MySQLDALVisitor extends MySQLVisitor implements DALVisitor {
     
     @Override
     public ASTNode visitSetCharacter(final SetCharacterContext ctx) {
-        SetStatement result = new SetStatement();
+        MySQLSetStatement result = new MySQLSetStatement();
         VariableAssignSegment characterSet = new VariableAssignSegment();
         VariableSegment variable = new VariableSegment();
         String variableName = (null != ctx.CHARSET()) ? ctx.CHARSET().getText() : "charset";
         variable.setVariable(variableName);
-        String assignValue = (null != ctx.DEFAULT()) ? ctx.DEFAULT().getText() : ctx.characterSetName_().getText();
+        String assignValue = (null != ctx.DEFAULT()) ? ctx.DEFAULT().getText() : ctx.characterSetName().getText();
         characterSet.setAssignValue(assignValue);
         return result;
     }
@@ -338,7 +338,7 @@ public final class MySQLDALVisitor extends MySQLVisitor implements DALVisitor {
         result.setStartIndex(ctx.start.getStartIndex());
         result.setStopIndex(ctx.stop.getStopIndex());
         result.setVariable((VariableSegment) visit(ctx.variable()));
-        result.setAssignValue(ctx.expr().getText());
+        result.setAssignValue(ctx.setExprOrDefault().getText());
         return result;
     }
     
@@ -350,10 +350,10 @@ public final class MySQLDALVisitor extends MySQLVisitor implements DALVisitor {
         if (null != ctx.scope()) {
             result.setScope(ctx.scope().getText());
         }
-        result.setVariable(ctx.identifier().getText());
+        result.setVariable(ctx.internalVariableName().getText());
         return result;
     }
-    
+
     @Override
     public ASTNode visitFromSchema(final FromSchemaContext ctx) {
         return new FromSchemaSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex());

@@ -17,10 +17,10 @@
 
 package org.apache.shardingsphere.scaling.core.job.task.incremental;
 
-import org.apache.shardingsphere.scaling.core.config.DataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.ScalingDataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.config.DumperConfiguration;
 import org.apache.shardingsphere.scaling.core.config.ImporterConfiguration;
-import org.apache.shardingsphere.scaling.core.config.JDBCDataSourceConfiguration;
+import org.apache.shardingsphere.scaling.core.config.JDBCScalingDataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.config.ScalingContext;
 import org.apache.shardingsphere.scaling.core.config.ServerConfiguration;
 import org.apache.shardingsphere.scaling.core.fixture.FixtureNopManager;
@@ -60,7 +60,7 @@ public final class IncrementalDataScalingTaskTest {
         SyncProgress progress = incrementalDataSyncTask.getProgress();
         assertTrue(progress instanceof IncrementalDataSyncTaskProgress);
         assertThat(((IncrementalDataSyncTaskProgress) progress).getId(), is("ds0"));
-        assertThat(((IncrementalDataSyncTaskProgress) progress).getDelayMillisecond(), is(0L));
+        assertThat(((IncrementalDataSyncTaskProgress) progress).getDelayMillisecond(), is(Long.MAX_VALUE));
         assertTrue(((IncrementalDataSyncTaskProgress) progress).getPosition() instanceof IncrementalPosition);
     }
     
@@ -70,17 +70,17 @@ public final class IncrementalDataScalingTaskTest {
     }
     
     private ImporterConfiguration mockImporterConfiguration() {
-        ImporterConfiguration importerConfig = new ImporterConfiguration();
-        importerConfig.setDataSourceConfiguration(new JDBCDataSourceConfiguration(DATA_SOURCE_URL, USERNAME, PASSWORD));
-        return importerConfig;
+        ImporterConfiguration result = new ImporterConfiguration();
+        result.setDataSourceConfiguration(new JDBCScalingDataSourceConfiguration(DATA_SOURCE_URL, USERNAME, PASSWORD));
+        return result;
     }
     
     private DumperConfiguration mockDumperConfig() {
-        DataSourceConfiguration dataSourceConfiguration = new JDBCDataSourceConfiguration(DATA_SOURCE_URL, USERNAME, PASSWORD);
+        ScalingDataSourceConfiguration dataSourceConfig = new JDBCScalingDataSourceConfiguration(DATA_SOURCE_URL, USERNAME, PASSWORD);
         DumperConfiguration result = new DumperConfiguration();
         result.setDataSourceName("ds0");
-        result.setDataSourceConfiguration(dataSourceConfiguration);
-        Map<String, String> tableMap = new HashMap<>();
+        result.setDataSourceConfiguration(dataSourceConfig);
+        Map<String, String> tableMap = new HashMap<>(1, 1);
         tableMap.put("t_order", "t_order");
         result.setTableNameMap(tableMap);
         result.setPositionManager(new FixtureNopManager(""));

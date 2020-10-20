@@ -1,17 +1,15 @@
 package org.apache.shardingsphere.proxy.backend.text.sctl.explain;
 
-import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.auth.Authentication;
 import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
-import org.apache.shardingsphere.infra.context.SchemaContext;
-import org.apache.shardingsphere.infra.context.impl.StandardSchemaContexts;
-import org.apache.shardingsphere.infra.context.runtime.RuntimeContext;
-import org.apache.shardingsphere.infra.context.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.context.schema.impl.StandardSchemaContexts;
 import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
+import org.apache.shardingsphere.infra.executor.kernel.ExecutorKernel;
+import org.apache.shardingsphere.infra.metadata.model.ShardingSphereMetaData;
+import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
+import org.apache.shardingsphere.infra.schema.ShardingSphereSchema;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
-import org.apache.shardingsphere.proxy.backend.schema.ProxySchemaContexts;
-import org.apache.shardingsphere.rdl.parser.engine.ShardingSphereSQLParserEngine;
-import org.apache.shardingsphere.sql.parser.engine.StandardSQLParserEngine;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,6 +22,7 @@ import java.util.Properties;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,22 +48,20 @@ public final class ShardingCTLExplainBackendHandlerTest {
     private ShardingCTLExplainBackendHandler handler;
     
     @Before
-    @SneakyThrows(ReflectiveOperationException.class)
-    public void setUp() {
+    public void setUp() throws IllegalAccessException, NoSuchFieldException {
         BackendConnection connection = mock(BackendConnection.class);
-        when(connection.getSchema()).thenReturn("schema");
+        when(connection.getSchemaName()).thenReturn("schema");
         handler = new ShardingCTLExplainBackendHandler("sctl:explain select 1", connection);
-        Field schemaContexts = ProxySchemaContexts.getInstance().getClass().getDeclaredField("schemaContexts");
+        Field schemaContexts = ProxyContext.getInstance().getClass().getDeclaredField("schemaContexts");
         schemaContexts.setAccessible(true);
-        schemaContexts.set(ProxySchemaContexts.getInstance(),
-                new StandardSchemaContexts(getSchemaContextMap(), new Authentication(), new ConfigurationProperties(new Properties()), new MySQLDatabaseType()));
+        schemaContexts.set(ProxyContext.getInstance(), 
+                new StandardSchemaContexts(getSchemas(), mock(ExecutorKernel.class), new Authentication(), new ConfigurationProperties(new Properties()), new MySQLDatabaseType()));
     }
     
-    private Map<String, SchemaContext> getSchemaContextMap() {
-        RuntimeContext runtimeContext = new RuntimeContext(null, null, new ShardingSphereSQLParserEngine(new StandardSQLParserEngine("MySQL")));
-        ShardingSphereSchema schema = new ShardingSphereSchema(Collections.emptyList(),
-                Collections.emptyList(), Collections.singletonMap("ds0", mock(DataSource.class)), null);
-        return Collections.singletonMap("schema", new SchemaContext("schema", schema, runtimeContext));
+    private Map<String, ShardingSphereSchema> getSchemas() {
+        ShardingSphereSchema schema = new ShardingSphereSchema("schema", Collections.emptyList(),
+                Collections.singleton(mock(ShardingSphereRule.class)), Collections.singletonMap("ds0", mock(DataSource.class)), mock(ShardingSphereMetaData.class, RETURNS_DEEP_STUBS));
+        return Collections.singletonMap("schema", schema);
     }
     
     @Test

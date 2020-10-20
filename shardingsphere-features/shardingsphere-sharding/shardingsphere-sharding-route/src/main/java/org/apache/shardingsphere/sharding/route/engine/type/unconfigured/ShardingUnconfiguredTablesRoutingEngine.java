@@ -17,21 +17,24 @@
 
 package org.apache.shardingsphere.sharding.route.engine.type.unconfigured;
 
+import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sharding.route.engine.type.ShardingRouteEngine;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
 import org.apache.shardingsphere.infra.exception.ShardingSphereException;
+import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.infra.route.context.RouteMapper;
-import org.apache.shardingsphere.infra.route.context.RouteResult;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
+import org.apache.shardingsphere.sharding.route.engine.type.ShardingRouteEngine;
+import org.apache.shardingsphere.sharding.rule.ShardingRule;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.CreateTableStatement;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * Sharding unconfigured tables engine.
@@ -41,29 +44,31 @@ public final class ShardingUnconfiguredTablesRoutingEngine implements ShardingRo
     
     private final Collection<String> logicTables;
     
-    private final Map<String, SchemaMetaData> unconfiguredSchemaMetaDataMap;
+    private final Map<String, Collection<String>> unconfiguredSchemaMetaDataMap;
+    
+    private final SQLStatement sqlStatement;
     
     @Override
-    public RouteResult route(final ShardingRule shardingRule) {
-        Optional<String> dataSourceName = findDataSourceName();
+    public void route(final RouteContext routeContext, final ShardingRule shardingRule) {
+        Optional<String> dataSourceName = sqlStatement instanceof CreateTableStatement ? getRandomDataSourceName(shardingRule.getDataSourceNames()) : findDataSourceName();
         if (!dataSourceName.isPresent()) {
             throw new ShardingSphereException("Can not route tables for `%s`, please make sure the tables are in same schema.", logicTables);
         }
-        RouteResult result = new RouteResult();
-        List<RouteMapper> routingTables = new ArrayList<>(logicTables.size());
-        for (String each : logicTables) {
-            routingTables.add(new RouteMapper(each, each));
-        }
-        result.getRouteUnits().add(new RouteUnit(new RouteMapper(dataSourceName.get(), dataSourceName.get()), routingTables));
-        return result;
+        List<RouteMapper> routingTables = logicTables.stream().map(table -> new RouteMapper(table, table)).collect(Collectors.toList());
+        routeContext.getRouteUnits().add(new RouteUnit(new RouteMapper(dataSourceName.get(), dataSourceName.get()), routingTables));
     }
     
     private Optional<String> findDataSourceName() {
-        for (Entry<String, SchemaMetaData> entry : unconfiguredSchemaMetaDataMap.entrySet()) {
-            if (entry.getValue().getAllTableNames().containsAll(logicTables)) {
+        for (Entry<String, Collection<String>> entry : unconfiguredSchemaMetaDataMap.entrySet()) {
+            if (entry.getValue().containsAll(logicTables)) {
                 return Optional.of(entry.getKey());
             }
         }
         return Optional.empty();
+    }
+    
+    private Optional<String> getRandomDataSourceName(final Collection<String> dataSourceNames) {
+        String dataSourceName = Lists.newArrayList(dataSourceNames).get(ThreadLocalRandom.current().nextInt(dataSourceNames.size()));
+        return Optional.of(dataSourceName);
     }
 }
