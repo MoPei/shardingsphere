@@ -27,12 +27,11 @@ import org.apache.shardingsphere.db.protocol.mysql.packet.generic.MySQLErrPacket
 import org.apache.shardingsphere.db.protocol.mysql.packet.generic.MySQLOKPacket;
 import org.apache.shardingsphere.db.protocol.mysql.packet.handshake.MySQLHandshakePacket;
 import org.apache.shardingsphere.db.protocol.mysql.payload.MySQLPacketPayload;
-import org.apache.shardingsphere.infra.auth.Authentication;
+import org.apache.shardingsphere.infra.auth.builtin.DefaultAuthentication;
 import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
-import org.apache.shardingsphere.infra.context.schema.impl.StandardSchemaContexts;
-import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
-import org.apache.shardingsphere.infra.executor.kernel.ExecutorKernel;
-import org.apache.shardingsphere.infra.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.context.metadata.impl.StandardMetaDataContexts;
+import org.apache.shardingsphere.infra.executor.kernel.ExecutorEngine;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.frontend.auth.AuthenticationResultBuilder;
 import org.junit.Before;
@@ -112,7 +111,7 @@ public final class MySQLAuthenticationEngineTest {
     public void assertAuthWithLoginFail() throws NoSuchFieldException, IllegalAccessException {
         setConnectionPhase(MySQLConnectionPhase.AUTH_PHASE_FAST_PATH);
         ChannelHandlerContext context = getContext();
-        setSchemas();
+        setMetaDataContexts();
         when(authenticationHandler.login(anyString(), any(), anyString())).thenReturn(Optional.of(MySQLServerErrorCode.ER_ACCESS_DENIED_ERROR));
         authenticationEngine.auth(context, getPayload("root", "sharding_db", authResponse));
         verify(context).writeAndFlush(any(MySQLErrPacket.class));
@@ -121,7 +120,7 @@ public final class MySQLAuthenticationEngineTest {
     @Test
     public void assertAuthWithAbsentDatabase() throws NoSuchFieldException, IllegalAccessException {
         ChannelHandlerContext context = getContext();
-        setSchemas();
+        setMetaDataContexts();
         setConnectionPhase(MySQLConnectionPhase.AUTH_PHASE_FAST_PATH);
         authenticationEngine.auth(context, getPayload("root", "ABSENT DATABASE", authResponse));
         verify(context).writeAndFlush(any(MySQLErrPacket.class));
@@ -132,16 +131,16 @@ public final class MySQLAuthenticationEngineTest {
         setConnectionPhase(MySQLConnectionPhase.AUTH_PHASE_FAST_PATH);
         ChannelHandlerContext context = getContext();
         when(authenticationHandler.login(anyString(), any(), anyString())).thenReturn(Optional.empty());
-        setSchemas();
+        setMetaDataContexts();
         authenticationEngine.auth(context, getPayload("root", "sharding_db", authResponse));
         verify(context).writeAndFlush(any(MySQLOKPacket.class));
     }
     
-    private void setSchemas() throws NoSuchFieldException, IllegalAccessException {
-        Field field = ProxyContext.getInstance().getClass().getDeclaredField("schemaContexts");
+    private void setMetaDataContexts() throws NoSuchFieldException, IllegalAccessException {
+        Field field = ProxyContext.getInstance().getClass().getDeclaredField("metaDataContexts");
         field.setAccessible(true);
-        field.set(ProxyContext.getInstance(), new StandardSchemaContexts(Collections.singletonMap("sharding_db", mock(ShardingSphereSchema.class)),
-                mock(ExecutorKernel.class), new Authentication(), new ConfigurationProperties(new Properties()), new MySQLDatabaseType()));
+        field.set(ProxyContext.getInstance(), new StandardMetaDataContexts(Collections.singletonMap("sharding_db", mock(ShardingSphereMetaData.class)),
+                mock(ExecutorEngine.class), new DefaultAuthentication(), new ConfigurationProperties(new Properties())));
     }
     
     private MySQLPacketPayload getPayload(final String username, final String database, final byte[] authResponse) {

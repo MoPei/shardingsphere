@@ -21,14 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLServerInfo;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceParameter;
 import org.apache.shardingsphere.infra.config.properties.ConfigurationPropertyKey;
-import org.apache.shardingsphere.infra.context.schema.SchemaContexts;
-import org.apache.shardingsphere.infra.context.schema.SchemaContextsBuilder;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
-import org.apache.shardingsphere.infra.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.context.metadata.MetaDataContexts;
+import org.apache.shardingsphere.infra.context.metadata.MetaDataContextsBuilder;
+import org.apache.shardingsphere.infra.metadata.resource.ShardingSphereResource;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.datasource.factory.JDBCRawBackendDataSourceFactory;
-import org.apache.shardingsphere.proxy.backend.communication.jdbc.recognizer.JDBCDriverURLRecognizerEngine;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.config.ProxyConfiguration;
 import org.apache.shardingsphere.proxy.config.YamlProxyConfiguration;
@@ -60,28 +56,20 @@ public abstract class AbstractBootstrapInitializer implements BootstrapInitializ
     @Override
     public final void init(final YamlProxyConfiguration yamlConfig, final int port) throws SQLException {
         ProxyConfiguration proxyConfig = getProxyConfiguration(yamlConfig);
-        SchemaContexts schemaContexts = decorateSchemaContexts(createSchemaContexts(proxyConfig));
-        TransactionContexts transactionContexts = decorateTransactionContexts(createTransactionContexts(schemaContexts));
-        ProxyContext.getInstance().init(schemaContexts, transactionContexts);
+        MetaDataContexts metaDataContexts = decorateMetaDataContexts(createMetaDataContexts(proxyConfig));
+        String xaTransactionMangerType = metaDataContexts.getProps().getValue(ConfigurationPropertyKey.XA_TRANSACTION_MANAGER_TYPE);
+        TransactionContexts transactionContexts = decorateTransactionContexts(createTransactionContexts(metaDataContexts), xaTransactionMangerType);
+        ProxyContext.getInstance().init(metaDataContexts, transactionContexts);
         initOpenTracing();
         setDatabaseServerInfo();
+        initLockContext();
         shardingSphereProxy.start(port);
     }
     
-    private SchemaContexts createSchemaContexts(final ProxyConfiguration proxyConfig) throws SQLException {
-        DatabaseType databaseType = containsDataSources(proxyConfig.getSchemaDataSources()) ? getDatabaseType(proxyConfig.getSchemaDataSources()) : new MySQLDatabaseType();
+    private MetaDataContexts createMetaDataContexts(final ProxyConfiguration proxyConfig) throws SQLException {
         Map<String, Map<String, DataSource>> dataSourcesMap = createDataSourcesMap(proxyConfig.getSchemaDataSources());
-        SchemaContextsBuilder schemaContextsBuilder = new SchemaContextsBuilder(databaseType, dataSourcesMap, proxyConfig.getSchemaRules(), proxyConfig.getAuthentication(), proxyConfig.getProps());
-        return schemaContextsBuilder.build();
-    }
-    
-    private boolean containsDataSources(final Map<String, Map<String, DataSourceParameter>> schemaDataSources) {
-        return !schemaDataSources.isEmpty() && !schemaDataSources.values().iterator().next().isEmpty();
-    }
-    
-    private static DatabaseType getDatabaseType(final Map<String, Map<String, DataSourceParameter>> schemaDataSources) {
-        String databaseTypeName = JDBCDriverURLRecognizerEngine.getJDBCDriverURLRecognizer(schemaDataSources.values().iterator().next().values().iterator().next().getUrl()).getDatabaseType();
-        return DatabaseTypeRegistry.getActualDatabaseType(databaseTypeName);
+        MetaDataContextsBuilder metaDataContextsBuilder = new MetaDataContextsBuilder(dataSourcesMap, proxyConfig.getSchemaRules(), proxyConfig.getAuthentication(), proxyConfig.getProps());
+        return metaDataContextsBuilder.build();
     }
     
     private static Map<String, Map<String, DataSource>> createDataSourcesMap(final Map<String, Map<String, DataSourceParameter>> schemaDataSources) {
@@ -96,18 +84,20 @@ public abstract class AbstractBootstrapInitializer implements BootstrapInitializ
         return result;
     }
     
-    private TransactionContexts createTransactionContexts(final SchemaContexts schemaContexts) {
-        Map<String, ShardingTransactionManagerEngine> transactionManagerEngines = new HashMap<>(schemaContexts.getSchemas().size(), 1);
-        for (Entry<String, ShardingSphereSchema> entry : schemaContexts.getSchemas().entrySet()) {
+    private TransactionContexts createTransactionContexts(final MetaDataContexts metaDataContexts) {
+        Map<String, ShardingTransactionManagerEngine> transactionManagerEngines = new HashMap<>(metaDataContexts.getAllSchemaNames().size(), 1);
+        String xaTransactionMangerType = metaDataContexts.getProps().getValue(ConfigurationPropertyKey.XA_TRANSACTION_MANAGER_TYPE);
+        for (String each : metaDataContexts.getAllSchemaNames()) {
             ShardingTransactionManagerEngine engine = new ShardingTransactionManagerEngine();
-            engine.init(schemaContexts.getDatabaseType(), entry.getValue().getDataSources());
-            transactionManagerEngines.put(entry.getKey(), engine);
+            ShardingSphereResource resource = metaDataContexts.getMetaData(each).getResource();
+            engine.init(resource.getDatabaseType(), resource.getDataSources(), xaTransactionMangerType);
+            transactionManagerEngines.put(each, engine);
         }
         return new StandardTransactionContexts(transactionManagerEngines);
     }
     
     private void initOpenTracing() {
-        if (ProxyContext.getInstance().getSchemaContexts().getProps().<Boolean>getValue(ConfigurationPropertyKey.PROXY_OPENTRACING_ENABLED)) {
+        if (ProxyContext.getInstance().getMetaDataContexts().getProps().<Boolean>getValue(ConfigurationPropertyKey.PROXY_OPENTRACING_ENABLED)) {
             OpenTracingTracer.init();
         }
     }
@@ -123,7 +113,9 @@ public abstract class AbstractBootstrapInitializer implements BootstrapInitializ
     
     protected abstract ProxyConfiguration getProxyConfiguration(YamlProxyConfiguration yamlConfig);
     
-    protected abstract SchemaContexts decorateSchemaContexts(SchemaContexts schemaContexts);
+    protected abstract MetaDataContexts decorateMetaDataContexts(MetaDataContexts metaDataContexts);
     
-    protected abstract TransactionContexts decorateTransactionContexts(TransactionContexts transactionContexts);
+    protected abstract TransactionContexts decorateTransactionContexts(TransactionContexts transactionContexts, String xaTransactionMangerType);
+    
+    protected abstract void initLockContext();
 }

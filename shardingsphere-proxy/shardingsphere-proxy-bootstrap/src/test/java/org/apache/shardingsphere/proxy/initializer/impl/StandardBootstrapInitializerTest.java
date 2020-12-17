@@ -17,13 +17,13 @@
 
 package org.apache.shardingsphere.proxy.initializer.impl;
 
-import org.apache.shardingsphere.infra.auth.Authentication;
-import org.apache.shardingsphere.infra.auth.ProxyUser;
-import org.apache.shardingsphere.infra.auth.yaml.config.YamlAuthenticationConfiguration;
-import org.apache.shardingsphere.infra.auth.yaml.config.YamlProxyUserConfiguration;
+import org.apache.shardingsphere.infra.auth.builtin.DefaultAuthentication;
+import org.apache.shardingsphere.infra.auth.ShardingSphereUser;
+import org.apache.shardingsphere.infra.auth.builtin.yaml.config.YamlAuthenticationConfiguration;
+import org.apache.shardingsphere.infra.auth.builtin.yaml.config.YamlUserConfiguration;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceParameter;
-import org.apache.shardingsphere.infra.context.schema.SchemaContexts;
+import org.apache.shardingsphere.infra.context.metadata.MetaDataContexts;
 import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
 import org.apache.shardingsphere.infra.yaml.config.YamlRuleConfiguration;
 import org.apache.shardingsphere.infra.yaml.swapper.YamlRuleConfigurationSwapper;
@@ -35,12 +35,14 @@ import org.apache.shardingsphere.proxy.config.yaml.YamlProxyServerConfiguration;
 import org.apache.shardingsphere.proxy.fixture.FixtureRuleConfiguration;
 import org.apache.shardingsphere.proxy.fixture.FixtureYamlRuleConfiguration;
 import org.apache.shardingsphere.transaction.context.TransactionContexts;
+import org.apache.shardingsphere.transaction.core.XATransactionManagerType;
 import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -53,16 +55,16 @@ import static org.mockito.Mockito.mock;
 
 public final class StandardBootstrapInitializerTest extends AbstractBootstrapInitializerTest {
     
-    protected YamlProxyConfiguration makeProxyConfiguration() {
-        return new YamlProxyConfiguration(createYamlProxyServerConfiguration(), createYamlProxyRuleConfigurationMap());
-    }
-    
     @Test
     public void assertGetProxyConfiguration() {
         YamlProxyConfiguration yamlConfig = makeProxyConfiguration();
         ProxyConfiguration actual = getInitializer().getProxyConfiguration(yamlConfig);
         assertNotNull(actual);
         assertProxyConfiguration(actual);
+    }
+    
+    private YamlProxyConfiguration makeProxyConfiguration() {
+        return new YamlProxyConfiguration(createYamlProxyServerConfiguration(), createYamlProxyRuleConfigurationMap());
     }
     
     private Map<String, YamlProxyRuleConfiguration> createYamlProxyRuleConfigurationMap() {
@@ -145,14 +147,13 @@ public final class StandardBootstrapInitializerTest extends AbstractBootstrapIni
         assertThat(((FixtureRuleConfiguration) actual).getName(), is("testRule"));
     }
     
-    private void assertAuthentication(final Authentication actual) {
-        assertThat(actual.getUsers().size(), is(1));
-        assertTrue(actual.getUsers().containsKey("root"));
-        ProxyUser proxyUser = actual.getUsers().get("root");
-        assertThat(proxyUser.getPassword(), is("root"));
-        assertThat(proxyUser.getAuthorizedSchemas().size(), is(2));
-        assertTrue(proxyUser.getAuthorizedSchemas().contains("ds-1"));
-        assertTrue(proxyUser.getAuthorizedSchemas().contains("ds-2"));
+    private void assertAuthentication(final DefaultAuthentication actual) {
+        Optional<ShardingSphereUser> rootUser = actual.findUser("root");
+        assertTrue(rootUser.isPresent());
+        assertThat(rootUser.get().getPassword(), is("root"));
+        assertThat(rootUser.get().getAuthorizedSchemas().size(), is(2));
+        assertTrue(rootUser.get().getAuthorizedSchemas().contains("ds-1"));
+        assertTrue(rootUser.get().getAuthorizedSchemas().contains("ds-2"));
     }
     
     private YamlProxyServerConfiguration createYamlProxyServerConfiguration() {
@@ -170,30 +171,30 @@ public final class StandardBootstrapInitializerTest extends AbstractBootstrapIni
     }
     
     private YamlAuthenticationConfiguration createYamlAuthenticationConfiguration() {
-        Map<String, YamlProxyUserConfiguration> users = new HashMap<>(1, 1);
-        users.put("root", createYamlProxyUserConfiguration());
+        Map<String, YamlUserConfiguration> users = new HashMap<>(1, 1);
+        users.put("root", createYamlUserConfiguration());
         YamlAuthenticationConfiguration result = new YamlAuthenticationConfiguration();
         result.setUsers(users);
         return result;
     }
     
-    private YamlProxyUserConfiguration createYamlProxyUserConfiguration() {
-        YamlProxyUserConfiguration result = new YamlProxyUserConfiguration();
+    private YamlUserConfiguration createYamlUserConfiguration() {
+        YamlUserConfiguration result = new YamlUserConfiguration();
         result.setPassword("root");
         result.setAuthorizedSchemas("ds-1,ds-2");
         return result;
     }
     
     @Test
-    public void assertDecorateSchemaContexts() {
-        SchemaContexts schemaContexts = mock(SchemaContexts.class);
-        assertThat(getInitializer().decorateSchemaContexts(schemaContexts), is(schemaContexts));
+    public void assertDecorateMetaDataContexts() {
+        MetaDataContexts metaDataContexts = mock(MetaDataContexts.class);
+        assertThat(getInitializer().decorateMetaDataContexts(metaDataContexts), is(metaDataContexts));
     }
     
     @Test
     public void assertDecorateTransactionContexts() {
         TransactionContexts transactionContexts = mock(TransactionContexts.class);
-        assertThat(getInitializer().decorateTransactionContexts(transactionContexts), is(transactionContexts));
+        assertThat(getInitializer().decorateTransactionContexts(transactionContexts, XATransactionManagerType.ATOMIKOS.getType()), is(transactionContexts));
     }
     
     protected void doEnvironmentPrepare() {

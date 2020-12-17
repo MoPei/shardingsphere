@@ -19,39 +19,43 @@ package org.apache.shardingsphere.scaling.core.execute.executor.importer;
 
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.shardingsphere.scaling.core.config.ImporterConfiguration;
 import org.apache.shardingsphere.scaling.core.constant.ScalingConstant;
 import org.apache.shardingsphere.scaling.core.datasource.DataSourceManager;
-import org.apache.shardingsphere.scaling.core.exception.SyncTaskExecuteException;
-import org.apache.shardingsphere.scaling.core.execute.executor.AbstractShardingScalingExecutor;
+import org.apache.shardingsphere.scaling.core.exception.ScalingTaskExecuteException;
+import org.apache.shardingsphere.scaling.core.execute.executor.AbstractScalingExecutor;
 import org.apache.shardingsphere.scaling.core.execute.executor.channel.Channel;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.Column;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.DataRecord;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.FinishedRecord;
+import org.apache.shardingsphere.scaling.core.execute.executor.record.GroupedDataRecord;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.Record;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.RecordUtil;
-import org.apache.shardingsphere.scaling.core.job.position.IncrementalPosition;
+import org.apache.shardingsphere.scaling.core.execute.executor.sqlbuilder.ScalingSQLBuilder;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Abstract JDBC importer implementation.
  */
 @Slf4j
-public abstract class AbstractJDBCImporter extends AbstractShardingScalingExecutor<IncrementalPosition> implements Importer {
+public abstract class AbstractJDBCImporter extends AbstractScalingExecutor implements Importer {
+    
+    private static final DataRecordMerger MERGER = new DataRecordMerger();
     
     private final ImporterConfiguration importerConfig;
     
     private final DataSourceManager dataSourceManager;
     
-    private final AbstractSQLBuilder sqlBuilder;
+    private final ScalingSQLBuilder scalingSqlBuilder;
     
     @Setter
     private Channel channel;
@@ -59,15 +63,16 @@ public abstract class AbstractJDBCImporter extends AbstractShardingScalingExecut
     protected AbstractJDBCImporter(final ImporterConfiguration importerConfig, final DataSourceManager dataSourceManager) {
         this.importerConfig = importerConfig;
         this.dataSourceManager = dataSourceManager;
-        sqlBuilder = createSQLBuilder();
+        scalingSqlBuilder = createSQLBuilder(importerConfig.getShardingColumnsMap());
     }
     
     /**
      * Create SQL builder.
      *
+     * @param shardingColumnsMap sharding columns map
      * @return SQL builder
      */
-    protected abstract AbstractSQLBuilder createSQLBuilder();
+    protected abstract ScalingSQLBuilder createSQLBuilder(Map<String, Set<String>> shardingColumnsMap);
     
     @Override
     public final void start() {
@@ -78,9 +83,9 @@ public abstract class AbstractJDBCImporter extends AbstractShardingScalingExecut
     @Override
     public final void write() {
         while (isRunning()) {
-            List<Record> records = channel.fetchRecords(100, 3);
+            List<Record> records = channel.fetchRecords(1024, 3);
             if (null != records && !records.isEmpty()) {
-                flush(dataSourceManager.getDataSource(importerConfig.getDataSourceConfiguration()), records);
+                flush(dataSourceManager.getDataSource(importerConfig.getDataSourceConfig()), records);
                 if (FinishedRecord.class.equals(records.get(records.size() - 1).getClass())) {
                     channel.ack();
                     break;
@@ -91,88 +96,111 @@ public abstract class AbstractJDBCImporter extends AbstractShardingScalingExecut
     }
     
     private void flush(final DataSource dataSource, final List<Record> buffer) {
+        List<GroupedDataRecord> groupedDataRecords = MERGER.group(buffer.stream()
+                .filter(each -> each instanceof DataRecord)
+                .map(each -> (DataRecord) each)
+                .collect(Collectors.toList()));
+        groupedDataRecords.forEach(each -> {
+            if (CollectionUtils.isNotEmpty(each.getDeleteDataRecords())) {
+                flushInternal(dataSource, each.getDeleteDataRecords());
+            }
+            if (CollectionUtils.isNotEmpty(each.getInsertDataRecords())) {
+                flushInternal(dataSource, each.getInsertDataRecords());
+            }
+            if (CollectionUtils.isNotEmpty(each.getUpdateDataRecords())) {
+                flushInternal(dataSource, each.getUpdateDataRecords());
+            }
+        });
+    }
+    
+    private void flushInternal(final DataSource dataSource, final List<DataRecord> buffer) {
         boolean success = tryFlush(dataSource, buffer);
         if (isRunning() && !success) {
-            throw new SyncTaskExecuteException("write failed.");
+            throw new ScalingTaskExecuteException("write failed.");
         }
     }
     
-    private boolean tryFlush(final DataSource dataSource, final List<Record> buffer) {
+    private boolean tryFlush(final DataSource dataSource, final List<DataRecord> buffer) {
         int retryTimes = importerConfig.getRetryTimes();
-        List<Record> unflushed = buffer;
         do {
-            unflushed = doFlush(dataSource, unflushed);
-        } while (isRunning() && !unflushed.isEmpty() && retryTimes-- > 0);
-        return unflushed.isEmpty();
+            try {
+                doFlush(dataSource, buffer);
+                return true;
+            } catch (final SQLException ex) {
+                log.error("flush failed: ", ex);
+            }
+        } while (isRunning() && retryTimes-- > 0);
+        return false;
     }
     
-    private List<Record> doFlush(final DataSource dataSource, final List<Record> buffer) {
-        int i = 0;
+    private void doFlush(final DataSource dataSource, final List<DataRecord> buffer) throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
-            for (; i < buffer.size(); i++) {
-                execute(connection, buffer.get(i));
-            }
-            connection.commit();
-        } catch (final SQLException ex) {
-            log.error("flush failed: {}", buffer.get(i), ex);
-            return buffer.subList(i, buffer.size());
-        }
-        return Collections.emptyList();
-    }
-    
-    private void execute(final Connection connection, final Record record) throws SQLException {
-        if (DataRecord.class.equals(record.getClass())) {
-            DataRecord dataRecord = (DataRecord) record;
-            switch (dataRecord.getType()) {
+            switch (buffer.get(0).getType()) {
                 case ScalingConstant.INSERT:
-                    executeInsert(connection, dataRecord);
+                    executeBatchInsert(connection, buffer);
                     break;
                 case ScalingConstant.UPDATE:
-                    executeUpdate(connection, dataRecord);
+                    executeUpdate(connection, buffer);
                     break;
                 case ScalingConstant.DELETE:
-                    executeDelete(connection, dataRecord);
+                    executeBatchDelete(connection, buffer);
                     break;
                 default:
                     break;
             }
+            connection.commit();
         }
     }
     
-    private void executeInsert(final Connection connection, final DataRecord record) throws SQLException {
-        String insertSql = sqlBuilder.buildInsertSQL(record);
+    private void executeBatchInsert(final Connection connection, final List<DataRecord> dataRecords) throws SQLException {
+        String insertSql = scalingSqlBuilder.buildInsertSQL(dataRecords.get(0));
         PreparedStatement ps = connection.prepareStatement(insertSql);
         ps.setQueryTimeout(30);
-        try {
-            for (int i = 0; i < record.getColumnCount(); i++) {
-                ps.setObject(i + 1, record.getColumn(i).getValue());
+        for (DataRecord each : dataRecords) {
+            for (int i = 0; i < each.getColumnCount(); i++) {
+                ps.setObject(i + 1, each.getColumn(i).getValue());
             }
-            ps.execute();
-        } catch (final SQLIntegrityConstraintViolationException ignored) {
+            ps.addBatch();
+        }
+        ps.executeBatch();
+    }
+    
+    private void executeUpdate(final Connection connection, final List<DataRecord> dataRecords) throws SQLException {
+        for (DataRecord each : dataRecords) {
+            executeUpdate(connection, each);
         }
     }
     
     private void executeUpdate(final Connection connection, final DataRecord record) throws SQLException {
         List<Column> conditionColumns = RecordUtil.extractConditionColumns(record, importerConfig.getShardingColumnsMap().get(record.getTableName()));
-        List<Column> values = new ArrayList<>();
-        values.addAll(RecordUtil.extractUpdatedColumns(record));
-        values.addAll(conditionColumns);
-        String updateSql = sqlBuilder.buildUpdateSQL(record, conditionColumns);
+        List<Column> updatedColumns = RecordUtil.extractUpdatedColumns(record);
+        String updateSql = scalingSqlBuilder.buildUpdateSQL(record, conditionColumns);
         PreparedStatement ps = connection.prepareStatement(updateSql);
-        for (int i = 0; i < values.size(); i++) {
-            ps.setObject(i + 1, values.get(i).getValue());
+        for (int i = 0; i < updatedColumns.size(); i++) {
+            ps.setObject(i + 1, updatedColumns.get(i).getValue());
+        }
+        for (int i = 0; i < conditionColumns.size(); i++) {
+            Column keyColumn = conditionColumns.get(i);
+            ps.setObject(updatedColumns.size() + i + 1,
+                    // sharding column can not be updated
+                    (keyColumn.isPrimaryKey() && keyColumn.isUpdated()) ? keyColumn.getOldValue() : keyColumn.getValue());
         }
         ps.execute();
     }
     
-    private void executeDelete(final Connection connection, final DataRecord record) throws SQLException {
-        List<Column> conditionColumns = RecordUtil.extractConditionColumns(record, importerConfig.getShardingColumnsMap().get(record.getTableName()));
-        String deleteSql = sqlBuilder.buildDeleteSQL(record, conditionColumns);
-        PreparedStatement ps = connection.prepareStatement(deleteSql);
-        for (int i = 0; i < conditionColumns.size(); i++) {
-            ps.setObject(i + 1, conditionColumns.get(i).getValue());
+    private void executeBatchDelete(final Connection connection, final List<DataRecord> dataRecords) throws SQLException {
+        List<Column> conditionColumns = RecordUtil.extractConditionColumns(dataRecords.get(0), importerConfig.getShardingColumnsMap().get(dataRecords.get(0).getTableName()));
+        String deleteSQL = scalingSqlBuilder.buildDeleteSQL(dataRecords.get(0), conditionColumns);
+        PreparedStatement ps = connection.prepareStatement(deleteSQL);
+        ps.setQueryTimeout(30);
+        for (DataRecord each : dataRecords) {
+            conditionColumns = RecordUtil.extractConditionColumns(each, importerConfig.getShardingColumnsMap().get(each.getTableName()));
+            for (int i = 0; i < conditionColumns.size(); i++) {
+                ps.setObject(i + 1, conditionColumns.get(i).getValue());
+            }
+            ps.addBatch();
         }
-        ps.execute();
+        ps.executeBatch();
     }
 }

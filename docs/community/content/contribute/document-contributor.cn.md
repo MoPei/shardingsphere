@@ -1,6 +1,6 @@
 +++
 title = "官方文档贡献指南"
-weight = 5
+weight = 6
 chapter = true
 +++
 
@@ -44,8 +44,8 @@ shardingsphere
   │  │  │  ├─encrypt
   │  │  │  ├─governance
   │  │  │  ├─pluggable-architecture
-  │  │  │  ├─primary-replica-replication
-  │  │  │  ├─replica
+  │  │  │  ├─replica-query
+  │  │  │  ├─consensus-replica
   │  │  │  ├─scaling
   │  │  │  ├─shadow
   │  │  │  ├─sharding

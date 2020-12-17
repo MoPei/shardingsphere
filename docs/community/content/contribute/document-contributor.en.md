@@ -1,6 +1,6 @@
 +++
 title = "Documents Contributor Guide"
-weight = 5
+weight = 6
 chapter = true
 +++
 
@@ -43,8 +43,8 @@ shardingsphere
   │  │  │  ├─encrypt
   │  │  │  ├─governance
   │  │  │  ├─pluggable-architecture
-  │  │  │  ├─primary-replica-replication
-  │  │  │  ├─replica
+  │  │  │  ├─replica-query
+  │  │  │  ├─consensus-replica
   │  │  │  ├─scaling
   │  │  │  ├─shadow
   │  │  │  ├─sharding

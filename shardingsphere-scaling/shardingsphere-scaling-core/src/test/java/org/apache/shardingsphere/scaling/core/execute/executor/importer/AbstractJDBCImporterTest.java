@@ -19,8 +19,8 @@ package org.apache.shardingsphere.scaling.core.execute.executor.importer;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.shardingsphere.scaling.core.config.ScalingDataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.config.ImporterConfiguration;
+import org.apache.shardingsphere.scaling.core.config.datasource.DataSourceConfiguration;
 import org.apache.shardingsphere.scaling.core.datasource.DataSourceManager;
 import org.apache.shardingsphere.scaling.core.execute.executor.channel.Channel;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.Column;
@@ -28,10 +28,12 @@ import org.apache.shardingsphere.scaling.core.execute.executor.record.DataRecord
 import org.apache.shardingsphere.scaling.core.execute.executor.record.FinishedRecord;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.Record;
 import org.apache.shardingsphere.scaling.core.execute.executor.record.RecordUtil;
-import org.apache.shardingsphere.scaling.core.job.position.NopPosition;
+import org.apache.shardingsphere.scaling.core.execute.executor.sqlbuilder.ScalingSQLBuilder;
+import org.apache.shardingsphere.scaling.core.job.position.PlaceholderPosition;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -45,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,10 +67,10 @@ public final class AbstractJDBCImporterTest {
     private DataSourceManager dataSourceManager;
     
     @Mock
-    private AbstractSQLBuilder sqlBuilder;
+    private ScalingSQLBuilder scalingSqlBuilder;
     
     @Mock
-    private ScalingDataSourceConfiguration dataSourceConfig;
+    private DataSourceConfiguration dataSourceConfig;
     
     @Mock
     private Channel channel;
@@ -84,11 +88,11 @@ public final class AbstractJDBCImporterTest {
     
     @Before
     public void setUp() throws SQLException {
-        jdbcImporter = new AbstractJDBCImporter(getImporterConfiguration(), dataSourceManager) {
+        jdbcImporter = new AbstractJDBCImporter(mockImporterConfiguration(), dataSourceManager) {
             
             @Override
-            protected AbstractSQLBuilder createSQLBuilder() {
-                return sqlBuilder;
+            protected ScalingSQLBuilder createSQLBuilder(final Map<String, Set<String>> shardingColumnsMap) {
+                return scalingSqlBuilder;
             }
         };
         jdbcImporter.setChannel(channel);
@@ -99,40 +103,66 @@ public final class AbstractJDBCImporterTest {
     @Test
     public void assertWriteInsertDataRecord() throws SQLException {
         DataRecord insertRecord = getDataRecord("INSERT");
-        when(sqlBuilder.buildInsertSQL(insertRecord)).thenReturn(INSERT_SQL);
+        when(scalingSqlBuilder.buildInsertSQL(insertRecord)).thenReturn(INSERT_SQL);
         when(connection.prepareStatement(INSERT_SQL)).thenReturn(preparedStatement);
-        when(channel.fetchRecords(100, 3)).thenReturn(mockRecords(insertRecord));
+        when(channel.fetchRecords(anyInt(), anyInt())).thenReturn(mockRecords(insertRecord));
         jdbcImporter.run();
         verify(preparedStatement).setObject(1, 1);
         verify(preparedStatement).setObject(2, 10);
         verify(preparedStatement).setObject(3, "INSERT");
-        verify(preparedStatement).execute();
+        verify(preparedStatement).addBatch();
     }
     
     @Test
     public void assertDeleteDataRecord() throws SQLException {
         DataRecord deleteRecord = getDataRecord("DELETE");
-        when(sqlBuilder.buildDeleteSQL(deleteRecord, mockConditionColumns(deleteRecord))).thenReturn(DELETE_SQL);
+        when(scalingSqlBuilder.buildDeleteSQL(deleteRecord, mockConditionColumns(deleteRecord))).thenReturn(DELETE_SQL);
         when(connection.prepareStatement(DELETE_SQL)).thenReturn(preparedStatement);
-        when(channel.fetchRecords(100, 3)).thenReturn(mockRecords(deleteRecord));
+        when(channel.fetchRecords(anyInt(), anyInt())).thenReturn(mockRecords(deleteRecord));
         jdbcImporter.run();
         verify(preparedStatement).setObject(1, 1);
         verify(preparedStatement).setObject(2, 10);
-        verify(preparedStatement).execute();
+        verify(preparedStatement).addBatch();
     }
     
     @Test
     public void assertUpdateDataRecord() throws SQLException {
         DataRecord updateRecord = getDataRecord("UPDATE");
-        when(sqlBuilder.buildUpdateSQL(updateRecord, mockConditionColumns(updateRecord))).thenReturn(UPDATE_SQL);
+        when(scalingSqlBuilder.buildUpdateSQL(updateRecord, mockConditionColumns(updateRecord))).thenReturn(UPDATE_SQL);
         when(connection.prepareStatement(UPDATE_SQL)).thenReturn(preparedStatement);
-        when(channel.fetchRecords(100, 3)).thenReturn(mockRecords(updateRecord));
+        when(channel.fetchRecords(anyInt(), anyInt())).thenReturn(mockRecords(updateRecord));
         jdbcImporter.run();
         verify(preparedStatement).setObject(1, 10);
         verify(preparedStatement).setObject(2, "UPDATE");
         verify(preparedStatement).setObject(3, 1);
         verify(preparedStatement).setObject(4, 10);
         verify(preparedStatement).execute();
+    }
+    
+    @Test
+    public void assertUpdatePrimaryKeyDataRecord() throws SQLException {
+        DataRecord updateRecord = getUpdatePrimaryKeyDataRecord();
+        when(scalingSqlBuilder.buildUpdateSQL(updateRecord, mockConditionColumns(updateRecord))).thenReturn(UPDATE_SQL);
+        when(connection.prepareStatement(UPDATE_SQL)).thenReturn(preparedStatement);
+        when(channel.fetchRecords(anyInt(), anyInt())).thenReturn(mockRecords(updateRecord));
+        jdbcImporter.run();
+        InOrder inOrder = inOrder(preparedStatement);
+        inOrder.verify(preparedStatement).setObject(1, 2);
+        inOrder.verify(preparedStatement).setObject(2, 10);
+        inOrder.verify(preparedStatement).setObject(3, "UPDATE");
+        inOrder.verify(preparedStatement).setObject(4, 1);
+        inOrder.verify(preparedStatement).setObject(5, 10);
+        inOrder.verify(preparedStatement).execute();
+    }
+    
+    private DataRecord getUpdatePrimaryKeyDataRecord() {
+        DataRecord result = new DataRecord(new PlaceholderPosition(), 3);
+        result.setTableName(TABLE_NAME);
+        result.setType("UPDATE");
+        result.addColumn(new Column("id", 1, 2, true, true));
+        result.addColumn(new Column("user", 10, true, false));
+        result.addColumn(new Column("status", "UPDATE", true, false));
+        return result;
     }
     
     private Collection<Column> mockConditionColumns(final DataRecord dataRecord) {
@@ -142,12 +172,12 @@ public final class AbstractJDBCImporterTest {
     private List<Record> mockRecords(final DataRecord dataRecord) {
         List<Record> result = new LinkedList<>();
         result.add(dataRecord);
-        result.add(new FinishedRecord(new NopPosition()));
+        result.add(new FinishedRecord(new PlaceholderPosition()));
         return result;
     }
     
     private DataRecord getDataRecord(final String recordType) {
-        DataRecord result = new DataRecord(new NopPosition(), 3);
+        DataRecord result = new DataRecord(new PlaceholderPosition(), 3);
         result.setTableName(TABLE_NAME);
         result.setType(recordType);
         result.addColumn(new Column("id", 1, false, true));
@@ -156,9 +186,9 @@ public final class AbstractJDBCImporterTest {
         return result;
     }
     
-    private ImporterConfiguration getImporterConfiguration() {
+    private ImporterConfiguration mockImporterConfiguration() {
         ImporterConfiguration result = new ImporterConfiguration();
-        result.setDataSourceConfiguration(dataSourceConfig);
+        result.setDataSourceConfig(dataSourceConfig);
         Map<String, Set<String>> shardingColumnsMap = Maps.newHashMap();
         shardingColumnsMap.put("test_table", Sets.newHashSet("user"));
         result.setShardingColumnsMap(shardingColumnsMap);

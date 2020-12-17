@@ -26,9 +26,12 @@ import org.apache.shardingsphere.infra.config.exception.ShardingSphereConfigurat
 import org.apache.shardingsphere.proxy.backend.exception.CircuitBreakException;
 import org.apache.shardingsphere.proxy.backend.exception.DBCreateExistsException;
 import org.apache.shardingsphere.proxy.backend.exception.DBDropExistsException;
+import org.apache.shardingsphere.proxy.backend.exception.LockWaitTimeoutException;
 import org.apache.shardingsphere.proxy.backend.exception.NoDatabaseSelectedException;
 import org.apache.shardingsphere.proxy.backend.exception.RuleNotExistsException;
+import org.apache.shardingsphere.proxy.backend.exception.ShardingTableRuleNotExistedException;
 import org.apache.shardingsphere.proxy.backend.exception.TableModifyInTransactionException;
+import org.apache.shardingsphere.proxy.backend.exception.TablesInUsedException;
 import org.apache.shardingsphere.proxy.backend.exception.UnknownDatabaseException;
 import org.apache.shardingsphere.proxy.backend.text.sctl.ShardingCTLErrorCode;
 import org.apache.shardingsphere.proxy.backend.text.sctl.exception.ShardingCTLException;
@@ -81,10 +84,16 @@ public final class MySQLErrPacketFactory {
             return new MySQLErrPacket(1, MySQLServerErrorCode.ER_TABLE_EXISTS_ERROR, ((TableExistsException) cause).getTableName());
         }
         if (cause instanceof NoSuchTableException) {
-            return new MySQLErrPacket(1, MySQLServerErrorCode.ER_NO_SUCH_TABLE, ((NoSuchTableException) cause).getDatabaseName(), ((NoSuchTableException) cause).getTableName());
+            return new MySQLErrPacket(1, MySQLServerErrorCode.ER_NO_SUCH_TABLE, ((NoSuchTableException) cause).getTableName());
         }
         if (cause instanceof CircuitBreakException) {
             return new MySQLErrPacket(1, CommonErrorCode.CIRCUIT_BREAK_MODE);
+        }
+        if (cause instanceof ShardingTableRuleNotExistedException) {
+            return new MySQLErrPacket(1, CommonErrorCode.SHARDING_TABLE_RULES_NOT_EXISTED, ((ShardingTableRuleNotExistedException) cause).getTableNames());
+        }
+        if (cause instanceof TablesInUsedException) {
+            return new MySQLErrPacket(1, CommonErrorCode.TABLES_IN_USED, ((TablesInUsedException) cause).getTableNames());
         }
         if (cause instanceof UnsupportedCommandException) {
             return new MySQLErrPacket(1, CommonErrorCode.UNSUPPORTED_COMMAND, ((UnsupportedCommandException) cause).getCommandType());
@@ -97,6 +106,9 @@ public final class MySQLErrPacketFactory {
         }
         if (cause instanceof RuleNotExistsException) {
             return new MySQLErrPacket(1, MySQLServerErrorCode.ER_SP_DOES_NOT_EXIST);
+        }
+        if (cause instanceof LockWaitTimeoutException) {
+            return new MySQLErrPacket(1, MySQLServerErrorCode.ER_LOCKING_SERVICE_TIMEOUT);
         }
         return new MySQLErrPacket(1, CommonErrorCode.UNKNOWN_EXCEPTION, cause.getMessage());
     }

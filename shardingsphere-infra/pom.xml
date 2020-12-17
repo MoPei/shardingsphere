@@ -31,6 +31,7 @@
     
     <modules>
         <module>shardingsphere-infra-common</module>
+        <module>shardingsphere-infra-parser</module>
         <module>shardingsphere-infra-binder</module>
         <module>shardingsphere-infra-route</module>
         <module>shardingsphere-infra-rewrite</module>
@@ -38,5 +39,6 @@
         <module>shardingsphere-infra-merge</module>
         <module>shardingsphere-infra-context</module>
         <module>shardingsphere-infra-datetime</module>
+        <module>shardingsphere-infra-optimize</module>
     </modules>
 </project>

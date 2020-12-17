@@ -18,15 +18,16 @@
 package org.apache.shardingsphere.proxy.initializer.impl;
 
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.governance.context.schema.GovernanceSchemaContexts;
+import org.apache.shardingsphere.governance.context.metadata.GovernanceMetaDataContexts;
 import org.apache.shardingsphere.governance.context.transaction.GovernanceTransactionContexts;
 import org.apache.shardingsphere.governance.core.config.ConfigCenterNode;
-import org.apache.shardingsphere.infra.auth.Authentication;
-import org.apache.shardingsphere.infra.auth.ProxyUser;
+import org.apache.shardingsphere.infra.auth.ShardingSphereUser;
+import org.apache.shardingsphere.infra.auth.builtin.DefaultAuthentication;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
 import org.apache.shardingsphere.infra.config.algorithm.ShardingSphereAlgorithmConfiguration;
-import org.apache.shardingsphere.infra.context.schema.SchemaContexts;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceParameter;
+import org.apache.shardingsphere.infra.context.metadata.MetaDataContexts;
+import org.apache.shardingsphere.infra.context.metadata.impl.StandardMetaDataContexts;
 import org.apache.shardingsphere.proxy.config.ProxyConfiguration;
 import org.apache.shardingsphere.proxy.config.ProxyConfigurationLoader;
 import org.apache.shardingsphere.proxy.config.YamlProxyConfiguration;
@@ -36,6 +37,7 @@ import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfi
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.ShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
 import org.apache.shardingsphere.transaction.context.TransactionContexts;
+import org.apache.shardingsphere.transaction.core.XATransactionManagerType;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -44,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -84,7 +87,7 @@ public final class GovernanceBootstrapInitializerTest extends AbstractBootstrapI
         ConfigCenterNode node = new ConfigCenterNode();
         configurationRepository.persist(node.getAuthenticationPath(), readYAML(AUTHENTICATION_YAML));
         configurationRepository.persist(node.getPropsPath(), readYAML(PROPS_YAML));
-        configurationRepository.persist(node.getSchemasPath(), "db");
+        configurationRepository.persist(node.getMetadataNodePath(), "db");
         configurationRepository.persist(node.getDataSourcePath("db"), readYAML(DATA_SOURCE_YAML));
         configurationRepository.persist(node.getRulePath("db"), readYAML(SHARDING_RULE_YAML));
     }
@@ -192,37 +195,33 @@ public final class GovernanceBootstrapInitializerTest extends AbstractBootstrapI
         assertThat(props.getProperty("algorithm-expression"), is(expectedAlgorithmExpr));
     }
     
-    private void assertAuthentication(final Authentication actual) {
-        assertThat(actual.getUsers().size(), is(2));
-        assertTrue(actual.getUsers().containsKey("root"));
-        ProxyUser rootProxyUser = actual.getUsers().get("root");
-        assertThat(rootProxyUser.getPassword(), is("root"));
-        assertThat(rootProxyUser.getAuthorizedSchemas().size(), is(0));
-        assertTrue(actual.getUsers().containsKey("sharding"));
-        ProxyUser shardingProxyUser = actual.getUsers().get("sharding");
-        assertThat(shardingProxyUser.getPassword(), is("sharding"));
-        assertThat(shardingProxyUser.getAuthorizedSchemas().size(), is(1));
-        assertTrue(shardingProxyUser.getAuthorizedSchemas().contains("sharding_db"));
+    private void assertAuthentication(final DefaultAuthentication actual) {
+        Optional<ShardingSphereUser> rootUser = actual.findUser("root");
+        assertTrue(rootUser.isPresent());
+        assertThat(rootUser.get().getPassword(), is("root"));
+        assertThat(rootUser.get().getAuthorizedSchemas().size(), is(0));
+        Optional<ShardingSphereUser> shardingUser = actual.findUser("sharding");
+        assertTrue(shardingUser.isPresent());
+        assertThat(shardingUser.get().getPassword(), is("sharding"));
+        assertThat(shardingUser.get().getAuthorizedSchemas().size(), is(1));
+        assertTrue(shardingUser.get().getAuthorizedSchemas().contains("sharding_db"));
     }
     
     @Test
-    public void assertDecorateSchemaContexts() {
-        SchemaContexts schemaContexts = mock(SchemaContexts.class);
-        SchemaContexts actualSchemaContexts = getInitializer().decorateSchemaContexts(schemaContexts);
-        assertNotNull(actualSchemaContexts);
-        assertThat(actualSchemaContexts, instanceOf(GovernanceSchemaContexts.class));
-        assertThat(actualSchemaContexts.getDatabaseType(), is(schemaContexts.getDatabaseType()));
-        assertThat(actualSchemaContexts.getSchemas(), is(schemaContexts.getSchemas()));
-        assertThat(actualSchemaContexts.getDefaultSchema(), is(schemaContexts.getDefaultSchema()));
-        assertThat(actualSchemaContexts.getAuthentication(), is(schemaContexts.getAuthentication()));
-        assertThat(actualSchemaContexts.getProps(), is(schemaContexts.getProps()));
-        assertThat(actualSchemaContexts.isCircuitBreak(), is(schemaContexts.isCircuitBreak()));
+    public void assertDecorateMetaDataContexts() {
+        StandardMetaDataContexts metaDataContexts = mock(StandardMetaDataContexts.class);
+        MetaDataContexts actualMetaDataContexts = getInitializer().decorateMetaDataContexts(metaDataContexts);
+        assertNotNull(actualMetaDataContexts);
+        assertThat(actualMetaDataContexts, instanceOf(GovernanceMetaDataContexts.class));
+        assertThat(actualMetaDataContexts.getDefaultMetaData(), is(metaDataContexts.getDefaultMetaData()));
+        assertThat(actualMetaDataContexts.getAuthentication(), is(metaDataContexts.getAuthentication()));
+        assertThat(actualMetaDataContexts.getProps(), is(metaDataContexts.getProps()));
     }
     
     @Test
     public void assertDecorateTransactionContexts() {
         TransactionContexts transactionContexts = mock(TransactionContexts.class);
-        TransactionContexts actualTransactionContexts = getInitializer().decorateTransactionContexts(transactionContexts);
+        TransactionContexts actualTransactionContexts = getInitializer().decorateTransactionContexts(transactionContexts, XATransactionManagerType.ATOMIKOS.getType());
         assertNotNull(actualTransactionContexts);
         assertThat(actualTransactionContexts, instanceOf(GovernanceTransactionContexts.class));
         assertThat(actualTransactionContexts.getEngines(), is(transactionContexts.getEngines()));

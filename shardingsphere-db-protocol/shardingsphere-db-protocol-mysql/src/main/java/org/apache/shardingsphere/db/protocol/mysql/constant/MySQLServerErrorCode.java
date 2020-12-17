@@ -48,7 +48,7 @@ public enum MySQLServerErrorCode implements SQLErrorCode {
     
     ER_TABLE_EXISTS_ERROR(1050, "42S01", "Table '%s' already exists"),
     
-    ER_NO_SUCH_TABLE(1146, "42S02", "Table '%s.%s' doesn't exist"),
+    ER_NO_SUCH_TABLE(1146, "42S02", "Table '%s' doesn't exist"),
     
     ER_NOT_SUPPORTED_YET(1235, "42000", "This version of ShardingProxy doesn't yet support this SQL. '%s'"),
     
@@ -56,7 +56,9 @@ public enum MySQLServerErrorCode implements SQLErrorCode {
     
     ER_ERROR_ON_MODIFYING_GTID_EXECUTED_TABLE(3176, "HY000", 
             "Please do not modify the %s table with an XA transaction. This is an internal system table used to store GTIDs for committed transactions. " 
-                    + "Although modifying it can lead to an inconsistent GTID state, if neccessary you can modify it with a non-XA transaction.");
+                    + "Although modifying it can lead to an inconsistent GTID state, if neccessary you can modify it with a non-XA transaction."),
+    
+    ER_LOCKING_SERVICE_TIMEOUT(3133, "HY000", "Message: Service lock wait timeout exceeded");
     
     private final int errorCode;
     

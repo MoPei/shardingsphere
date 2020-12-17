@@ -17,14 +17,16 @@
 
 package org.apache.shardingsphere.scaling.core.utils;
 
-import org.apache.shardingsphere.scaling.core.job.position.FinishedInventoryPosition;
-import org.apache.shardingsphere.scaling.core.job.position.InventoryPosition;
+import org.apache.shardingsphere.scaling.core.config.JobConfiguration;
+import org.apache.shardingsphere.scaling.core.constant.ScalingConstant;
+import org.apache.shardingsphere.scaling.core.job.JobProgress;
+import org.apache.shardingsphere.scaling.core.job.position.FinishedPosition;
 import org.apache.shardingsphere.scaling.core.job.task.ScalingTask;
-import org.apache.shardingsphere.scaling.core.job.task.inventory.InventoryDataScalingTask;
-import org.apache.shardingsphere.scaling.core.job.task.inventory.InventoryDataScalingTaskGroup;
+import org.apache.shardingsphere.scaling.core.job.task.incremental.IncrementalTaskProgress;
+import org.apache.shardingsphere.scaling.core.job.task.inventory.InventoryTask;
+import org.apache.shardingsphere.scaling.core.job.task.inventory.InventoryTaskProgress;
 
-import java.util.List;
-import java.util.function.Predicate;
+import java.util.Collection;
 
 /**
  * Scaling task util.
@@ -34,14 +36,37 @@ public final class ScalingTaskUtil {
     /**
      * All inventory tasks is finished.
      *
-     * @param inventoryDataTasks to check inventory tasks
+     * @param inventoryTasks to check inventory tasks
      * @return is finished
      */
-    public static boolean allInventoryTasksFinished(final List<ScalingTask<InventoryPosition>> inventoryDataTasks) {
-        return inventoryDataTasks.stream().allMatch(each -> ((InventoryDataScalingTaskGroup) each).getScalingTasks().stream().allMatch(getFinishPredicate()));
+    public static boolean allInventoryTasksFinished(final Collection<ScalingTask> inventoryTasks) {
+        return inventoryTasks.stream().allMatch(each -> ((InventoryTask) each).getPositionManager().getPosition() instanceof FinishedPosition);
     }
     
-    private static Predicate<ScalingTask<InventoryPosition>> getFinishPredicate() {
-        return each -> ((InventoryDataScalingTask) each).getPositionManager().getPosition() instanceof FinishedInventoryPosition;
+    /**
+     * All inventory tasks is finished and all Incremental tasks delay less than allow value.
+     *
+     * @param jobProgress job pProgress
+     * @param jobConfig job configuration
+     * @return almost finished or not
+     */
+    public static boolean allTasksAlmostFinished(final JobProgress jobProgress, final JobConfiguration jobConfig) {
+        return jobProgress.getInventoryTaskProgress().values().stream().flatMap(Collection::stream).allMatch(each -> ((InventoryTaskProgress) each).isFinished())
+                && jobProgress.getIncrementalTaskProgress().values().stream().flatMap(Collection::stream)
+                .allMatch(each -> ((IncrementalTaskProgress) each).getDelayMillisecond() < jobConfig.getAllowDelay());
+    }
+    
+    /**
+     * Get scaling listener path.
+     *
+     * @param paths sub paths.
+     * @return path.
+     */
+    public static String getScalingListenerPath(final Object... paths) {
+        StringBuilder result = new StringBuilder(ScalingConstant.SCALING_LISTENER_PATH);
+        for (Object each : paths) {
+            result.append("/").append(each);
+        }
+        return result.toString();
     }
 }

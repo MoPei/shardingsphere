@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.governance.repository.zookeeper;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,13 +27,15 @@ import org.apache.curator.framework.api.transaction.TransactionOp;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.shardingsphere.governance.repository.api.ConfigurationRepository;
 import org.apache.shardingsphere.governance.repository.api.RegistryRepository;
 import org.apache.shardingsphere.governance.repository.api.config.GovernanceCenterConfiguration;
 import org.apache.shardingsphere.governance.repository.api.listener.DataChangedEvent;
-import org.apache.shardingsphere.governance.repository.api.listener.DataChangedEvent.ChangedType;
+import org.apache.shardingsphere.governance.repository.api.listener.DataChangedEvent.Type;
 import org.apache.shardingsphere.governance.repository.api.listener.DataChangedEventListener;
 import org.apache.shardingsphere.governance.repository.zookeeper.handler.CuratorZookeeperExceptionHandler;
 import org.apache.zookeeper.CreateMode;
@@ -61,6 +62,8 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
     private final Map<String, CuratorCache> caches = new HashMap<>();
     
     private CuratorFramework client;
+    
+    private InterProcessLock interProcessLock;
     
     @Getter
     @Setter
@@ -90,7 +93,7 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
             builder.connectionTimeoutMs(operationTimeoutMilliseconds);
         }
         if (!Strings.isNullOrEmpty(digest)) {
-            builder.authorization(ZookeeperPropertyKey.DIGEST.getKey(), digest.getBytes(Charsets.UTF_8))
+            builder.authorization(ZookeeperPropertyKey.DIGEST.getKey(), digest.getBytes(StandardCharsets.UTF_8))
                 .aclProvider(new ACLProvider() {
                     
                     @Override
@@ -129,7 +132,7 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
         }
         Optional<ChildData> resultInCache = cache.get(key);
         if (resultInCache.isPresent()) {
-            return null == resultInCache.get().getData() ? null : new String(resultInCache.get().getData(), Charsets.UTF_8);
+            return null == resultInCache.get().getData() ? null : new String(resultInCache.get().getData(), StandardCharsets.UTF_8);
         }
         return getDirectly(key);
     }
@@ -156,7 +159,7 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
     public void persist(final String key, final String value) {
         try {
             if (!isExisted(key)) {
-                client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(key, value.getBytes(Charsets.UTF_8));
+                client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(key, value.getBytes(StandardCharsets.UTF_8));
             } else {
                 update(key, value);
             }
@@ -180,7 +183,7 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
     
     private String getDirectly(final String key) {
         try {
-            return new String(client.getData().forPath(key), Charsets.UTF_8);
+            return new String(client.getData().forPath(key), StandardCharsets.UTF_8);
             // CHECKSTYLE:OFF
         } catch (final Exception ex) {
             // CHECKSTYLE:ON
@@ -206,11 +209,39 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
             if (isExisted(key)) {
                 client.delete().deletingChildrenIfNeeded().forPath(key);
             }
-            client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(key, value.getBytes(Charsets.UTF_8));
+            client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(key, value.getBytes(StandardCharsets.UTF_8));
             // CHECKSTYLE:OFF
         } catch (final Exception ex) {
             // CHECKSTYLE:ON
             CuratorZookeeperExceptionHandler.handleException(ex);
+        }
+    }
+    
+    @Override
+    public void initLock(final String key) {
+        interProcessLock = new InterProcessMutex(client, key);
+    }
+    
+    @Override
+    public boolean tryLock(final long time, final TimeUnit unit) {
+        try {
+            return interProcessLock.acquire(time, unit);
+            // CHECKSTYLE:OFF
+        } catch (final Exception e) {
+            // CHECKSTYLE:ON
+            CuratorZookeeperExceptionHandler.handleException(e);
+            return false;
+        }
+    }
+    
+    @Override
+    public void releaseLock() {
+        try {
+            interProcessLock.release();
+            // CHECKSTYLE:OFF
+        } catch (final Exception e) {
+            // CHECKSTYLE:ON
+            CuratorZookeeperExceptionHandler.handleException(e);
         }
     }
     
@@ -237,9 +268,9 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
         cache.listenable().addListener((type, oldData, data) -> {
             String eventPath = CuratorCacheListener.Type.NODE_DELETED == type ? oldData.getPath() : data.getPath();
             byte[] eventDataByte = CuratorCacheListener.Type.NODE_DELETED == type ? oldData.getData() : data.getData();
-            DataChangedEvent.ChangedType changedType = getChangedType(type);
-            if (ChangedType.IGNORED != changedType) {
-                listener.onChange(new DataChangedEvent(eventPath, null == eventDataByte ? null : new String(eventDataByte, Charsets.UTF_8), changedType));
+            Type changedType = getChangedType(type);
+            if (Type.IGNORED != changedType) {
+                listener.onChange(new DataChangedEvent(eventPath, null == eventDataByte ? null : new String(eventDataByte, StandardCharsets.UTF_8), changedType));
             }
         });
     }
@@ -256,16 +287,16 @@ public final class CuratorZookeeperRepository implements ConfigurationRepository
         caches.put(cachePath + PATH_SEPARATOR, cache);
     }
     
-    private ChangedType getChangedType(final CuratorCacheListener.Type type) {
+    private Type getChangedType(final CuratorCacheListener.Type type) {
         switch (type) {
             case NODE_CREATED:
-                return ChangedType.ADDED;
+                return Type.ADDED;
             case NODE_CHANGED:
-                return ChangedType.UPDATED;
+                return Type.UPDATED;
             case NODE_DELETED:
-                return ChangedType.DELETED;
+                return Type.DELETED;
             default:
-                return ChangedType.IGNORED;
+                return Type.IGNORED;
         }
     }
     

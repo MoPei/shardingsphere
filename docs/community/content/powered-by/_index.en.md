@@ -13,7 +13,7 @@ Please register [here](https://github.com/apache/shardingsphere/issues/234) with
 
 ## Who are using ShardingSphere?
 
-Total: 147 companies.
+Total: 153 companies.
 
 ### Financial Industry
 <ul>
@@ -36,6 +36,7 @@ Total: 147 companies.
     <li><a href="https://www.ktjr.com/" rel="nofollow">KTJR</a></li>
     <li><a href="https://www.tansun.com/" rel="nofollow">TANSUN</a></li>
     <li><a href="https://www.360jinrong.net/" rel="nofollow">360jinrong</a></li>
+    <li><a href="https://www.ccbft.com/" rel="nofollow">CCB Fintech</a></li>
 </ul>
 
 ### E-commerce
@@ -75,7 +76,10 @@ Total: 147 companies.
     <li><a href="https://www.shebaotong.com/" rel="nofollow">SheBaoTong</a></li>
     <li><a href="https://www.itrus.com.cn/" rel="nofollow">ITrusChina</a></li>
     <li><a href="http://www.dtchuxing.com/" rel="nofollow">Bus Cloud</a></li>
-    <li><a href="http://www.ushareit.com/" rel="nofollow">shareit</a></li>
+    <li><a href="http://www.ushareit.com/" rel="nofollow">Shareit</a></li>
+    <li><a href="https://www.xforceplus.com/" rel="nofollow">Xforceplus</a></li>
+    <li><a href="https://aifanfan.baidu.com/" rel="nofollow">Baidu aifanfan</a></li>
+    <li><a href="http://www.meicloud.com/" rel="nofollow">Midea Cloud</a></li>
 </ul>
 
 ### Transportation
@@ -105,6 +109,8 @@ Total: 147 companies.
     <li><a href="https://www.newbeescm.com/" rel="nofollow">NewBeeScm</a></li>
     <li><a href="https://www.dianwoda.com/" rel="nofollow">DianWoDa</a></li>
     <li><a href="https://www.keking.com" rel="nofollow">KeKing</a></li>
+    <li><a href="https://www.jdl.cn/" rel="nofollow">JDL</a></li>
+    <li><a href="http://www.xbnwl.com/" rel="nofollow">Xbnwl</a></li>
 </ul>
 
 ### Travel
@@ -211,6 +217,7 @@ Total: 147 companies.
     <li><a href="https://www.idengyun.com/" rel="nofollow">DengYun</a></li>
     <li><a href="http://www.aicmonitor.com/" rel="nofollow">AIC Monitor</a></li>
     <li><a href="http://www.dzzd.com" rel="nofollow">dzzd</a></li>
+    <li><a href="https://www.garfiel-tech.com/" rel="nofollow">Garfiel-tech</a></li>
 </ul>
 
 ### Health Care
@@ -220,7 +227,8 @@ Total: 147 companies.
     <li><a href="https://www.zyhealth.com/" rel="nofollow">ZYHealth</a></li>
     <li><a href="https://www.ddky.com/" rel="nofollow">DDKY</a></li>
     <li><a href="https://www.keep.com/">Keep</a></li>
-    <li><a href="http://www.dxy.cn/">dxy</a></li>
+    <li><a href="http://www.dxy.cn/">DXY</a></li>
+    <li><a href="https://www.mytijian.com">Mytijian</a></li>
 </ul>
 
 <img src="https://shardingsphere.apache.org/community/image/powered-by.png" width = "30%" height = "30%" align="right" alt="Powered By ShardingSphere" />
