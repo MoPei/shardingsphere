@@ -17,11 +17,13 @@
 
 package org.apache.shardingsphere.scaling.core.service;
 
+import org.apache.shardingsphere.governance.core.event.model.rule.RuleConfigurationsAlteredEvent;
 import org.apache.shardingsphere.scaling.core.config.ScalingConfiguration;
 import org.apache.shardingsphere.scaling.core.job.JobProgress;
 import org.apache.shardingsphere.scaling.core.job.ScalingJob;
 import org.apache.shardingsphere.scaling.core.job.check.DataConsistencyCheckResult;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,17 +51,13 @@ public interface ScalingJobService {
     /**
      * Start scaling job.
      *
-     * @param sourceDataSource source data source
-     * @param sourceRule source rule
-     * @param targetDataSource target data source
-     * @param targetRule target rule
-     * @param scalingCallback scaling callback
+     * @param event rule configurations altered event
      * @return scaling job
      */
-    Optional<ScalingJob> start(String sourceDataSource, String sourceRule, String targetDataSource, String targetRule, ScalingCallback scalingCallback);
+    Optional<ScalingJob> start(RuleConfigurationsAlteredEvent event);
     
     /**
-     * Stop a job.
+     * Stop job.
      *
      * @param jobId job id
      */
@@ -93,8 +91,9 @@ public interface ScalingJobService {
      * Reset target tables.
      *
      * @param jobId job id
+     * @throws SQLException SQL exception
      */
-    void reset(long jobId);
+    void reset(long jobId) throws SQLException;
     
     /**
      * remove job.
