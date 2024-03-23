@@ -1,10 +1,8 @@
 +++
 title = "How to construct the distributed database"
-weight = 4
+weight = 10
 chapter = true
 +++
-
-## How we build a distributed database
 
 Author | Liang Zhang
 
@@ -34,7 +32,7 @@ The implementation solutions of distributed database can be divided into aggress
 
 ### 2 Architecture
 
-Apache ShardingSphere is an open source ecosystem distributed database middleware solutions, consisting of three separate products, Sharding-JDBC, Sharding-Proxy, and Sharding-Sidecar (planned). They all provide standardized data sharding, distributed transactions, and distributed governance for a variety of diverse application scenarios such as Java Isomorphic, heterogeneous languages, and cloud-native. As Apache ShardingSphere continues to explore query optimizers and distributed transaction engines, it has gradually broken the product boundaries of implementations and evolved into a platform-level solution that is both aggressive and stable all in one. 
+Apache ShardingSphere is an open source ecosystem distributed database solutions, consisting of three separate products, Sharding-JDBC, Sharding-Proxy, and Sharding-Sidecar (planned). They all provide functions of data scale out, distributed transaction and distributed governance for a variety of diverse application scenarios such as Java Isomorphic, heterogeneous languages, and cloud-native. As Apache ShardingSphere continues to explore query optimizers and distributed transaction engines, it has gradually broken the product boundaries of implementations and evolved into a platform-level solution that is both aggressive and stable all in one. 
 
 **Sharding-JDBC**
 
@@ -48,7 +46,7 @@ Defines itself as a transparent database proxy, providing a database server that
 
 ![](https://shardingsphere.apache.org/blog/img/database2.jpg)
 
-**Sharding-Sidecar（Planned）**
+**Sharding-Sidecar (Planned) **
 
 Defines itself as a cloud native database agent of the Kubernetes environment, in charge of all the access to the database in the form of sidecar. It provides a mesh layer interacting with the database, we call this as Database Mesh.
 

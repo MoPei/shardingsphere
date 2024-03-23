@@ -1,10 +1,8 @@
 +++
 title = "我们是怎样打造一款分布式数据库的"
-weight = 4
+weight = 10
 chapter = true
 +++
-
-## 我们是怎样打造一款分布式数据库的
 
 作者 | 张亮
 
@@ -33,7 +31,7 @@ chapter = true
 
 ### 2 架构
 
-Apache ShardingSphere 是一套开源的分布式数据库中间件解决方案组成的生态圈，它由 Sharding-JDBC、Sharding-Proxy 和 Sharding-Sidecar（计划中）这 3 款相互独立的产品组成。它们均提供标准化的数据分片、分布式事务和分布式治理等功能，可适用于如 Java 同构、异构语言、云原生等各种多样化的应用场景。随着 Apache ShardingSphere 在查询优化器和分布式事务引擎的不断探索，它已渐渐地打破了实现方案的产品边界，向集进取型和稳定型于一身的平台级解决方案演进。
+Apache ShardingSphere 是一套开源的分布式数据库解决方案组成的生态圈，它由 Sharding-JDBC、Sharding-Proxy 和 Sharding-Sidecar（计划中）这 3 款相互独立的产品组成。它们均提供标准化的数据水平扩展、分布式事务和分布式治理等功能，可适用于如 Java 同构、异构语言、云原生等各种多样化的应用场景。随着 Apache ShardingSphere 在查询优化器和分布式事务引擎的不断探索，它已渐渐地打破了实现方案的产品边界，向集进取型和稳定型于一身的平台级解决方案演进。
 
 **Sharding-JDBC**
 
@@ -61,7 +59,7 @@ Sharding-JDBC 采用无中心化架构，适用于 Java 开发的高性能的轻
 
 ![](https://shardingsphere.apache.org/blog/img/database4.jpg)
 
-Apache ShardingSphere 是多接入端共同组成的生态圈。通过混合使用 Sharding-JDBC 和 Sharding-Proxy，并采用同一配置中心统一配置分片策略，能够灵活的搭建适用于各种场景的应用系统，使得架构师更加自由地调整适合与当前业务的最佳系统架构。
+Apache ShardingSphere 是多接入端共同组成的生态圈。通过混合使用 Sharding-JDBC 和 Sharding-Proxy，并采用同一配置中心统一配置分片策略，能够灵活的搭建适用于各种场景的应用系统，使得架构师更加自由地调整适合于当前业务的最佳系统架构。
 
 ![](https://shardingsphere.apache.org/blog/img/database5.jpg)
 
@@ -288,7 +286,7 @@ Apache ShardingSphere 在 2016 年 1 月 17 日在 GitHub 平台首次开源，�
 
 **项目地址：**
 
-https://github.com/apache/incubator-shardingsphere
+https://github.com/apache/shardingsphere
 
 ### 6 作者介绍
 
