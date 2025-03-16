@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.driver;
 
+import org.apache.shardingsphere.driver.exception.DriverRegisterException;
 import org.apache.shardingsphere.driver.jdbc.core.driver.DriverDataSourceCache;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 
@@ -31,13 +32,14 @@ import java.util.logging.Logger;
 /**
  * ShardingSphere driver.
  */
+@SuppressWarnings("UseOfJDBCDriverClass")
 public final class ShardingSphereDriver implements Driver {
     
     private static final String DRIVER_URL_PREFIX = "jdbc:shardingsphere:";
     
     private static final int MAJOR_DRIVER_VERSION = 5;
     
-    private static final int MINOR_DRIVER_VERSION = 4;
+    private static final int MINOR_DRIVER_VERSION = 5;
     
     private final DriverDataSourceCache dataSourceCache = new DriverDataSourceCache();
     

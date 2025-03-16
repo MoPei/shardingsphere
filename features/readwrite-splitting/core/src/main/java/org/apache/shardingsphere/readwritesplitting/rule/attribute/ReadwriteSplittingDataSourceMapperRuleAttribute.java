@@ -18,11 +18,12 @@
 package org.apache.shardingsphere.readwritesplitting.rule.attribute;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
-import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingDataSourceRule;
+import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingDataSourceGroupRule;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -31,12 +32,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 public final class ReadwriteSplittingDataSourceMapperRuleAttribute implements DataSourceMapperRuleAttribute {
     
-    private final Collection<ReadwriteSplittingDataSourceRule> dataSourceRules;
+    private final Collection<ReadwriteSplittingDataSourceGroupRule> dataSourceGroupRules;
     
+    @HighFrequencyInvocation
     @Override
     public Map<String, Collection<String>> getDataSourceMapper() {
-        Map<String, Collection<String>> result = new HashMap<>();
-        for (ReadwriteSplittingDataSourceRule each : dataSourceRules) {
+        Map<String, Collection<String>> result = new LinkedHashMap<>(dataSourceGroupRules.size(), 1F);
+        for (ReadwriteSplittingDataSourceGroupRule each : dataSourceGroupRules) {
             result.put(each.getName(), each.getReadwriteSplittingGroup().getAllDataSources());
         }
         return result;

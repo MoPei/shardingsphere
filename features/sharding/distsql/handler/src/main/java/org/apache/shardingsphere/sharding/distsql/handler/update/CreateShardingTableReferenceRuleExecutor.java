@@ -20,9 +20,9 @@ package org.apache.shardingsphere.sharding.distsql.handler.update;
 import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Setter;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleCreateExecutor;
-import org.apache.shardingsphere.distsql.handler.exception.rule.DuplicateRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.InvalidRuleConfigurationException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InvalidRuleConfigurationException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -63,19 +63,19 @@ public final class CreateShardingTableReferenceRuleExecutor implements DatabaseR
     
     private void checkDuplicatedRuleNames(final CreateShardingTableReferenceRuleStatement sqlStatement) {
         Collection<String> duplicatedRuleNames = getDuplicatedRuleNames(sqlStatement);
-        ShardingSpherePreconditions.checkState(duplicatedRuleNames.isEmpty(), () -> new DuplicateRuleException("sharding table reference", database.getName(), duplicatedRuleNames));
+        ShardingSpherePreconditions.checkMustEmpty(duplicatedRuleNames, () -> new DuplicateRuleException("sharding table reference", database.getName(), duplicatedRuleNames));
     }
     
     private void checkDuplicatedTablesInShardingTableReferenceRules(final CreateShardingTableReferenceRuleStatement sqlStatement) {
         Collection<String> currentReferencedTableNames = getReferencedTableNames();
         Collection<String> duplicatedTableNames = sqlStatement.getTableNames().stream().filter(currentReferencedTableNames::contains).collect(Collectors.toSet());
-        ShardingSpherePreconditions.checkState(duplicatedTableNames.isEmpty(), () -> new DuplicateRuleException("sharding table reference", database.getName(), duplicatedTableNames));
+        ShardingSpherePreconditions.checkMustEmpty(duplicatedTableNames, () -> new DuplicateRuleException("sharding table reference", database.getName(), duplicatedTableNames));
     }
     
     private void checkToBeReferencedShardingTablesExisted(final CreateShardingTableReferenceRuleStatement sqlStatement) {
         Collection<String> currentShardingTableNames = getCurrentShardingTableNames();
         Collection<String> notExistedTableNames = sqlStatement.getTableNames().stream().filter(each -> !currentShardingTableNames.contains(each)).collect(Collectors.toSet());
-        ShardingSpherePreconditions.checkState(notExistedTableNames.isEmpty(), () -> new MissingRequiredRuleException("Sharding", database.getName(), notExistedTableNames));
+        ShardingSpherePreconditions.checkMustEmpty(notExistedTableNames, () -> new MissingRequiredRuleException("Sharding", database.getName(), notExistedTableNames));
     }
     
     private Collection<String> getCurrentShardingTableNames() {

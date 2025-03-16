@@ -75,7 +75,7 @@ returnDateType
     ;
 
 body
-    : BEGIN statement+ (EXCEPTION (exceptionHandler)+)? END (identifier)? SEMI_
+    : BEGIN statement+ (EXCEPTION (exceptionHandler)+)? END (identifier)? SEMI_?
     ;
 
 // TODO need add more statement type according to the doc
@@ -94,6 +94,7 @@ statement
         | forallStatement
         | gotoStatement
         | ifStatement
+        | modifyingStatement
         | nullStatement
         | openStatement
         | openForStatement
@@ -216,6 +217,8 @@ iterationCtlSeq
     : qualIterationCtl (COMMA_ qualIterationCtl)*
     ;
 
+modifyingExpression: INSERTING | DELETING | UPDATING;
+
 qualIterationCtl
     : REVERSE? iterationCcontrol predClauseSeq
     ;
@@ -308,11 +311,13 @@ gotoStatement
     ;
 
 ifStatement
-    : IF booleanExpression THEN statement+
+    : (IF booleanExpression THEN statement+)*
     (ELSIF booleanExpression THEN statement+)*
     (ELSE statement+)?
-    END IF SEMI_
+    (END IF SEMI_)+
     ;
+
+modifyingStatement: IF modifyingExpression THEN statement+ (ELSIF modifyingExpression THEN statement+)* (ELSE statement+)? END IF SEMI_;
 
 nullStatement
     : NULL SEMI_
@@ -396,7 +401,7 @@ sqlStatementInPlsql
     // TODO collection_method_call
     | delete
     | insert
-    | lockTable
+    | lock
     | merge
     | rollback
     | savepoint
@@ -417,9 +422,17 @@ exceptionHandler
 declareSection
     : declareItem+
     ;
-    
+
 declareItem
-    : typeDefinition | cursorDeclaration | itemDeclaration | functionDeclaration | procedureDeclaration | cursorDefinition | functionDefinition | procedureDefinition | pragma
+    : typeDefinition
+    | cursorDeclaration
+    | itemDeclaration
+    | functionDeclaration
+    | procedureDeclaration
+    | cursorDefinition
+    | functionDefinition
+    | procedureDefinition
+    | pragma
     ;
 
 cursorDefinition
@@ -502,7 +515,7 @@ cursorVariableDeclaration
     ;
 
 exceptionDeclaration
-    : variableName EXCEPTION SEMI_
+    : variableName (EXCEPTION SEMI_)?
     ;
 
 recordVariableDeclaration
@@ -561,8 +574,16 @@ rowtypeAttribute
     ;
 
 pragma
-    : autonomousTransPragma | restrictReferencesPragma
+    : autonomousTransPragma | restrictReferencesPragma | exceptionInitPragma
     // TODO Support more pragma
+    ;
+
+exceptionInitPragma
+    : (PRAGMA EXCEPTION_INIT LP_ exceptionDeclaration COMMA_ errorCode RP_ SEMI_)+
+    ;
+
+errorCode
+    : MINUS_ INTEGER_
     ;
 
 autonomousTransPragma
@@ -582,11 +603,11 @@ dmlEventClause
     ;
 
 dmlEventElement
-    : (DELETE | INSERT | UPDATE) (OF LP_ columnName (COMMA_ columnName)* RP_)?
+    : (DELETE | INSERT | UPDATE) (OF LP_? columnName (COMMA_ columnName)* RP_?)?
     ;
 
 systemTrigger
-    : (BEFORE | AFTER | INSTEAD OF) (ddlEvent (OR ddlEvent)* | databaseEvent (OR databaseEvent)*) ON ((PLUGGABLE? DATABASE) | (schemaName DOT_)? SCHEMA) triggerBody
+    : (BEFORE | AFTER | INSTEAD OF) (ddlEvent (OR ddlEvent)* | databaseEvent (OR databaseEvent)* | dmlEvent) ON ((PLUGGABLE? DATABASE) | (schemaName DOT_)? SCHEMA?) tableName? triggerBody
     ;
 
 ddlEvent
@@ -627,6 +648,10 @@ databaseEvent
     | AFTER CLONE
     | BEFORE UNPLUG
     | (BEFORE | AFTER) SET CONTAINER
+    ;
+
+dmlEvent
+    : INSERT
     ;
 
 triggerBody

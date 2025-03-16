@@ -17,14 +17,21 @@
 
 package org.apache.shardingsphere.infra.session.query;
 
-import lombok.AccessLevel;
+import com.google.common.base.Joiner;
 import lombok.Getter;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.database.UnknownDatabaseException;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Query context.
@@ -38,45 +45,55 @@ public final class QueryContext {
     
     private final List<Object> parameters;
     
-    @Getter(AccessLevel.NONE)
-    private final String databaseName;
-    
-    @Getter(AccessLevel.NONE)
-    private final String schemaName;
-    
     private final HintValueContext hintValueContext;
+    
+    private final ConnectionContext connectionContext;
+    
+    private final ShardingSphereMetaData metaData;
+    
+    private final Collection<String> usedDatabaseNames;
     
     private final boolean useCache;
     
-    public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params, final HintValueContext hintValueContext) {
-        this(sqlStatementContext, sql, params, hintValueContext, false);
+    public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params, final HintValueContext hintValueContext, final ConnectionContext connectionContext,
+                        final ShardingSphereMetaData metaData) {
+        this(sqlStatementContext, sql, params, hintValueContext, connectionContext, metaData, false);
     }
     
-    public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params, final HintValueContext hintValueContext, final boolean useCache) {
+    public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params, final HintValueContext hintValueContext, final ConnectionContext connectionContext,
+                        final ShardingSphereMetaData metaData, final boolean useCache) {
         this.sqlStatementContext = sqlStatementContext;
         this.sql = sql;
         parameters = params;
-        databaseName = sqlStatementContext instanceof TableAvailable ? ((TableAvailable) sqlStatementContext).getTablesContext().getDatabaseName().orElse(null) : null;
-        schemaName = sqlStatementContext instanceof TableAvailable ? ((TableAvailable) sqlStatementContext).getTablesContext().getSchemaName().orElse(null) : null;
         this.hintValueContext = hintValueContext;
+        this.connectionContext = connectionContext;
+        this.metaData = metaData;
+        usedDatabaseNames = getUsedDatabaseNames(sqlStatementContext, connectionContext);
         this.useCache = useCache;
     }
     
-    /**
-     * Get database name from SQL statement.
-     * 
-     * @return got database name
-     */
-    public Optional<String> getDatabaseNameFromSQLStatement() {
-        return Optional.ofNullable(databaseName);
+    private Collection<String> getUsedDatabaseNames(final SQLStatementContext sqlStatementContext, final ConnectionContext connectionContext) {
+        if (sqlStatementContext instanceof TableAvailable) {
+            Collection<String> result = ((TableAvailable) sqlStatementContext).getTablesContext().getDatabaseNames();
+            return result.isEmpty() ? getCurrentDatabaseNames(connectionContext) : result;
+        }
+        return getCurrentDatabaseNames(connectionContext);
+    }
+    
+    private Collection<String> getCurrentDatabaseNames(final ConnectionContext connectionContext) {
+        return connectionContext.getCurrentDatabaseName().isPresent() ? Collections.singleton(connectionContext.getCurrentDatabaseName().get()) : Collections.emptyList();
     }
     
     /**
-     * Get schema name from SQL statement.
+     * Get used database.
      *
-     * @return got schema name
+     * @return used database
      */
-    public Optional<String> getSchemaNameFromSQLStatement() {
-        return Optional.ofNullable(schemaName);
+    public ShardingSphereDatabase getUsedDatabase() {
+        ShardingSpherePreconditions.checkState(usedDatabaseNames.size() <= 1,
+                () -> new UnsupportedSQLOperationException(String.format("Can not support multiple logic databases [%s]", Joiner.on(", ").join(usedDatabaseNames))));
+        String databaseName = usedDatabaseNames.iterator().next();
+        ShardingSpherePreconditions.checkState(metaData.containsDatabase(databaseName), () -> new UnknownDatabaseException(databaseName));
+        return metaData.getDatabase(databaseName);
     }
 }

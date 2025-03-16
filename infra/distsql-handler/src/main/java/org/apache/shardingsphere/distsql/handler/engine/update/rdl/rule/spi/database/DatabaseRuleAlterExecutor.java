@@ -19,7 +19,7 @@ package org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.dat
 
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
 /**
  * Database rule alter executor.
@@ -39,7 +39,6 @@ public interface DatabaseRuleAlterExecutor<T extends SQLStatement, R extends Sha
     C buildToBeAlteredRuleConfiguration(T sqlStatement);
     
     /**
-     * TODO Remove temporary default implementation
      * Build to be dropped rule configuration.
      *
      * @param toBeAlteredRuleConfig new rule configuration to be renewed

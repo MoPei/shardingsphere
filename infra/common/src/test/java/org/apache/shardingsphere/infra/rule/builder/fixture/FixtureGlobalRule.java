@@ -19,7 +19,6 @@ package org.apache.shardingsphere.infra.rule.builder.fixture;
 
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.rule.scope.GlobalRule;
-import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
 
 import static org.mockito.Mockito.mock;
 
@@ -31,7 +30,7 @@ public final class FixtureGlobalRule implements GlobalRule {
     }
     
     @Override
-    public RuleAttributes getAttributes() {
-        return new RuleAttributes();
+    public int getOrder() {
+        return 0;
     }
 }

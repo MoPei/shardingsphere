@@ -18,9 +18,11 @@
 package org.apache.shardingsphere.driver.jdbc.unsupported;
 
 import org.apache.shardingsphere.driver.jdbc.adapter.WrapperAdapter;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 
+import java.sql.Array;
 import java.sql.Blob;
+import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.NClob;
@@ -36,6 +38,21 @@ import java.util.concurrent.Executor;
  * Unsupported {@code Connection} methods.
  */
 public abstract class AbstractUnsupportedOperationConnection extends WrapperAdapter implements Connection {
+    
+    @Override
+    public final CallableStatement prepareCall(final String sql) throws SQLException {
+        throw new SQLFeatureNotSupportedException("prepareCall");
+    }
+    
+    @Override
+    public final CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
+        throw new SQLFeatureNotSupportedException("prepareCall");
+    }
+    
+    @Override
+    public final CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability) throws SQLException {
+        throw new SQLFeatureNotSupportedException("prepareCall");
+    }
     
     @Override
     public final String nativeSQL(final String sql) throws SQLException {
@@ -58,23 +75,28 @@ public abstract class AbstractUnsupportedOperationConnection extends WrapperAdap
     }
     
     @Override
-    public final int getNetworkTimeout() throws SQLException {
+    public int getNetworkTimeout() throws SQLException {
         throw new SQLFeatureNotSupportedException("getNetworkTimeout");
     }
     
     @Override
-    public final void setNetworkTimeout(final Executor executor, final int milliseconds) throws SQLException {
+    public void setNetworkTimeout(final Executor executor, final int milliseconds) throws SQLException {
         throw new SQLFeatureNotSupportedException("setNetworkTimeout");
     }
     
     @Override
-    public final Clob createClob() throws SQLException {
-        throw new SQLFeatureNotSupportedException("createClob");
+    public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
+        throw new SQLFeatureNotSupportedException("createArrayOf");
     }
     
     @Override
     public final Blob createBlob() throws SQLException {
         throw new SQLFeatureNotSupportedException("createBlob");
+    }
+    
+    @Override
+    public Clob createClob() throws SQLException {
+        throw new SQLFeatureNotSupportedException("createClob");
     }
     
     @Override

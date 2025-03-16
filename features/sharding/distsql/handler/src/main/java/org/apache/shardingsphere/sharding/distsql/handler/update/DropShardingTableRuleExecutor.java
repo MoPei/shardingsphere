@@ -21,8 +21,8 @@ import com.cedarsoftware.util.CaseInsensitiveSet;
 import com.google.common.base.Splitter;
 import lombok.Setter;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDropExecutor;
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.RuleInUsedException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InUsedRuleException;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -61,7 +61,7 @@ public final class DropShardingTableRuleExecutor implements DatabaseRuleDropExec
     private void checkToBeDroppedShardingTableNames(final DropShardingTableRuleStatement sqlStatement) {
         Collection<String> currentShardingTableNames = getCurrentShardingTableNames();
         Collection<String> notExistedTableNames = getToBeDroppedShardingTableNames(sqlStatement).stream().filter(each -> !currentShardingTableNames.contains(each)).collect(Collectors.toList());
-        ShardingSpherePreconditions.checkState(notExistedTableNames.isEmpty(), () -> new MissingRequiredRuleException("sharding", database.getName(), notExistedTableNames));
+        ShardingSpherePreconditions.checkMustEmpty(notExistedTableNames, () -> new MissingRequiredRuleException("sharding", database.getName(), notExistedTableNames));
     }
     
     private Collection<String> getToBeDroppedShardingTableNames(final DropShardingTableRuleStatement sqlStatement) {
@@ -79,7 +79,7 @@ public final class DropShardingTableRuleExecutor implements DatabaseRuleDropExec
         Collection<String> bindingTables = getBindingTables();
         Collection<String> usedTableNames = getToBeDroppedShardingTableNames(sqlStatement).stream().filter(bindingTables::contains).collect(Collectors.toList());
         if (!usedTableNames.isEmpty()) {
-            throw new RuleInUsedException("Sharding", database.getName(), usedTableNames, "sharding table reference");
+            throw new InUsedRuleException("Sharding", database.getName(), usedTableNames, "sharding table reference");
         }
     }
     
@@ -116,14 +116,6 @@ public final class DropShardingTableRuleExecutor implements DatabaseRuleDropExec
     private void dropShardingTable(final ShardingRuleConfiguration currentRuleConfig, final String tableName) {
         currentRuleConfig.getTables().removeAll(currentRuleConfig.getTables().stream().filter(each -> tableName.equalsIgnoreCase(each.getLogicTable())).collect(Collectors.toList()));
         currentRuleConfig.getAutoTables().removeAll(currentRuleConfig.getAutoTables().stream().filter(each -> tableName.equalsIgnoreCase(each.getLogicTable())).collect(Collectors.toList()));
-    }
-    
-    private void dropUnusedKeyGenerator(final ShardingRuleConfiguration currentRuleConfig) {
-        UnusedAlgorithmFinder.findUnusedKeyGenerator(currentRuleConfig).forEach(each -> currentRuleConfig.getKeyGenerators().remove(each));
-    }
-    
-    private void dropUnusedAuditor(final ShardingRuleConfiguration currentRuleConfig) {
-        UnusedAlgorithmFinder.findUnusedAuditor(currentRuleConfig).forEach(each -> currentRuleConfig.getAuditors().remove(each));
     }
     
     @Override

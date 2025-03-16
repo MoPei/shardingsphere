@@ -21,19 +21,22 @@ import com.cedarsoftware.util.CaseInsensitiveSet;
 import com.google.common.base.Splitter;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.distsql.handler.exception.algorithm.InvalidAlgorithmConfigurationException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.DuplicateRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.InvalidRuleConfigurationException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.storageunit.MissingRequiredStorageUnitsException;
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
+import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
+import org.apache.shardingsphere.infra.algorithm.core.exception.InvalidAlgorithmConfigurationException;
 import org.apache.shardingsphere.infra.algorithm.keygen.core.KeyGenerateAlgorithm;
 import org.apache.shardingsphere.infra.datanode.DataNode;
+import org.apache.shardingsphere.infra.datanode.DataNodeInfo;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.MissingRequiredStorageUnitsException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InvalidRuleConfigurationException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.infra.expr.core.InlineExpressionParserFactory;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.sharding.algorithm.sharding.inline.InlineShardingAlgorithm;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingAutoTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableReferenceRuleConfiguration;
@@ -44,6 +47,8 @@ import org.apache.shardingsphere.sharding.api.config.strategy.sharding.NoneShard
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.ShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.sharding.ShardingAutoTableAlgorithm;
+import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingValue;
+import org.apache.shardingsphere.sharding.constant.ShardingTableConstants;
 import org.apache.shardingsphere.sharding.distsql.handler.converter.ShardingTableRuleStatementConverter;
 import org.apache.shardingsphere.sharding.distsql.handler.enums.ShardingStrategyType;
 import org.apache.shardingsphere.sharding.distsql.segment.strategy.AuditStrategySegment;
@@ -53,7 +58,8 @@ import org.apache.shardingsphere.sharding.distsql.segment.strategy.ShardingStrat
 import org.apache.shardingsphere.sharding.distsql.segment.table.AbstractTableRuleSegment;
 import org.apache.shardingsphere.sharding.distsql.segment.table.AutoTableRuleSegment;
 import org.apache.shardingsphere.sharding.distsql.segment.table.TableRuleSegment;
-import org.apache.shardingsphere.sharding.exception.algorithm.sharding.ShardingAlgorithmClassImplementationException;
+import org.apache.shardingsphere.sharding.exception.algorithm.ShardingAlgorithmClassImplementationException;
+import org.apache.shardingsphere.sharding.exception.metadata.DuplicateShardingActualDataNodeException;
 import org.apache.shardingsphere.sharding.exception.metadata.ShardingTableRuleNotFoundException;
 import org.apache.shardingsphere.sharding.exception.strategy.InvalidShardingStrategyConfigurationException;
 import org.apache.shardingsphere.sharding.rule.BindingTableCheckedConfiguration;
@@ -63,6 +69,7 @@ import org.apache.shardingsphere.sharding.spi.ShardingAuditAlgorithm;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -86,7 +93,7 @@ public final class ShardingTableRuleStatementChecker {
     private static final String DELIMITER = ".";
     
     /**
-     * Check create sharing table rule statement.
+     * Check create sharding table rule statement.
      *
      * @param database database
      * @param rules rules
@@ -99,7 +106,7 @@ public final class ShardingTableRuleStatementChecker {
     }
     
     /**
-     * Check alter sharing table rule statement.
+     * Check alter sharding table rule statement.
      *
      * @param database database
      * @param rules rules
@@ -147,7 +154,7 @@ public final class ShardingTableRuleStatementChecker {
         checkKeyGenerators(rules);
         checkAuditors(rules);
         checkAutoTableRule(rules.stream().filter(AutoTableRuleSegment.class::isInstance).map(AutoTableRuleSegment.class::cast).collect(Collectors.toList()));
-        checkTableRule(databaseName, rules.stream().filter(TableRuleSegment.class::isInstance).map(TableRuleSegment.class::cast).collect(Collectors.toList()));
+        checkTableRule(rules.stream().filter(TableRuleSegment.class::isInstance).map(TableRuleSegment.class::cast).collect(Collectors.toList()));
         if (!isCreated) {
             checkBindingTableRules(rules, currentRuleConfig);
         }
@@ -190,7 +197,7 @@ public final class ShardingTableRuleStatementChecker {
     }
     
     private static Collection<String> getDataSourceNames(final Collection<String> actualDataNodes) {
-        Collection<String> result = new LinkedHashSet<>();
+        Collection<String> result = new LinkedHashSet<>(actualDataNodes.size(), 1F);
         for (String each : actualDataNodes) {
             result.add(isValidDataNode(each) ? new DataNode(each).getDataSourceName() : each);
         }
@@ -313,7 +320,7 @@ public final class ShardingTableRuleStatementChecker {
         Collection<String> notExistedDataSources = database.getResourceMetaData().getNotExistedDataSources(requiredDataSource);
         Collection<String> logicDataSources = getLogicDataSources(database);
         notExistedDataSources.removeIf(logicDataSources::contains);
-        ShardingSpherePreconditions.checkState(notExistedDataSources.isEmpty(), () -> new MissingRequiredStorageUnitsException(databaseName, notExistedDataSources));
+        ShardingSpherePreconditions.checkMustEmpty(notExistedDataSources, () -> new MissingRequiredStorageUnitsException(databaseName, notExistedDataSources));
     }
     
     private static Collection<String> getRequiredDataSources(final ShardingRuleConfiguration config) {
@@ -346,22 +353,22 @@ public final class ShardingTableRuleStatementChecker {
                                     final boolean ifNotExists) {
         Collection<String> requiredTables = rules.stream().map(AbstractTableRuleSegment::getLogicTable).collect(Collectors.toList());
         Collection<String> duplicatedRuleNames = getDuplicatedRuleNames(requiredTables);
-        ShardingSpherePreconditions.checkState(duplicatedRuleNames.isEmpty(), () -> new DuplicateRuleException("sharding", databaseName, duplicatedRuleNames));
+        ShardingSpherePreconditions.checkMustEmpty(duplicatedRuleNames, () -> new DuplicateRuleException("sharding", databaseName, duplicatedRuleNames));
         Collection<String> currentShardingTables = null == currentRuleConfig ? Collections.emptyList() : getCurrentShardingTables(currentRuleConfig);
         if (isCreate) {
             if (!ifNotExists) {
                 duplicatedRuleNames.addAll(getDuplicatedRuleNames(requiredTables, currentShardingTables));
-                ShardingSpherePreconditions.checkState(duplicatedRuleNames.isEmpty(), () -> new DuplicateRuleException("sharding", databaseName, duplicatedRuleNames));
+                ShardingSpherePreconditions.checkMustEmpty(duplicatedRuleNames, () -> new DuplicateRuleException("sharding", databaseName, duplicatedRuleNames));
             }
         } else {
             Collection<String> notExistedRules = getNotExistedRules(requiredTables, currentShardingTables);
-            ShardingSpherePreconditions.checkState(notExistedRules.isEmpty(), () -> new MissingRequiredRuleException("sharding", databaseName, notExistedRules));
+            ShardingSpherePreconditions.checkMustEmpty(notExistedRules, () -> new MissingRequiredRuleException("sharding", databaseName, notExistedRules));
         }
     }
     
     private static Collection<String> getDuplicatedRuleNames(final Collection<String> collection) {
         Collection<String> duplicatedNames = collection.stream().collect(Collectors.groupingBy(String::toLowerCase, Collectors.counting())).entrySet().stream()
-                .filter(each -> each.getValue() > 1).map(Entry::getKey).collect(Collectors.toCollection(CaseInsensitiveSet::new));
+                .filter(each -> each.getValue() > 1L).map(Entry::getKey).collect(Collectors.toCollection(CaseInsensitiveSet::new));
         return collection.stream().filter(duplicatedNames::contains).collect(Collectors.toSet());
     }
     
@@ -401,30 +408,26 @@ public final class ShardingTableRuleStatementChecker {
     
     private static void checkAutoTableShardingAlgorithms(final Collection<AutoTableRuleSegment> autoTableRules) {
         autoTableRules.forEach(each -> {
-            ShardingSpherePreconditions.checkState(TypedSPILoader.findService(
-                    ShardingAlgorithm.class, each.getShardingAlgorithmSegment().getName(), each.getShardingAlgorithmSegment().getProps()).isPresent(),
-                    () -> new InvalidAlgorithmConfigurationException("sharding", each.getShardingAlgorithmSegment().getName()));
             ShardingAlgorithm shardingAlgorithm = TypedSPILoader.getService(ShardingAlgorithm.class, each.getShardingAlgorithmSegment().getName(), each.getShardingAlgorithmSegment().getProps());
-            ShardingSpherePreconditions.checkState(shardingAlgorithm instanceof ShardingAutoTableAlgorithm, () -> new InvalidAlgorithmConfigurationException("sharding", shardingAlgorithm.getType(),
-                    String.format("auto sharding algorithm is required for rule `%s`", each.getLogicTable())));
+            ShardingSpherePreconditions.checkState(shardingAlgorithm instanceof ShardingAutoTableAlgorithm,
+                    () -> new AlgorithmInitializationException(shardingAlgorithm, "Auto sharding algorithm is required for table '%s'", each.getLogicTable()));
         });
     }
     
-    private static void checkTableRule(final String databaseName, final Collection<TableRuleSegment> tableRules) {
-        checkStrategy(databaseName, tableRules);
+    private static void checkTableRule(final Collection<TableRuleSegment> tableRules) {
+        checkStrategy(tableRules);
     }
     
-    private static void checkStrategy(final String databaseName, final Collection<TableRuleSegment> rules) {
+    private static void checkStrategy(final Collection<TableRuleSegment> rules) {
         for (TableRuleSegment each : rules) {
             Optional<ShardingStrategySegment> databaseStrategySegment = Optional.ofNullable(each.getDatabaseStrategySegment());
             if (databaseStrategySegment.isPresent()) {
                 if ("none".equalsIgnoreCase(databaseStrategySegment.get().getType())) {
                     Collection<String> requiredDataSources = getRequiredDataSources(rules);
                     ShardingSpherePreconditions.checkState(1 == requiredDataSources.size(),
-                            () -> new InvalidShardingStrategyConfigurationException("database", databaseStrategySegment.get().getType(), "strategy does not match data nodes"));
+                            () -> new InvalidShardingStrategyConfigurationException("database", databaseStrategySegment.get().getType()));
                 } else {
-                    AlgorithmSegment databaseShardingAlgorithm = databaseStrategySegment.get().getShardingAlgorithm();
-                    checkDatabaseShardingAlgorithm(databaseName, each, databaseShardingAlgorithm);
+                    checkDatabaseShardingAlgorithm(each, databaseStrategySegment.get());
                 }
             }
             Optional<ShardingStrategySegment> tableStrategySegment = Optional.ofNullable(each.getTableStrategySegment());
@@ -432,35 +435,42 @@ public final class ShardingTableRuleStatementChecker {
                 if ("none".equalsIgnoreCase(tableStrategySegment.get().getType())) {
                     Collection<String> requiredTables = getRequiredTables(rules);
                     ShardingSpherePreconditions.checkState(1 == requiredTables.size(),
-                            () -> new InvalidShardingStrategyConfigurationException("table", tableStrategySegment.get().getType(), "strategy does not match data nodes"));
+                            () -> new InvalidShardingStrategyConfigurationException("table", tableStrategySegment.get().getType()));
                 } else {
-                    AlgorithmSegment tableShardingAlgorithm = tableStrategySegment.get().getShardingAlgorithm();
-                    checkTableShardingAlgorithm(databaseName, each, tableShardingAlgorithm);
+                    checkTableShardingAlgorithm(each, tableStrategySegment.get());
                 }
             }
         }
     }
     
-    private static void checkDatabaseShardingAlgorithm(final String databaseName, final TableRuleSegment each, final AlgorithmSegment databaseShardingAlgorithm) {
+    private static void checkDatabaseShardingAlgorithm(final TableRuleSegment tableRuleSegment, final ShardingStrategySegment databaseStrategySegment) {
+        AlgorithmSegment databaseShardingAlgorithm = databaseStrategySegment.getShardingAlgorithm();
         if (null != databaseShardingAlgorithm) {
             ShardingAlgorithm shardingAlgorithm = TypedSPILoader.getService(ShardingAlgorithm.class, databaseShardingAlgorithm.getName(), databaseShardingAlgorithm.getProps());
             ShardingSpherePreconditions.checkState(!(shardingAlgorithm instanceof ShardingAutoTableAlgorithm),
-                    () -> new InvalidAlgorithmConfigurationException("sharding", shardingAlgorithm.getType(),
-                            String.format("auto sharding algorithm cannot be used to create a table in Table mode `%s`", each.getLogicTable())));
+                    () -> new AlgorithmInitializationException(shardingAlgorithm, "Auto sharding algorithm can not be used to create a table in table '%s'", tableRuleSegment.getLogicTable()));
+            if (shardingAlgorithm instanceof InlineShardingAlgorithm) {
+                DataNodeInfo dataSourceDataNode = createDataSourceDataNode(ShardingTableRuleStatementConverter.getActualDataNodes(tableRuleSegment));
+                checkInlineExpression(tableRuleSegment.getLogicTable(), databaseStrategySegment.getShardingColumn(), (InlineShardingAlgorithm) shardingAlgorithm, dataSourceDataNode);
+            }
         }
-        ShardingSpherePreconditions.checkState(isValidStrategy(each.getDatabaseStrategySegment()),
-                () -> new InvalidAlgorithmConfigurationException(databaseName, null == databaseShardingAlgorithm ? null : databaseShardingAlgorithm.getName()));
+        ShardingSpherePreconditions.checkState(isValidStrategy(tableRuleSegment.getDatabaseStrategySegment()),
+                () -> new InvalidAlgorithmConfigurationException("sharding", null == databaseShardingAlgorithm ? null : databaseShardingAlgorithm.getName()));
     }
     
-    private static void checkTableShardingAlgorithm(final String databaseName, final TableRuleSegment each, final AlgorithmSegment tableShardingAlgorithm) {
+    private static void checkTableShardingAlgorithm(final TableRuleSegment tableRuleSegment, final ShardingStrategySegment tableStrategySegment) {
+        AlgorithmSegment tableShardingAlgorithm = tableStrategySegment.getShardingAlgorithm();
         if (null != tableShardingAlgorithm) {
             ShardingAlgorithm shardingAlgorithm = TypedSPILoader.getService(ShardingAlgorithm.class, tableShardingAlgorithm.getName(), tableShardingAlgorithm.getProps());
             ShardingSpherePreconditions.checkState(!(shardingAlgorithm instanceof ShardingAutoTableAlgorithm),
-                    () -> new InvalidAlgorithmConfigurationException("sharding", shardingAlgorithm.getType(),
-                            String.format("auto sharding algorithm cannot be used to create a table in Table mode `%s`", each.getLogicTable())));
+                    () -> new AlgorithmInitializationException(shardingAlgorithm, "Auto sharding algorithm can not be used to create a table in table '%s'", tableRuleSegment.getLogicTable()));
+            if (shardingAlgorithm instanceof InlineShardingAlgorithm) {
+                DataNodeInfo tableDataNode = createTableDataNode(tableRuleSegment.getLogicTable(), ShardingTableRuleStatementConverter.getActualDataNodes(tableRuleSegment));
+                checkInlineExpression(tableRuleSegment.getLogicTable(), tableStrategySegment.getShardingColumn(), (InlineShardingAlgorithm) shardingAlgorithm, tableDataNode);
+            }
         }
-        ShardingSpherePreconditions.checkState(isValidStrategy(each.getTableStrategySegment()),
-                () -> new InvalidAlgorithmConfigurationException(databaseName, null == tableShardingAlgorithm ? null : tableShardingAlgorithm.getName()));
+        ShardingSpherePreconditions.checkState(isValidStrategy(tableRuleSegment.getTableStrategySegment()),
+                () -> new InvalidAlgorithmConfigurationException("sharding", null == tableShardingAlgorithm ? null : tableShardingAlgorithm.getName()));
     }
     
     private static boolean isValidStrategy(final ShardingStrategySegment shardingStrategySegment) {
@@ -473,7 +483,7 @@ public final class ShardingTableRuleStatementChecker {
     }
     
     private static Collection<String> getTableNames(final Collection<String> actualDataNodes) {
-        Collection<String> result = new HashSet<>();
+        Collection<String> result = new HashSet<>(actualDataNodes.size(), 1F);
         for (String each : actualDataNodes) {
             result.add(isValidDataNode(each) ? new DataNode(each).getTableName() : each);
         }
@@ -528,5 +538,54 @@ public final class ShardingTableRuleStatementChecker {
         Collection<String> result = toBeAlteredRuleConfig.getTables().stream().map(ShardingTableRuleConfiguration::getLogicTable).collect(Collectors.toList());
         result.addAll(toBeAlteredRuleConfig.getAutoTables().stream().map(ShardingAutoTableRuleConfiguration::getLogicTable).collect(Collectors.toList()));
         return result;
+    }
+    
+    /**
+     * Check to be added data nodes.
+     *
+     * @param toBeAddedDataNodes to be added data nodes
+     */
+    public static void checkToBeAddedDataNodes(final Map<String, Collection<DataNode>> toBeAddedDataNodes) {
+        Collection<DataNode> uniqueActualDataNodes = new HashSet<>(toBeAddedDataNodes.size(), 1F);
+        toBeAddedDataNodes.forEach((key, value) -> {
+            DataNode sampleActualDataNode = value.iterator().next();
+            ShardingSpherePreconditions.checkNotContains(uniqueActualDataNodes, sampleActualDataNode,
+                    () -> new DuplicateShardingActualDataNodeException(key, sampleActualDataNode.getDataSourceName(), sampleActualDataNode.getTableName()));
+            uniqueActualDataNodes.add(sampleActualDataNode);
+        });
+    }
+    
+    private static DataNodeInfo createDataSourceDataNode(final Collection<DataNode> actualDataNodes) {
+        String prefix = ShardingTableConstants.DATA_NODE_SUFFIX_PATTERN.matcher(actualDataNodes.iterator().next().getDataSourceName()).replaceAll("");
+        int suffixMinLength = actualDataNodes.stream().map(each -> each.getDataSourceName().length() - prefix.length()).min(Comparator.comparing(Integer::intValue)).orElse(1);
+        return new DataNodeInfo(prefix, suffixMinLength, ShardingTableConstants.DEFAULT_PADDING_CHAR);
+    }
+    
+    private static DataNodeInfo createTableDataNode(final String logicTable, final Collection<DataNode> actualDataNodes) {
+        String tableName = actualDataNodes.iterator().next().getTableName();
+        String prefix = tableName.startsWith(logicTable) ? logicTable + ShardingTableConstants.DATA_NODE_SUFFIX_PATTERN.matcher(tableName.substring(logicTable.length())).replaceAll("")
+                : ShardingTableConstants.DATA_NODE_SUFFIX_PATTERN.matcher(tableName).replaceAll("");
+        int suffixMinLength = actualDataNodes.stream().map(each -> each.getTableName().length() - prefix.length()).min(Comparator.comparing(Integer::intValue)).orElse(1);
+        return new DataNodeInfo(prefix, suffixMinLength, ShardingTableConstants.DEFAULT_PADDING_CHAR);
+    }
+    
+    /**
+     * Check inline sharding algorithms.
+     *
+     * @param logicTable logic table
+     * @param shardingColumn sharding column
+     * @param inlineShardingAlgorithm inline sharding algorithm
+     * @param dataNodeInfo data node info
+     */
+    public static void checkInlineExpression(final String logicTable, final String shardingColumn, final InlineShardingAlgorithm inlineShardingAlgorithm, final DataNodeInfo dataNodeInfo) {
+        String result = null;
+        try {
+            result = inlineShardingAlgorithm.doSharding(Collections.emptySet(), new PreciseShardingValue<>(logicTable, shardingColumn, dataNodeInfo, 1));
+            // CHECKSTYLE:OFF
+        } catch (final Exception ignored) {
+            // CHECKSTYLE:ON
+        }
+        ShardingSpherePreconditions.checkState(null == result || result.startsWith(dataNodeInfo.getPrefix()),
+                () -> new AlgorithmInitializationException(inlineShardingAlgorithm, "inline expression of rule `%s` does not match the actual data nodes", logicTable));
     }
 }

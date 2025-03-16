@@ -17,16 +17,17 @@
 
 package org.apache.shardingsphere.mask.distsql.handler.update;
 
+import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
-import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDropExecutor;
+import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.mask.api.config.MaskRuleConfiguration;
-import org.apache.shardingsphere.mask.api.config.rule.MaskColumnRuleConfiguration;
-import org.apache.shardingsphere.mask.api.config.rule.MaskTableRuleConfiguration;
+import org.apache.shardingsphere.mask.config.MaskRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskColumnRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskTableRuleConfiguration;
 import org.apache.shardingsphere.mask.distsql.statement.DropMaskRuleStatement;
 import org.apache.shardingsphere.mask.rule.MaskRule;
 
@@ -57,35 +58,32 @@ public final class DropMaskRuleExecutor implements DatabaseRuleDropExecutor<Drop
     }
     
     private void checkToBeDroppedMaskTableNames(final DropMaskRuleStatement sqlStatement) {
-        Collection<String> currentMaskTableNames = rule.getConfiguration().getTables().stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toList());
+        Collection<String> currentMaskTableNames = rule.getConfiguration().getTables().stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toCollection(CaseInsensitiveSet::new));
         Collection<String> notExistedTableNames = sqlStatement.getTables().stream().filter(each -> !currentMaskTableNames.contains(each)).collect(Collectors.toList());
-        ShardingSpherePreconditions.checkState(notExistedTableNames.isEmpty(), () -> new MissingRequiredRuleException("Mask", database.getName(), notExistedTableNames));
+        ShardingSpherePreconditions.checkMustEmpty(notExistedTableNames, () -> new MissingRequiredRuleException("Mask", database.getName(), notExistedTableNames));
     }
     
     @Override
     public boolean hasAnyOneToBeDropped(final DropMaskRuleStatement sqlStatement) {
-        return !Collections.disjoint(rule.getConfiguration().getTables().stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toSet()), sqlStatement.getTables());
+        return !Collections.disjoint(
+                rule.getConfiguration().getTables().stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toCollection(CaseInsensitiveSet::new)), sqlStatement.getTables());
     }
     
     @Override
     public MaskRuleConfiguration buildToBeDroppedRuleConfiguration(final DropMaskRuleStatement sqlStatement) {
         Collection<MaskTableRuleConfiguration> toBeDroppedTables = new LinkedList<>();
-        Map<String, AlgorithmConfiguration> toBeDroppedAlgorithms = new LinkedHashMap<>();
         for (String each : sqlStatement.getTables()) {
             toBeDroppedTables.add(new MaskTableRuleConfiguration(each, Collections.emptyList()));
             dropRule(each);
         }
+        Map<String, AlgorithmConfiguration> toBeDroppedAlgorithms = new LinkedHashMap<>();
         findUnusedAlgorithms(rule.getConfiguration()).forEach(each -> toBeDroppedAlgorithms.put(each, rule.getConfiguration().getMaskAlgorithms().get(each)));
         return new MaskRuleConfiguration(toBeDroppedTables, toBeDroppedAlgorithms);
     }
     
     private void dropRule(final String ruleName) {
-        Optional<MaskTableRuleConfiguration> maskTableRuleConfig = rule.getConfiguration().getTables().stream().filter(each -> each.getName().equals(ruleName)).findAny();
+        Optional<MaskTableRuleConfiguration> maskTableRuleConfig = rule.getConfiguration().getTables().stream().filter(each -> each.getName().equalsIgnoreCase(ruleName)).findAny();
         maskTableRuleConfig.ifPresent(optional -> rule.getConfiguration().getTables().remove(maskTableRuleConfig.get()));
-    }
-    
-    private void dropUnusedAlgorithm(final MaskRuleConfiguration currentRuleConfig) {
-        findUnusedAlgorithms(currentRuleConfig).forEach(each -> currentRuleConfig.getMaskAlgorithms().remove(each));
     }
     
     private Collection<String> findUnusedAlgorithms(final MaskRuleConfiguration currentRuleConfig) {

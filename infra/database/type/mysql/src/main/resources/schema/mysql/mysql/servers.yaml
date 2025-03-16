@@ -16,12 +16,14 @@
 #
 
 name: servers
+type: TABLE
 columns:
   server_name:
     caseSensitive: false
     dataType: 1
     generated: false
     name: Server_name
+    nullable: false
     primaryKey: true
     unsigned: false
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 1
     generated: false
     name: Host
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 1
     generated: false
     name: Db
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: 1
     generated: false
     name: Username
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -54,6 +59,7 @@ columns:
     dataType: 1
     generated: false
     name: Password
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -62,6 +68,7 @@ columns:
     dataType: 4
     generated: false
     name: Port
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -70,6 +77,7 @@ columns:
     dataType: 1
     generated: false
     name: Socket
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -78,6 +86,7 @@ columns:
     dataType: 1
     generated: false
     name: Wrapper
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -86,9 +95,13 @@ columns:
     dataType: 1
     generated: false
     name: Owner
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
 indexes:
   primary:
     name: PRIMARY
+    unique: true
+    columns:
+      - Server_name

@@ -29,6 +29,7 @@ import org.apache.shardingsphere.infra.executor.sql.execute.result.query.impl.ra
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.type.memory.row.MemoryQueryResultDataRow;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.merge.result.impl.transparent.TransparentMergedResult;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.infra.metadata.user.Grantee;
@@ -70,7 +71,6 @@ public abstract class AbstractDatabaseMetaDataExecutor implements DatabaseAdminQ
     public final void execute(final ConnectionSession connectionSession) throws SQLException {
         Collection<String> databaseNames = getDatabaseNames(connectionSession);
         for (String databaseName : databaseNames) {
-            initDatabaseData(databaseName);
             processMetaData(databaseName, resultSet -> handleResultSet(databaseName, resultSet));
         }
         postProcess();
@@ -82,9 +82,10 @@ public abstract class AbstractDatabaseMetaDataExecutor implements DatabaseAdminQ
     private void handleResultSet(final String databaseName, final ResultSet resultSet) {
         ResultSetMetaData metaData = resultSet.getMetaData();
         while (resultSet.next()) {
-            Map<String, Object> rowMap = new LinkedHashMap<>();
-            Map<String, String> aliasMap = new LinkedHashMap<>();
-            for (int i = 1; i < metaData.getColumnCount() + 1; i++) {
+            int columnCount = metaData.getColumnCount();
+            Map<String, Object> rowMap = new LinkedHashMap<>(columnCount, 1F);
+            Map<String, String> aliasMap = new LinkedHashMap<>(columnCount, 1F);
+            for (int i = 1; i < columnCount + 1; i++) {
                 aliasMap.put(metaData.getColumnName(i), metaData.getColumnLabel(i));
                 rowMap.put(metaData.getColumnLabel(i), resultSet.getString(i));
             }
@@ -100,11 +101,9 @@ public abstract class AbstractDatabaseMetaDataExecutor implements DatabaseAdminQ
         }
     }
     
-    protected abstract void initDatabaseData(String databaseName);
-    
     protected abstract Collection<String> getDatabaseNames(ConnectionSession connectionSession);
     
-    protected abstract void preProcess(String databaseName, Map<String, Object> rows, Map<String, String> alias);
+    protected abstract void preProcess(String databaseName, Map<String, Object> rows, Map<String, String> alias) throws SQLException;
     
     protected abstract void postProcess();
     
@@ -145,14 +144,14 @@ public abstract class AbstractDatabaseMetaDataExecutor implements DatabaseAdminQ
         private final List<Object> parameters;
         
         @Override
-        protected void initDatabaseData(final String databaseName) {
-        }
-        
-        @Override
         protected Collection<String> getDatabaseNames(final ConnectionSession connectionSession) {
-            Optional<String> database = ProxyContext.getInstance().getAllDatabaseNames().stream().filter(each -> isAuthorized(each, connectionSession.getGrantee()))
-                    .filter(AbstractDatabaseMetaDataExecutor::hasDataSource).findFirst();
-            return database.map(Collections::singletonList).orElse(Collections.emptyList());
+            ShardingSphereDatabase database = ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getDatabase(connectionSession.getCurrentDatabaseName());
+            if (null != database && isAuthorized(database.getName(), connectionSession.getConnectionContext().getGrantee()) && AbstractDatabaseMetaDataExecutor.hasDataSource(database.getName())) {
+                return Collections.singleton(database.getName());
+            }
+            Collection<String> databaseNames = ProxyContext.getInstance().getAllDatabaseNames().stream().filter(each -> isAuthorized(each, connectionSession.getConnectionContext().getGrantee()))
+                    .filter(AbstractDatabaseMetaDataExecutor::hasDataSource).collect(Collectors.toList());
+            return databaseNames.isEmpty() ? Collections.emptyList() : Collections.singletonList(databaseNames.iterator().next());
         }
         
         @Override
@@ -175,7 +174,7 @@ public abstract class AbstractDatabaseMetaDataExecutor implements DatabaseAdminQ
         }
         
         @Override
-        protected void preProcess(final String databaseName, final Map<String, Object> rows, final Map<String, String> alias) {
+        protected void preProcess(final String databaseName, final Map<String, Object> rows, final Map<String, String> alias) throws SQLException {
         }
         
         @Override

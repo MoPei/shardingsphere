@@ -33,7 +33,7 @@ public final class TypedSPILoader {
     
     /**
      * Find service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param <T> SPI class type
@@ -45,7 +45,7 @@ public final class TypedSPILoader {
     
     /**
      * Find service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param props properties
@@ -87,7 +87,7 @@ public final class TypedSPILoader {
     
     /**
      * Get service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param <T> SPI class type
@@ -99,7 +99,7 @@ public final class TypedSPILoader {
     
     /**
      * Get service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param props properties
@@ -112,7 +112,7 @@ public final class TypedSPILoader {
     
     /**
      * Check service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param props properties

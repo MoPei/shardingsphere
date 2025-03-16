@@ -17,82 +17,99 @@
 
 package org.apache.shardingsphere.encrypt.distsql.handler.update;
 
-import org.apache.shardingsphere.distsql.handler.exception.rule.DuplicateRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.InvalidRuleConfigurationException;
+import org.apache.shardingsphere.distsql.handler.engine.update.DistSQLUpdateExecuteEngine;
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
-import org.apache.shardingsphere.encrypt.api.config.EncryptRuleConfiguration;
-import org.apache.shardingsphere.encrypt.api.config.rule.EncryptTableRuleConfiguration;
+import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
+import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
 import org.apache.shardingsphere.encrypt.distsql.segment.EncryptColumnItemSegment;
 import org.apache.shardingsphere.encrypt.distsql.segment.EncryptColumnSegment;
 import org.apache.shardingsphere.encrypt.distsql.segment.EncryptRuleSegment;
 import org.apache.shardingsphere.encrypt.distsql.statement.CreateEncryptRuleStatement;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InvalidRuleConfigurationException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.spi.exception.ServiceProviderNotFoundException;
+import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Properties;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class CreateEncryptRuleExecutorTest {
     
-    private final CreateEncryptRuleExecutor executor = new CreateEncryptRuleExecutor();
-    
-    @BeforeEach
-    void setUp() {
-        executor.setDatabase(mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS));
-    }
-    
     @Test
-    void assertCheckSQLStatementWithDuplicateEncryptRule() {
+    void assertExecuteUpdateWithDuplicateEncryptRule() {
         EncryptRule rule = mock(EncryptRule.class);
-        when(rule.getConfiguration()).thenReturn(getCurrentRuleConfig());
-        executor.setRule(rule);
-        assertThrows(DuplicateRuleException.class, () -> executor.checkBeforeUpdate(createSQLStatement(false, "MD5")));
+        when(rule.getAllTableNames()).thenReturn(Arrays.asList("t_user", "t_order"));
+        assertThrows(DuplicateRuleException.class, () -> new DistSQLUpdateExecuteEngine(createSQLStatement(false, "MD5"), "foo_db", mockContextManager(rule)).executeUpdate());
     }
     
     @Test
-    void assertCheckSQLStatementWithoutToBeCreatedEncryptors() {
-        assertThrows(ServiceProviderNotFoundException.class, () -> executor.checkBeforeUpdate(createSQLStatement(false, "INVALID_TYPE")));
-    }
-    
-    @Test
-    void assertCheckSQLStatementWithConflictColumnNames() {
+    void assertExecuteUpdateWithoutToBeCreatedEncryptors() {
         EncryptRule rule = mock(EncryptRule.class);
-        when(rule.getConfiguration()).thenReturn(getCurrentRuleConfig());
-        executor.setRule(rule);
-        assertThrows(InvalidRuleConfigurationException.class, () -> executor.checkBeforeUpdate(createConflictColumnNameSQLStatement()));
+        assertThrows(ServiceProviderNotFoundException.class, () -> new DistSQLUpdateExecuteEngine(createSQLStatement(false, "INVALID_TYPE"), "foo_db", mockContextManager(rule)).executeUpdate());
     }
     
     @Test
-    void assertCreateEncryptRuleWithIfNotExists() {
-        EncryptRuleConfiguration currentRuleConfig = getCurrentRuleConfig();
+    void assertExecuteUpdateWithConflictedColumnNames() {
         EncryptRule rule = mock(EncryptRule.class);
-        when(rule.getConfiguration()).thenReturn(currentRuleConfig);
-        executor.setRule(rule);
+        when(rule.getConfiguration()).thenReturn(getCurrentRuleConfiguration());
+        assertThrows(InvalidRuleConfigurationException.class, () -> new DistSQLUpdateExecuteEngine(createConflictColumnNameSQLStatement(), "foo_db", mockContextManager(rule)).executeUpdate());
+    }
+    
+    @Test
+    void assertExecuteUpdateAESEncryptRuleWithPropertiesNotExists() {
+        CreateEncryptRuleStatement sqlStatement = createWrongAESEncryptorSQLStatement();
+        EncryptRule rule = mock(EncryptRule.class);
+        when(rule.getConfiguration()).thenReturn(getCurrentRuleConfiguration());
+        assertThrows(AlgorithmInitializationException.class, () -> new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", mockContextManager(rule)).executeUpdate());
+    }
+    
+    private CreateEncryptRuleStatement createWrongAESEncryptorSQLStatement() {
+        EncryptColumnSegment tUserColumnSegment = new EncryptColumnSegment("user_id",
+                new EncryptColumnItemSegment("user_cipher", new AlgorithmSegment("AES", new Properties())),
+                new EncryptColumnItemSegment("assisted_column", new AlgorithmSegment("AES", new Properties())),
+                new EncryptColumnItemSegment("like_column", new AlgorithmSegment("CHAR_DIGEST_LIKE", new Properties())));
+        EncryptColumnSegment tOrderColumnSegment = new EncryptColumnSegment("order_id",
+                new EncryptColumnItemSegment("order_cipher", new AlgorithmSegment("AES", new Properties())),
+                new EncryptColumnItemSegment("assisted_column", new AlgorithmSegment("AES", new Properties())),
+                new EncryptColumnItemSegment("like_column", new AlgorithmSegment("CHAR_DIGEST_LIKE", new Properties())));
+        EncryptRuleSegment userRuleSegment = new EncryptRuleSegment("t_user", Collections.singleton(tUserColumnSegment));
+        EncryptRuleSegment orderRuleSegment = new EncryptRuleSegment("t_order", Collections.singleton(tOrderColumnSegment));
+        return new CreateEncryptRuleStatement(true, Arrays.asList(userRuleSegment, orderRuleSegment));
+    }
+    
+    @Test
+    void assertExecuteUpdateWithIfNotExists() throws SQLException {
+        EncryptRule rule = mock(EncryptRule.class);
         CreateEncryptRuleStatement sqlStatement = createAESEncryptRuleSQLStatement(true);
-        executor.checkBeforeUpdate(sqlStatement);
-        EncryptRuleConfiguration toBeCreatedRuleConfig = executor.buildToBeCreatedRuleConfiguration(sqlStatement);
-        assertTrue(toBeCreatedRuleConfig.getTables().isEmpty());
-        assertTrue(toBeCreatedRuleConfig.getEncryptors().isEmpty());
+        ContextManager contextManager = mockContextManager(rule);
+        new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", contextManager).executeUpdate();
+        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
+        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertIfNotExistsRuleConfiguration));
     }
     
     private CreateEncryptRuleStatement createAESEncryptRuleSQLStatement(final boolean ifNotExists) {
         EncryptColumnSegment encryptColumnSegment = new EncryptColumnSegment("user_id",
-                new EncryptColumnItemSegment("user_cipher", new AlgorithmSegment("AES", PropertiesBuilder.build(new Property("aes-key-value", "abc")))),
+                new EncryptColumnItemSegment("user_cipher", new AlgorithmSegment("AES", PropertiesBuilder.build(new Property("aes-key-value", "abc"), new Property("digest-algorithm-name", "SHA-1")))),
                 new EncryptColumnItemSegment("assisted_column", null),
                 new EncryptColumnItemSegment("like_column", null));
         Collection<EncryptRuleSegment> rules = new LinkedList<>();
@@ -126,36 +143,25 @@ class CreateEncryptRuleExecutorTest {
         return new CreateEncryptRuleStatement(false, Collections.singleton(ruleSegment));
     }
     
-    private EncryptRuleConfiguration getCurrentRuleConfig() {
+    private EncryptRuleConfiguration getCurrentRuleConfiguration() {
         Collection<EncryptTableRuleConfiguration> rules = new LinkedList<>();
         rules.add(new EncryptTableRuleConfiguration("t_user", Collections.emptyList()));
         rules.add(new EncryptTableRuleConfiguration("t_order", Collections.emptyList()));
-        return new EncryptRuleConfiguration(rules, new HashMap<>());
+        return new EncryptRuleConfiguration(rules, Collections.emptyMap());
     }
     
-    @Test
-    void assertCreateAESEncryptRuleWithPropertiesNotExists() {
-        CreateEncryptRuleStatement sqlStatement = createWrongAESEncryptorSQLStatement();
-        EncryptRule rule = mock(EncryptRule.class);
-        when(rule.getConfiguration()).thenReturn(getCurrentRuleConfig());
-        executor.setRule(rule);
-        assertThrows(AlgorithmInitializationException.class, () -> executor.checkBeforeUpdate(sqlStatement));
+    private boolean assertIfNotExistsRuleConfiguration(final EncryptRuleConfiguration actual) {
+        assertFalse(actual.getTables().isEmpty());
+        assertFalse(actual.getEncryptors().isEmpty());
+        return true;
     }
     
-    private CreateEncryptRuleStatement createWrongAESEncryptorSQLStatement() {
-        EncryptColumnSegment tUserColumnSegment = new EncryptColumnSegment("user_id",
-                new EncryptColumnItemSegment("user_cipher", new AlgorithmSegment("AES", new Properties())),
-                new EncryptColumnItemSegment("assisted_column", new AlgorithmSegment("AES", new Properties())),
-                new EncryptColumnItemSegment("like_column", new AlgorithmSegment("CHAR_DIGEST_LIKE", new Properties())));
-        EncryptColumnSegment tOrderColumnSegment = new EncryptColumnSegment("order_id",
-                new EncryptColumnItemSegment("order_cipher", new AlgorithmSegment("AES", new Properties())),
-                new EncryptColumnItemSegment("assisted_column", new AlgorithmSegment("AES", new Properties())),
-                new EncryptColumnItemSegment("like_column", new AlgorithmSegment("CHAR_DIGEST_LIKE", new Properties())));
-        EncryptRuleSegment tUserRuleSegment = new EncryptRuleSegment("t_user", Collections.singleton(tUserColumnSegment));
-        EncryptRuleSegment tOrderRuleSegment = new EncryptRuleSegment("t_order", Collections.singleton(tOrderColumnSegment));
-        Collection<EncryptRuleSegment> rules = new LinkedList<>();
-        rules.add(tUserRuleSegment);
-        rules.add(tOrderRuleSegment);
-        return new CreateEncryptRuleStatement(true, rules);
+    private ContextManager mockContextManager(final EncryptRule rule) {
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
+        when(database.getName()).thenReturn("foo_db");
+        when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(rule)));
+        ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
+        when(result.getDatabase("foo_db")).thenReturn(database);
+        return result;
     }
 }

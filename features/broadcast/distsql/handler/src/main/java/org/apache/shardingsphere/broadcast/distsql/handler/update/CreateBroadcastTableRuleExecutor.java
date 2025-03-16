@@ -18,11 +18,11 @@
 package org.apache.shardingsphere.broadcast.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.broadcast.api.config.BroadcastRuleConfiguration;
+import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.broadcast.distsql.statement.CreateBroadcastTableRuleStatement;
 import org.apache.shardingsphere.broadcast.rule.BroadcastRule;
-import org.apache.shardingsphere.distsql.handler.exception.rule.DuplicateRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.storageunit.EmptyStorageUnitException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.EmptyStorageUnitException;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleCreateExecutor;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -43,15 +43,14 @@ public final class CreateBroadcastTableRuleExecutor implements DatabaseRuleCreat
     
     @Override
     public void checkBeforeUpdate(final CreateBroadcastTableRuleStatement sqlStatement) {
-        ShardingSpherePreconditions.checkState(!database.getResourceMetaData().getStorageUnits().isEmpty(), () -> new EmptyStorageUnitException(database.getName()));
+        ShardingSpherePreconditions.checkNotEmpty(database.getResourceMetaData().getStorageUnits(), () -> new EmptyStorageUnitException(database.getName()));
         if (!sqlStatement.isIfNotExists()) {
             checkDuplicate(sqlStatement);
         }
     }
     
     private void checkDuplicate(final CreateBroadcastTableRuleStatement sqlStatement) {
-        Collection<String> duplicatedRuleNames = getDuplicatedRuleNames(sqlStatement);
-        ShardingSpherePreconditions.checkState(duplicatedRuleNames.isEmpty(), () -> new DuplicateRuleException("Broadcast", sqlStatement.getTables()));
+        ShardingSpherePreconditions.checkMustEmpty(getDuplicatedRuleNames(sqlStatement), () -> new DuplicateRuleException("Broadcast", sqlStatement.getTables()));
     }
     
     private Collection<String> getDuplicatedRuleNames(final CreateBroadcastTableRuleStatement sqlStatement) {

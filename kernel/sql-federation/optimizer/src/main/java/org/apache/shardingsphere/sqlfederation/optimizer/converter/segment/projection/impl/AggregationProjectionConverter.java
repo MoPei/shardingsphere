@@ -29,9 +29,9 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationDistinctProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationDistinctProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationProjectionSegment;
 import org.apache.shardingsphere.sqlfederation.optimizer.converter.segment.expression.ExpressionConverter;
 
 import java.util.Arrays;
@@ -57,15 +57,20 @@ public final class AggregationProjectionConverter {
         register(SqlStdOperatorTable.COUNT);
         register(SqlStdOperatorTable.AVG);
         register(SqlStdOperatorTable.BIT_XOR);
+        register(SqlStdOperatorTable.LISTAGG, "GROUP_CONCAT");
     }
     
     private static void register(final SqlAggFunction sqlAggFunction) {
         REGISTRY.put(sqlAggFunction.getName(), sqlAggFunction);
     }
     
+    private static void register(final SqlAggFunction sqlAggFunction, final String alias) {
+        REGISTRY.put(alias, sqlAggFunction);
+    }
+    
     /**
      * Convert aggregation projection segment to sql node.
-     * 
+     *
      * @param segment aggregation projection segment
      * @return sql node
      */
@@ -75,7 +80,7 @@ public final class AggregationProjectionConverter {
         }
         SqlLiteral functionQuantifier = segment instanceof AggregationDistinctProjectionSegment ? SqlLiteral.createSymbol(SqlSelectKeyword.DISTINCT, SqlParserPos.ZERO) : null;
         SqlAggFunction operator = convertOperator(segment.getType().name());
-        List<SqlNode> params = convertParameters(segment.getParameters(), segment.getExpression());
+        List<SqlNode> params = convertParameters(segment.getParameters(), segment.getExpression(), segment.getSeparator().orElse(null));
         SqlBasicCall sqlBasicCall = new SqlBasicCall(operator, params, SqlParserPos.ZERO, functionQuantifier);
         if (segment.getAliasName().isPresent()) {
             return Optional.of(new SqlBasicCall(SqlStdOperatorTable.AS, Arrays.asList(sqlBasicCall,
@@ -89,13 +94,16 @@ public final class AggregationProjectionConverter {
         return REGISTRY.get(operator);
     }
     
-    private static List<SqlNode> convertParameters(final Collection<ExpressionSegment> params, final String expression) {
+    private static List<SqlNode> convertParameters(final Collection<ExpressionSegment> params, final String expression, final String separator) {
         if (expression.contains("*")) {
             return Collections.singletonList(SqlIdentifier.star(SqlParserPos.ZERO));
         }
         List<SqlNode> result = new LinkedList<>();
         for (ExpressionSegment each : params) {
             ExpressionConverter.convert(each).ifPresent(result::add);
+        }
+        if (null != separator) {
+            result.add(SqlLiteral.createCharString(separator, SqlParserPos.ZERO));
         }
         return result;
     }

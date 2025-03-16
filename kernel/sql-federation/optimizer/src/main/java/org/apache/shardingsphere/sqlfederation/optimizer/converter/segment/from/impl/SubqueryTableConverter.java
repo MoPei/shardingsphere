@@ -24,7 +24,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SubqueryTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SubqueryTableSegment;
 import org.apache.shardingsphere.sqlfederation.optimizer.converter.segment.from.TableConverter;
 import org.apache.shardingsphere.sqlfederation.optimizer.converter.statement.select.SelectStatementConverter;
 
@@ -43,7 +43,7 @@ public final class SubqueryTableConverter {
     
     /**
      * Convert subquery table segment to sql node.
-     * 
+     *
      * @param segment subquery table segment
      * @return sql node
      */
@@ -53,7 +53,7 @@ public final class SubqueryTableConverter {
         }
         Collection<SqlNode> sqlNodes = new LinkedList<>();
         if (null == segment.getSubquery().getSelect().getProjections()) {
-            List<SqlNode> tables = TableConverter.convert(segment.getSubquery().getSelect().getFrom()).map(Collections::singletonList).orElseGet(Collections::emptyList);
+            List<SqlNode> tables = segment.getSubquery().getSelect().getFrom().flatMap(TableConverter::convert).map(Collections::singletonList).orElseGet(Collections::emptyList);
             sqlNodes.add(new SqlBasicCall(SqlStdOperatorTable.EXPLICIT_TABLE, tables, SqlParserPos.ZERO));
         } else {
             sqlNodes.add(new SelectStatementConverter().convert(segment.getSubquery().getSelect()));

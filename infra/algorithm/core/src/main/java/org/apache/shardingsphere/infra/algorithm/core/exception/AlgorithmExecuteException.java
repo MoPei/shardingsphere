@@ -19,17 +19,17 @@ package org.apache.shardingsphere.infra.algorithm.core.exception;
 
 import org.apache.shardingsphere.infra.algorithm.core.ShardingSphereAlgorithm;
 import org.apache.shardingsphere.infra.exception.core.external.sql.sqlstate.XOpenSQLState;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.kernel.category.MetaDataSQLException;
 
 /**
  * Algorithm execute exception.
  */
-public final class AlgorithmExecuteException extends MetaDataSQLException {
+// TODO It is runnable exception, consider about move out from AlgorithmDefinitionException
+public final class AlgorithmExecuteException extends AlgorithmDefinitionException {
     
     private static final long serialVersionUID = -9099514178650043282L;
     
     public AlgorithmExecuteException(final ShardingSphereAlgorithm algorithm, final String reason, final Object... args) {
-        super(XOpenSQLState.GENERAL_ERROR, 15, "Algorithm '%s.%s' execute failed, reason is: %s.",
+        super(XOpenSQLState.GENERAL_ERROR, 40, "Algorithm '%s.%s' execute failed, reason is: %s.",
                 algorithm.getClass().getSuperclass().getSimpleName(), algorithm.getType(), String.format(reason, args));
     }
 }

@@ -746,7 +746,7 @@ NVARCHAR2
 LONG
     : L O N G
     ;
-    
+
 BLOB
     : B L O B
     ;
@@ -7970,4 +7970,8 @@ REP
 
 APP
     : A P P
+    ;
+
+EXCEPTION_INIT
+    : E X C E P T I O N UL_ I N I T
     ;

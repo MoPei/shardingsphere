@@ -23,7 +23,7 @@ import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.MutableDataNodeRuleAttribute;
-import org.apache.shardingsphere.single.api.config.SingleRuleConfiguration;
+import org.apache.shardingsphere.single.config.SingleRuleConfiguration;
 import org.apache.shardingsphere.single.util.SingleTableLoadUtils;
 
 import javax.sql.DataSource;
@@ -57,7 +57,7 @@ public final class SingleMutableDataNodeRuleAttribute implements MutableDataNode
             DataNode dataNode = new DataNode(dataSourceName, tableName);
             dataNode.setSchemaName(schemaName);
             dataNodes.add(dataNode);
-            tableMapperRuleAttribute.getLogicTableMapper().put(tableName);
+            tableMapperRuleAttribute.getLogicTableNames().add(tableName);
             addTableConfiguration(dataSourceName, schemaName, tableName);
         }
     }
@@ -95,7 +95,7 @@ public final class SingleMutableDataNodeRuleAttribute implements MutableDataNode
         }
         if (dataNodes.isEmpty()) {
             singleTableDataNodes.remove(tableName.toLowerCase());
-            tableMapperRuleAttribute.getLogicTableMapper().remove(tableName);
+            tableMapperRuleAttribute.getLogicTableNames().remove(tableName);
         }
     }
     

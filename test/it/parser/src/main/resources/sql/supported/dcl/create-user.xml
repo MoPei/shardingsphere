@@ -22,7 +22,7 @@
     <sql-case id="create_user_identified_by_with_hostname" value="CREATE USER 'user_dev_new'@'localhost' identified by 'passwd_dev' default role role1" db-types="MySQL" />
     <sql-case id="create_user_identified_by_without_hostname" value="CREATE USER user_dev_new identified by passwd_dev" db-types="Oracle" />
     <sql-case id="create_user_identified_by_for" value="CREATE USER user_dev_new FOR LOGIN login_dev" db-types="SQLServer" />
-    <sql-case id="create_user_password" value="CREATE USER user_dev_new PASSWORD 'passwd_dev'" db-types="PostgreSQL,openGauss" />
+    <sql-case id="create_user_password" value="CREATE USER user_dev_new PASSWORD 'passwd_dev'" db-types="PostgreSQL,openGauss,Firebird" />
     <sql-case id="create_user" value="CREATE USER user1 DEFAULT ROLE role1" db-types="MySQL" />
     <sql-case id="create_users" value="CREATE USER user1, user2 DEFAULT ROLE role1" db-types="MySQL" />
     <sql-case id="create_user_if_not_exists" value="CREATE USER IF NOT EXISTS user1 DEFAULT ROLE role1" db-types="MySQL" />
@@ -59,4 +59,8 @@
     <sql-case id="create_azure_ad_user_with_login" value="CREATE USER [bob@contoso.com] FROM LOGIN [bob@contoso.com]" db-types="SQLServer" />
     <sql-case id="create_azure_ad_user_as_group_from_login" value="CREATE USER [AAD group] FROM LOGIN [AAD group]" db-types="SQLServer" />
     <sql-case id="create_azure_ad_user_without_login" value="CREATE USER [bob@contoso.com] FROM EXTERNAL PROVIDER" db-types="SQLServer" />
+    <sql-case id="create _user_with_option" value="CREATE USER 'jon'@'localhost' COMMENT 'Some information about Jon'" db-types="MySQL" />
+    <sql-case id="create_user_with_user_auth_option" value="CREATE USER 'mateo'@'localhost' IDENTIFIED BY 'password'
+       AND IDENTIFIED WITH authentication_ldap_simple
+       AND IDENTIFIED WITH authentication_fido" db-types="MySQL" />
 </sql-cases>

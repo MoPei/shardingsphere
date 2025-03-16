@@ -16,28 +16,32 @@
 #
 
 name: ROUTINES
+type: TABLE
 columns:
   specific_name:
     caseSensitive: false
     dataType: 12
     generated: false
     name: SPECIFIC_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   routine_catalog:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: ROUTINE_CATALOG
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   routine_schema:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: ROUTINE_SCHEMA
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,38 +50,43 @@ columns:
     dataType: 12
     generated: false
     name: ROUTINE_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   routine_type:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: 1
     generated: false
     name: ROUTINE_TYPE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   data_type:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: -1
     generated: false
     name: DATA_TYPE
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   character_maximum_length:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: CHARACTER_MAXIMUM_LENGTH
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   character_octet_length:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: CHARACTER_OCTET_LENGTH
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -86,6 +95,7 @@ columns:
     dataType: 4
     generated: false
     name: NUMERIC_PRECISION
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
@@ -94,14 +104,16 @@ columns:
     dataType: 4
     generated: false
     name: NUMERIC_SCALE
+    nullable: true
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true
   datetime_precision:
     caseSensitive: false
     dataType: 4
     generated: false
     name: DATETIME_PRECISION
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
@@ -110,6 +122,7 @@ columns:
     dataType: 12
     generated: false
     name: CHARACTER_SET_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -118,14 +131,16 @@ columns:
     dataType: 12
     generated: false
     name: COLLATION_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   dtd_identifier:
-    caseSensitive: false
+    caseSensitive: true
     dataType: -1
     generated: false
     name: DTD_IDENTIFIER
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -134,30 +149,34 @@ columns:
     dataType: 12
     generated: false
     name: ROUTINE_BODY
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   routine_definition:
-    caseSensitive: false
+    caseSensitive: true
     dataType: -1
     generated: false
     name: ROUTINE_DEFINITION
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   external_name:
     caseSensitive: false
-    dataType: 12
+    dataType: -2
     generated: false
     name: EXTERNAL_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   external_language:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: EXTERNAL_LANGUAGE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -166,6 +185,7 @@ columns:
     dataType: 12
     generated: false
     name: PARAMETER_STYLE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -174,30 +194,34 @@ columns:
     dataType: 12
     generated: false
     name: IS_DETERMINISTIC
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   sql_data_access:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: 1
     generated: false
     name: SQL_DATA_ACCESS
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   sql_path:
     caseSensitive: false
-    dataType: 12
+    dataType: -2
     generated: false
     name: SQL_PATH
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   security_type:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: 1
     generated: false
     name: SECURITY_TYPE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -206,6 +230,7 @@ columns:
     dataType: 93
     generated: false
     name: CREATED
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -214,30 +239,34 @@ columns:
     dataType: 93
     generated: false
     name: LAST_ALTERED
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   sql_mode:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: 1
     generated: false
     name: SQL_MODE
+    nullable: false
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true
   routine_comment:
-    caseSensitive: false
+    caseSensitive: true
     dataType: -1
     generated: false
     name: ROUTINE_COMMENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   definer:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: DEFINER
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -246,6 +275,7 @@ columns:
     dataType: 12
     generated: false
     name: CHARACTER_SET_CLIENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -254,6 +284,7 @@ columns:
     dataType: 12
     generated: false
     name: COLLATION_CONNECTION
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -262,6 +293,7 @@ columns:
     dataType: 12
     generated: false
     name: DATABASE_COLLATION
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true

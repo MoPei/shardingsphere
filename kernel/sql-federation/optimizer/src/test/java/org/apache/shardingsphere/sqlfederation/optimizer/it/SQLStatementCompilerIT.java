@@ -34,7 +34,7 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.parser.rule.SQLParserRule;
 import org.apache.shardingsphere.parser.rule.builder.DefaultSQLParserRuleConfigurationBuilder;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 import org.apache.shardingsphere.sqlfederation.optimizer.metadata.schema.SQLFederationSchema;
 import org.apache.shardingsphere.sqlfederation.optimizer.planner.util.SQLFederationPlannerUtils;
 import org.apache.shardingsphere.sqlfederation.optimizer.statement.SQLStatementCompiler;
@@ -48,9 +48,9 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import java.io.IOException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedList;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -68,20 +68,20 @@ class SQLStatementCompilerIT {
     
     @BeforeEach
     void init() {
-        Map<String, ShardingSphereTable> tables = new HashMap<>();
-        tables.put("t_order_federate", createOrderFederationTableMetaData());
-        tables.put("t_user_info", createUserInfoTableMetaData());
-        tables.put("t_order", createTOrderTableMetaData());
-        tables.put("t_order_item", createTOrderItemTableMetaData());
-        tables.put("t_single_table", createTSingleTableMetaData());
-        tables.put("t_order_federate_sharding", createTOrderFederateShardingMetaData());
-        tables.put("t_order_item_federate_sharding", createTOrderItemFederateShardingMetaData());
-        tables.put("t_merchant", createTMerchantMetaData());
-        tables.put("t_product", createTProductMetaData());
-        tables.put("t_product_detail", createTProductDetailMetaData());
-        tables.put("multi_types_first", createMultiTypesFirstTableMetaData());
-        tables.put("multi_types_second", createMultiTypesSecondTableMetaData());
-        sqlStatementCompiler = new SQLStatementCompiler(createSqlToRelConverter(new ShardingSphereSchema(tables, Collections.emptyMap())));
+        Collection<ShardingSphereTable> tables = new LinkedList<>();
+        tables.add(createOrderFederationTableMetaData());
+        tables.add(createUserInfoTableMetaData());
+        tables.add(createTOrderTableMetaData());
+        tables.add(createTOrderItemTableMetaData());
+        tables.add(createTSingleTableMetaData());
+        tables.add(createTOrderFederateShardingMetaData());
+        tables.add(createTOrderItemFederateShardingMetaData());
+        tables.add(createTMerchantMetaData());
+        tables.add(createTProductMetaData());
+        tables.add(createTProductDetailMetaData());
+        tables.add(createMultiTypesFirstTableMetaData());
+        tables.add(createMultiTypesSecondTableMetaData());
+        sqlStatementCompiler = new SQLStatementCompiler(createSqlToRelConverter(new ShardingSphereSchema("foo_db", tables, Collections.emptyList())));
     }
     
     private ShardingSphereTable createOrderFederationTableMetaData() {
@@ -235,7 +235,8 @@ class SQLStatementCompilerIT {
         RelDataTypeFactory relDataTypeFactory = new JavaTypeFactoryImpl();
         DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "H2");
         SQLFederationSchema sqlFederationSchema = new SQLFederationSchema(SCHEMA_NAME, schema, databaseType, new JavaTypeFactoryImpl());
-        CalciteCatalogReader catalogReader = SQLFederationPlannerUtils.createCatalogReader(SCHEMA_NAME, sqlFederationSchema, relDataTypeFactory, connectionConfig);
+        CalciteCatalogReader catalogReader =
+                SQLFederationPlannerUtils.createCatalogReader(SCHEMA_NAME, sqlFederationSchema, relDataTypeFactory, connectionConfig, databaseType);
         SqlValidator validator = SQLFederationPlannerUtils.createSqlValidator(catalogReader, relDataTypeFactory, databaseType, connectionConfig);
         RelOptCluster cluster = RelOptCluster.create(SQLFederationPlannerUtils.createVolcanoPlanner(), new RexBuilder(relDataTypeFactory));
         return SQLFederationPlannerUtils.createSqlToRelConverter(catalogReader, validator, cluster, mock(SQLParserRule.class), databaseType, false);

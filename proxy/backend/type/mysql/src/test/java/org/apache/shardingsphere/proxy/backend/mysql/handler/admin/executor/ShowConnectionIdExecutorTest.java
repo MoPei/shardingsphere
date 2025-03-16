@@ -19,17 +19,17 @@ package org.apache.shardingsphere.proxy.backend.mysql.handler.admin.executor;
 
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResultMetaData;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ExpressionProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionsSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.AliasSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ExpressionProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.AliasSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -71,7 +71,7 @@ class ShowConnectionIdExecutorTest {
     }
     
     private SelectStatement mockSelectStatement() {
-        Collection<ProjectionSegment> projections = new LinkedList<>();
+        List<ProjectionSegment> projections = new LinkedList<>();
         ProjectionsSegment segment = mock(ProjectionsSegment.class);
         when(segment.getProjections()).thenReturn(projections);
         SelectStatement result = mock(SelectStatement.class);
@@ -80,7 +80,7 @@ class ShowConnectionIdExecutorTest {
     }
     
     private SelectStatement mockSelectStatementWithAlias() {
-        Collection<ProjectionSegment> projections = new LinkedList<>();
+        List<ProjectionSegment> projections = new LinkedList<>();
         ExpressionProjectionSegment projectionSegment = new ExpressionProjectionSegment(0, 0, "connection_id()");
         projectionSegment.setAlias(new AliasSegment(0, 0, new IdentifierValue("test_alias")));
         projections.add(projectionSegment);

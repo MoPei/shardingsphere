@@ -33,12 +33,11 @@ import java.util.UUID;
 /**
  * SQL value.
  */
+@Getter
 public final class SQLValue {
     
-    @Getter
     private final Object value;
     
-    @Getter
     private final int index;
     
     public SQLValue(final String value, final String type, final int index) {
@@ -47,7 +46,7 @@ public final class SQLValue {
     }
     
     private Object getValue(final String value, final String type) {
-        if (type.startsWith("enum#") || type.startsWith("cast#")) {
+        if (type.startsWith("enum#") || type.startsWith("set#") || type.startsWith("cast#")) {
             return value;
         }
         if ("null".equalsIgnoreCase(value)) {
@@ -57,22 +56,37 @@ public final class SQLValue {
             case "String":
             case "varchar":
             case "char":
+            case "text":
+            case "longtext":
+            case "mediumtext":
+            case "json":
+            case "clob":
                 return value;
             case "tinyint":
                 return Byte.parseByte(value);
+            case "tinyint unsigned":
             case "smallint":
                 return Short.parseShort(value);
+            case "smallint unsigned":
+            case "mediumint":
+            case "year":
             case "int":
                 return Integer.parseInt(value);
+            case "int unsigned":
+            case "bigint unsigned":
+            case "bigint":
             case "long":
                 return Long.parseLong(value);
             case "float":
                 return Float.parseFloat(value);
+            case "float unsigned":
             case "double":
                 return Double.parseDouble(value);
             case "numeric":
                 return value.contains(".") ? Double.parseDouble(value) : Long.parseLong(value);
+            case "double unsigned":
             case "decimal":
+            case "decimal unsigned":
                 return new BigDecimal(value);
             case "boolean":
                 return Boolean.parseBoolean(value);
@@ -87,6 +101,12 @@ public final class SQLValue {
                 return Time.valueOf(LocalTime.parse(value, DateTimeFormatterFactory.getTimeFormatter()));
             case "timestamp":
                 return Timestamp.valueOf(LocalDateTime.parse(value, DateTimeFormatterFactory.getShortMillsFormatter()));
+            case "blob":
+            case "longblob":
+            case "mediumblob":
+            case "bit":
+            case "binary":
+            case "varbinary":
             case "bytes":
                 return value.getBytes(StandardCharsets.UTF_8);
             case "uuid":
@@ -98,6 +118,9 @@ public final class SQLValue {
     
     @Override
     public String toString() {
+        if (null == value) {
+            return null;
+        }
         if (value instanceof String) {
             return formatString((String) value);
         }

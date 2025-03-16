@@ -28,6 +28,7 @@ import org.apache.shardingsphere.infra.binder.context.statement.dml.DeleteStatem
 import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.UpdateStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.sharding.api.config.cache.ShardingCacheOptionsConfiguration;
@@ -42,10 +43,10 @@ import org.apache.shardingsphere.sharding.route.engine.condition.value.ShardingC
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sharding.rule.ShardingTable;
 import org.apache.shardingsphere.sharding.spi.ShardingAlgorithm;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.InsertValuesSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.LiteralExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.InsertValuesSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
 import org.apache.shardingsphere.timeservice.core.rule.TimestampServiceRule;
 
 import java.util.ArrayList;
@@ -85,13 +86,13 @@ public final class ShardingRouteCacheableChecker {
         SQLStatementContext sqlStatementContext = key.getSqlStatementContext();
         ShardingRouteCacheableCheckResult result;
         if (sqlStatementContext instanceof SelectStatementContext) {
-            result = checkSelectCacheable((SelectStatementContext) sqlStatementContext, key.getParameters(), key.getDatabase());
+            result = checkSelectCacheable((SelectStatementContext) sqlStatementContext, key.getParameters());
         } else if (sqlStatementContext instanceof UpdateStatementContext) {
-            result = checkUpdateCacheable((UpdateStatementContext) sqlStatementContext, key.getParameters(), key.getDatabase());
+            result = checkUpdateCacheable((UpdateStatementContext) sqlStatementContext, key.getParameters());
         } else if (sqlStatementContext instanceof InsertStatementContext) {
             result = checkInsertCacheable((InsertStatementContext) sqlStatementContext, key.getParameters(), key.getDatabase());
         } else if (sqlStatementContext instanceof DeleteStatementContext) {
-            result = checkDeleteCacheable((DeleteStatementContext) sqlStatementContext, key.getParameters(), key.getDatabase());
+            result = checkDeleteCacheable((DeleteStatementContext) sqlStatementContext, key.getParameters());
         } else {
             result = new ShardingRouteCacheableCheckResult(false, Collections.emptyList());
         }
@@ -99,20 +100,20 @@ public final class ShardingRouteCacheableChecker {
         return result;
     }
     
-    private ShardingRouteCacheableCheckResult checkSelectCacheable(final SelectStatementContext statementContext, final List<Object> params, final ShardingSphereDatabase database) {
+    private ShardingRouteCacheableCheckResult checkSelectCacheable(final SelectStatementContext statementContext, final List<Object> params) {
         Collection<String> tableNames = new HashSet<>(statementContext.getTablesContext().getTableNames());
         if (!shardingRule.isAllShardingTables(tableNames)) {
             return new ShardingRouteCacheableCheckResult(false, Collections.emptyList());
         }
-        if (1 != tableNames.size() && !shardingRule.isAllBindingTables(tableNames) || containsNonCacheableShardingAlgorithm(tableNames)) {
+        if (1 != tableNames.size() && !shardingRule.isAllConfigBindingTables(tableNames) || containsNonCacheableShardingAlgorithm(tableNames)) {
             return new ShardingRouteCacheableCheckResult(false, Collections.emptyList());
         }
-        List<ShardingCondition> shardingConditions = new WhereClauseShardingConditionEngine(database, shardingRule, timestampServiceRule).createShardingConditions(statementContext, params);
+        List<ShardingCondition> shardingConditions = new WhereClauseShardingConditionEngine(shardingRule, timestampServiceRule).createShardingConditions(statementContext, params);
         return checkShardingConditionsCacheable(shardingConditions);
     }
     
-    private ShardingRouteCacheableCheckResult checkUpdateCacheable(final UpdateStatementContext statementContext, final List<Object> params, final ShardingSphereDatabase database) {
-        return checkUpdateOrDeleteCacheable(statementContext, params, database);
+    private ShardingRouteCacheableCheckResult checkUpdateCacheable(final UpdateStatementContext statementContext, final List<Object> params) {
+        return checkUpdateOrDeleteCacheable(statementContext, params);
     }
     
     private ShardingRouteCacheableCheckResult checkInsertCacheable(final InsertStatementContext statementContext, final List<Object> params, final ShardingSphereDatabase database) {
@@ -139,12 +140,12 @@ public final class ShardingRouteCacheableChecker {
         return checkShardingConditionsCacheable(shardingConditions);
     }
     
-    private ShardingRouteCacheableCheckResult checkDeleteCacheable(final DeleteStatementContext statementContext, final List<Object> params, final ShardingSphereDatabase database) {
-        return checkUpdateOrDeleteCacheable(statementContext, params, database);
+    private ShardingRouteCacheableCheckResult checkDeleteCacheable(final DeleteStatementContext statementContext, final List<Object> params) {
+        return checkUpdateOrDeleteCacheable(statementContext, params);
     }
     
-    private ShardingRouteCacheableCheckResult checkUpdateOrDeleteCacheable(final SQLStatementContext statementContext, final List<Object> params, final ShardingSphereDatabase database) {
-        Collection<String> tableNames = statementContext.getTablesContext().getTableNames();
+    private ShardingRouteCacheableCheckResult checkUpdateOrDeleteCacheable(final SQLStatementContext sqlStatementContext, final List<Object> params) {
+        Collection<String> tableNames = ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames();
         if (1 != tableNames.size()) {
             return new ShardingRouteCacheableCheckResult(false, Collections.emptyList());
         }
@@ -152,7 +153,7 @@ public final class ShardingRouteCacheableChecker {
         if (!isShardingTable || containsNonCacheableShardingAlgorithm(tableNames)) {
             return new ShardingRouteCacheableCheckResult(false, Collections.emptyList());
         }
-        List<ShardingCondition> shardingConditions = new WhereClauseShardingConditionEngine(database, shardingRule, timestampServiceRule).createShardingConditions(statementContext, params);
+        List<ShardingCondition> shardingConditions = new WhereClauseShardingConditionEngine(shardingRule, timestampServiceRule).createShardingConditions(sqlStatementContext, params);
         return checkShardingConditionsCacheable(shardingConditions);
     }
     

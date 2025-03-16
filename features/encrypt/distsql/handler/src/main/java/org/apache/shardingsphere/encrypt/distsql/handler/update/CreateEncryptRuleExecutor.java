@@ -18,14 +18,9 @@
 package org.apache.shardingsphere.encrypt.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.exception.algorithm.InvalidAlgorithmConfigurationException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.DuplicateRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.InvalidRuleConfigurationException;
-import org.apache.shardingsphere.distsql.handler.exception.storageunit.EmptyStorageUnitException;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleCreateExecutor;
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
-import org.apache.shardingsphere.encrypt.api.config.EncryptRuleConfiguration;
-import org.apache.shardingsphere.encrypt.api.config.rule.EncryptTableRuleConfiguration;
+import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.distsql.handler.converter.EncryptRuleStatementConverter;
 import org.apache.shardingsphere.encrypt.distsql.segment.EncryptColumnItemSegment;
 import org.apache.shardingsphere.encrypt.distsql.segment.EncryptColumnSegment;
@@ -33,11 +28,16 @@ import org.apache.shardingsphere.encrypt.distsql.segment.EncryptRuleSegment;
 import org.apache.shardingsphere.encrypt.distsql.statement.CreateEncryptRuleStatement;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
+import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.EmptyStorageUnitException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InvalidRuleConfigurationException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -65,15 +65,11 @@ public final class CreateEncryptRuleExecutor implements DatabaseRuleCreateExecut
     
     private void checkDuplicateRuleNames(final CreateEncryptRuleStatement sqlStatement) {
         Collection<String> duplicatedRuleNames = getDuplicatedRuleNames(sqlStatement);
-        ShardingSpherePreconditions.checkState(duplicatedRuleNames.isEmpty(), () -> new DuplicateRuleException("encrypt", database.getName(), duplicatedRuleNames));
+        ShardingSpherePreconditions.checkMustEmpty(duplicatedRuleNames, () -> new DuplicateRuleException("encrypt", database.getName(), duplicatedRuleNames));
     }
     
     private Collection<String> getDuplicatedRuleNames(final CreateEncryptRuleStatement sqlStatement) {
-        Collection<String> currentRuleNames = new LinkedHashSet<>();
-        if (null != rule) {
-            currentRuleNames = rule.getConfiguration().getTables().stream().map(EncryptTableRuleConfiguration::getName).collect(Collectors.toSet());
-        }
-        return sqlStatement.getRules().stream().map(EncryptRuleSegment::getTableName).filter(currentRuleNames::contains).collect(Collectors.toSet());
+        return null == rule ? Collections.emptyList() : sqlStatement.getRules().stream().map(EncryptRuleSegment::getTableName).filter(rule.getAllTableNames()::contains).collect(Collectors.toSet());
     }
     
     private void checkColumnNames(final CreateEncryptRuleStatement sqlStatement) {
@@ -101,7 +97,7 @@ public final class CreateEncryptRuleExecutor implements DatabaseRuleCreateExecut
             return;
         }
         EncryptAlgorithm encryptAlgorithm = TypedSPILoader.getService(EncryptAlgorithm.class, itemSegment.getEncryptor().getName(), itemSegment.getEncryptor().getProps());
-        ShardingSpherePreconditions.checkState(encryptAlgorithm.getMetaData().isSupportDecrypt(), () -> new InvalidAlgorithmConfigurationException("standard encrypt", encryptAlgorithm.getType()));
+        ShardingSpherePreconditions.checkState(encryptAlgorithm.getMetaData().isSupportDecrypt(), () -> new AlgorithmInitializationException(encryptAlgorithm, "Can not support decrypt"));
     }
     
     private void checkLikeAlgorithmType(final EncryptColumnItemSegment itemSegment) {
@@ -109,7 +105,7 @@ public final class CreateEncryptRuleExecutor implements DatabaseRuleCreateExecut
             return;
         }
         EncryptAlgorithm encryptAlgorithm = TypedSPILoader.getService(EncryptAlgorithm.class, itemSegment.getEncryptor().getName(), itemSegment.getEncryptor().getProps());
-        ShardingSpherePreconditions.checkState(encryptAlgorithm.getMetaData().isSupportLike(), () -> new InvalidAlgorithmConfigurationException("like encrypt", encryptAlgorithm.getType()));
+        ShardingSpherePreconditions.checkState(encryptAlgorithm.getMetaData().isSupportLike(), () -> new AlgorithmInitializationException(encryptAlgorithm, "Can not support like"));
     }
     
     private void checkAssistedAlgorithmType(final EncryptColumnItemSegment itemSegment) {
@@ -118,7 +114,7 @@ public final class CreateEncryptRuleExecutor implements DatabaseRuleCreateExecut
         }
         EncryptAlgorithm encryptAlgorithm = TypedSPILoader.getService(EncryptAlgorithm.class, itemSegment.getEncryptor().getName(), itemSegment.getEncryptor().getProps());
         ShardingSpherePreconditions.checkState(encryptAlgorithm.getMetaData().isSupportEquivalentFilter(),
-                () -> new InvalidAlgorithmConfigurationException("assisted encrypt", encryptAlgorithm.getType()));
+                () -> new AlgorithmInitializationException(encryptAlgorithm, "Can not support assist query"));
     }
     
     private void checkToBeCreatedEncryptors(final CreateEncryptRuleStatement sqlStatement) {
@@ -138,7 +134,7 @@ public final class CreateEncryptRuleExecutor implements DatabaseRuleCreateExecut
     }
     
     private void checkDataSources() {
-        ShardingSpherePreconditions.checkState(!database.getResourceMetaData().getStorageUnits().isEmpty(), () -> new EmptyStorageUnitException(database.getName()));
+        ShardingSpherePreconditions.checkNotEmpty(database.getResourceMetaData().getStorageUnits(), () -> new EmptyStorageUnitException(database.getName()));
     }
     
     @Override

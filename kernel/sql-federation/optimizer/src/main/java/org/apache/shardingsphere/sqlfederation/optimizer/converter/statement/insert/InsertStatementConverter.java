@@ -24,10 +24,10 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.InsertValuesSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.InsertValuesSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
 import org.apache.shardingsphere.sqlfederation.optimizer.converter.segment.expression.ExpressionConverter;
 import org.apache.shardingsphere.sqlfederation.optimizer.converter.segment.expression.impl.ColumnConverter;
 import org.apache.shardingsphere.sqlfederation.optimizer.converter.segment.from.TableConverter;
@@ -51,7 +51,7 @@ public final class InsertStatementConverter implements SQLStatementConverter<Ins
     }
     
     private SqlInsert convertInsert(final InsertStatement insertStatement) {
-        SqlNode table = TableConverter.convert(insertStatement.getTable()).orElseThrow(IllegalStateException::new);
+        SqlNode table = insertStatement.getTable().flatMap(TableConverter::convert).orElseThrow(IllegalStateException::new);
         SqlNodeList keywords = new SqlNodeList(SqlParserPos.ZERO);
         SqlNode source = convertSource(insertStatement);
         SqlNodeList columnList = convertColumn(insertStatement.getColumns());

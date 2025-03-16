@@ -17,13 +17,12 @@
 
 package org.apache.shardingsphere.distsql.handler.executor.rdl.resource;
 
-import org.apache.shardingsphere.distsql.handler.exception.storageunit.MissingRequiredStorageUnitsException;
-import org.apache.shardingsphere.distsql.handler.exception.storageunit.StorageUnitInUsedException;
+import org.apache.groovy.util.Maps;
 import org.apache.shardingsphere.distsql.handler.fixture.DistSQLHandlerFixtureRule;
 import org.apache.shardingsphere.distsql.statement.rdl.resource.unit.type.UnregisterStorageUnitStatement;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.kernel.category.DistSQLException;
-import org.apache.shardingsphere.infra.instance.mode.ModeContextManager;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.InUsedStorageUnitException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.MissingRequiredStorageUnitsException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.node.StorageNode;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
@@ -33,6 +32,7 @@ import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
 import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
+import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
 import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.sql.SQLException;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,7 +63,7 @@ class UnregisterStorageUnitExecutorTest {
     private ContextManager contextManager;
     
     @Mock
-    private ModeContextManager modeContextManager;
+    private MetaDataManagerPersistService metaDataManagerPersistService;
     
     @BeforeEach
     void setUp() {
@@ -78,7 +77,7 @@ class UnregisterStorageUnitExecutorTest {
     private static StorageUnit createStorageUnit() {
         DataSourcePoolProperties dataSourcePoolProps = mock(DataSourcePoolProperties.class, RETURNS_DEEP_STUBS);
         when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(Collections.emptyMap());
-        when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(Collections.singletonMap("url", "jdbc:mock://127.0.0.1/foo_db"));
+        when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(Maps.of("url", "jdbc:mock://127.0.0.1/foo_db", "username", "test"));
         return new StorageUnit(mock(StorageNode.class), dataSourcePoolProps, new MockedDataSource());
     }
     
@@ -86,17 +85,17 @@ class UnregisterStorageUnitExecutorTest {
         MetaDataContexts metaDataContexts = mock(MetaDataContexts.class, RETURNS_DEEP_STUBS);
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
-        when(result.getInstanceContext().getModeContextManager()).thenReturn(modeContextManager);
+        when(result.getPersistServiceFacade().getModeFacade().getMetaDataManagerService()).thenReturn(metaDataManagerPersistService);
         when(result.getDatabase("foo_db")).thenReturn(database);
         return result;
     }
     
     @Test
-    void assertExecuteUpdateSuccess() throws SQLException {
+    void assertExecuteUpdateSuccess() {
         when(database.getRuleMetaData().getInUsedStorageUnitNameAndRulesMap()).thenReturn(Collections.emptyMap());
         UnregisterStorageUnitStatement sqlStatement = new UnregisterStorageUnitStatement(Collections.singleton("foo_ds"), false, false);
         executor.executeUpdate(sqlStatement, contextManager);
-        verify(modeContextManager).unregisterStorageUnits("foo_db", sqlStatement.getStorageUnitNames());
+        verify(metaDataManagerPersistService).unregisterStorageUnits(database, sqlStatement.getStorageUnitNames());
     }
     
     @Test
@@ -113,28 +112,28 @@ class UnregisterStorageUnitExecutorTest {
         when(ruleAttribute.getDataSourceMapper()).thenReturn(Collections.singletonMap("", Collections.singleton("foo_ds")));
         when(rule.getAttributes()).thenReturn(new RuleAttributes(ruleAttribute));
         when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(rule)));
-        assertThrows(StorageUnitInUsedException.class, () -> executor.executeUpdate(new UnregisterStorageUnitStatement(Collections.singleton("foo_ds"), false, false), mock(ContextManager.class)));
+        assertThrows(InUsedStorageUnitException.class, () -> executor.executeUpdate(new UnregisterStorageUnitStatement(Collections.singleton("foo_ds"), false, false), mock(ContextManager.class)));
     }
     
     @Test
     void assertExecuteUpdateWithStorageUnitInUsedWithoutIgnoredTables() {
         when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(new DistSQLHandlerFixtureRule())));
-        assertThrows(StorageUnitInUsedException.class, () -> executor.executeUpdate(new UnregisterStorageUnitStatement(Collections.singleton("foo_ds"), false, false), mock(ContextManager.class)));
+        assertThrows(InUsedStorageUnitException.class, () -> executor.executeUpdate(new UnregisterStorageUnitStatement(Collections.singleton("foo_ds"), false, false), mock(ContextManager.class)));
     }
     
     @Test
-    void assertExecuteUpdateWithStorageUnitInUsedWithIgnoredTables() throws SQLException {
+    void assertExecuteUpdateWithStorageUnitInUsedWithIgnoredTables() {
         when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(new DistSQLHandlerFixtureRule())));
         UnregisterStorageUnitStatement sqlStatement = new UnregisterStorageUnitStatement(Collections.singleton("foo_ds"), true, false);
         executor.executeUpdate(sqlStatement, contextManager);
-        verify(modeContextManager).unregisterStorageUnits("foo_db", sqlStatement.getStorageUnitNames());
+        verify(metaDataManagerPersistService).unregisterStorageUnits(database, sqlStatement.getStorageUnitNames());
     }
     
     @Test
-    void assertExecuteUpdateWithIfExists() throws SQLException {
+    void assertExecuteUpdateWithIfExists() {
         UnregisterStorageUnitStatement sqlStatement = new UnregisterStorageUnitStatement(true, Collections.singleton("foo_ds"), true, false);
         executor.executeUpdate(sqlStatement, contextManager);
-        verify(modeContextManager).unregisterStorageUnits("foo_db", sqlStatement.getStorageUnitNames());
+        verify(metaDataManagerPersistService).unregisterStorageUnits(database, sqlStatement.getStorageUnitNames());
     }
     
     @Test
@@ -144,6 +143,6 @@ class UnregisterStorageUnitExecutorTest {
         when(ruleAttribute.getDataSourceMapper()).thenReturn(Collections.singletonMap("", Collections.singleton("foo_ds")));
         when(rule.getAttributes()).thenReturn(new RuleAttributes(ruleAttribute));
         when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(rule)));
-        assertThrows(DistSQLException.class, () -> executor.executeUpdate(new UnregisterStorageUnitStatement(true, Collections.singleton("foo_ds"), true, false), contextManager));
+        assertThrows(InUsedStorageUnitException.class, () -> executor.executeUpdate(new UnregisterStorageUnitStatement(true, Collections.singleton("foo_ds"), true, false), contextManager));
     }
 }

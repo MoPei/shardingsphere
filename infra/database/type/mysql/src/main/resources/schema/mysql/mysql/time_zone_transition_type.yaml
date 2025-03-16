@@ -16,12 +16,14 @@
 #
 
 name: time_zone_transition_type
+type: TABLE
 columns:
   time_zone_id:
     caseSensitive: false
     dataType: 4
     generated: false
     name: Time_zone_id
+    nullable: false
     primaryKey: true
     unsigned: true
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 4
     generated: false
     name: Transition_type_id
+    nullable: false
     primaryKey: true
     unsigned: true
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 4
     generated: false
     name: Offset
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: -6
     generated: false
     name: Is_DST
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -54,9 +59,14 @@ columns:
     dataType: 1
     generated: false
     name: Abbreviation
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
 indexes:
   primary:
     name: PRIMARY
+    unique: true
+    columns:
+      - Time_zone_id
+      - Transition_type_id

@@ -46,9 +46,9 @@ public final class HintValueContext {
     
     private boolean writeRouteOnly;
     
-    private boolean useTraffic;
-    
     private boolean skipSQLRewrite;
+    
+    private boolean skipMetadataValidate;
     
     private boolean shadow;
     

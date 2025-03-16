@@ -16,12 +16,14 @@
 #
 
 name: func
+type: TABLE
 columns:
   name:
     caseSensitive: true
     dataType: 1
     generated: false
     name: name
+    nullable: false
     primaryKey: true
     unsigned: false
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: -6
     generated: false
     name: ret
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,17 +41,22 @@ columns:
     dataType: 1
     generated: false
     name: dl
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   type:
     caseSensitive: false
-    dataType: 12
+    dataType: 1
     generated: false
     name: type
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
 indexes:
   primary:
     name: PRIMARY
+    unique: true
+    columns:
+      - name

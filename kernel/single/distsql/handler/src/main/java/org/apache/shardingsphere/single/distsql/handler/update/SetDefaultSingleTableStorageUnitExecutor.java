@@ -19,22 +19,26 @@ package org.apache.shardingsphere.single.distsql.handler.update;
 
 import com.google.common.base.Strings;
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.exception.storageunit.MissingRequiredStorageUnitsException;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleCreateExecutor;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleAlterExecutor;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.MissingRequiredStorageUnitsException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.single.api.config.SingleRuleConfiguration;
+import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
+import org.apache.shardingsphere.single.config.SingleRuleConfiguration;
 import org.apache.shardingsphere.single.distsql.statement.rdl.SetDefaultSingleTableStorageUnitStatement;
 import org.apache.shardingsphere.single.rule.SingleRule;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.stream.Collectors;
 
 /**
  * Set default single table storage unit executor.
  */
 @Setter
-public final class SetDefaultSingleTableStorageUnitExecutor implements DatabaseRuleCreateExecutor<SetDefaultSingleTableStorageUnitStatement, SingleRule, SingleRuleConfiguration> {
+public final class SetDefaultSingleTableStorageUnitExecutor implements DatabaseRuleAlterExecutor<SetDefaultSingleTableStorageUnitStatement, SingleRule, SingleRuleConfiguration> {
     
     private ShardingSphereDatabase database;
     
@@ -42,23 +46,31 @@ public final class SetDefaultSingleTableStorageUnitExecutor implements DatabaseR
     
     @Override
     public void checkBeforeUpdate(final SetDefaultSingleTableStorageUnitStatement sqlStatement) {
-        checkStorageUnitExist(sqlStatement);
+        checkDefaultStorageUnitExist(sqlStatement);
     }
     
-    private void checkStorageUnitExist(final SetDefaultSingleTableStorageUnitStatement sqlStatement) {
+    private void checkDefaultStorageUnitExist(final SetDefaultSingleTableStorageUnitStatement sqlStatement) {
         if (!Strings.isNullOrEmpty(sqlStatement.getDefaultStorageUnit())) {
-            Collection<String> storageUnitNames = database.getResourceMetaData().getStorageUnits().keySet();
-            ShardingSpherePreconditions.checkState(storageUnitNames.contains(sqlStatement.getDefaultStorageUnit()),
+            ShardingSpherePreconditions.checkContains(getAllStorageUnitNames(), sqlStatement.getDefaultStorageUnit(),
                     () -> new MissingRequiredStorageUnitsException(database.getName(), Collections.singleton(sqlStatement.getDefaultStorageUnit())));
         }
     }
     
-    @Override
-    public SingleRuleConfiguration buildToBeCreatedRuleConfiguration(final SetDefaultSingleTableStorageUnitStatement sqlStatement) {
-        SingleRuleConfiguration result = new SingleRuleConfiguration();
-        result.setDefaultDataSource(sqlStatement.getDefaultStorageUnit());
-        result.getTables().addAll(rule.getConfiguration().getTables());
+    private Collection<String> getAllStorageUnitNames() {
+        Collection<String> result = new HashSet<>(database.getResourceMetaData().getStorageUnits().keySet());
+        result.addAll(
+                database.getRuleMetaData().getAttributes(DataSourceMapperRuleAttribute.class).stream().flatMap(each -> each.getDataSourceMapper().keySet().stream()).collect(Collectors.toSet()));
         return result;
+    }
+    
+    @Override
+    public SingleRuleConfiguration buildToBeAlteredRuleConfiguration(final SetDefaultSingleTableStorageUnitStatement sqlStatement) {
+        return new SingleRuleConfiguration(new LinkedList<>(), sqlStatement.getDefaultStorageUnit());
+    }
+    
+    @Override
+    public SingleRuleConfiguration buildToBeDroppedRuleConfiguration(final SingleRuleConfiguration toBeAlteredRuleConfig) {
+        return toBeAlteredRuleConfig.getDefaultDataSource().isPresent() ? null : new SingleRuleConfiguration(new LinkedList<>(), rule.getConfiguration().getDefaultDataSource().orElse(null));
     }
     
     @Override

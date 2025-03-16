@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.test.it.data.pipeline.core.fixture.h2.sqlbuilder;
 
-import org.apache.shardingsphere.data.pipeline.core.exception.syntax.CreateTableSQLGenerateException;
+import org.apache.shardingsphere.data.pipeline.core.exception.job.CreateTableSQLGenerateException;
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect.DialectPipelineSQLBuilder;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.test.it.data.pipeline.core.util.PipelineContextUtils;
@@ -40,6 +40,11 @@ public final class H2PipelineSQLBuilder implements DialectPipelineSQLBuilder {
     public Collection<String> buildCreateTableSQLs(final DataSource dataSource, final String schemaName, final String tableName) {
         ShardingSpherePreconditions.checkState("t_order".equalsIgnoreCase(tableName), () -> new CreateTableSQLGenerateException(tableName));
         return Collections.singleton(PipelineContextUtils.getCreateOrderTableSchema());
+    }
+    
+    @Override
+    public String wrapWithPageQuery(final String sql) {
+        return sql + " LIMIT ?";
     }
     
     @Override

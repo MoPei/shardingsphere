@@ -19,7 +19,7 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.ge
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.ParenthesesSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.ParenthesesSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.generic.ExpectedParentheses;
@@ -41,7 +41,7 @@ public final class ParenthesesAssert {
      * @param expected expected parentheses
      */
     public static void assertIs(final SQLCaseAssertContext assertContext, final ParenthesesSegment actual, final ExpectedParentheses expected) {
-        assertThat(assertContext.getText("Left brackets assertion error: "), actual.isLeft(), is(expected.isLeft()));
+        assertThat(assertContext.getText("Parentheses assertion error: "), actual.getParentheses(), is(expected.getParentheses()));
         SQLSegmentAssert.assertIs(assertContext, actual, expected);
     }
 }

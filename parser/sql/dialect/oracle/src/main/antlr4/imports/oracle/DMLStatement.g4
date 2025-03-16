@@ -90,7 +90,7 @@ collectionExpr
     ;
 
 update
-    : UPDATE hint? updateSpecification alias? updateSetClause whereClause? returningClause? errorLoggingClause?
+    : UPDATE hint? updateSpecification (AS? alias)? updateSetClause whereClause? returningClause? errorLoggingClause?
     ;
 
 updateSpecification
@@ -882,7 +882,7 @@ rowPatternAggregateFunc
     : (RUNNING | FINAL)? aggregationFunction
     ;
 
-lockTable
+lock
     : LOCK TABLE (tableName | viewName) (partitionExtensionClause | AT_ dbLink)? (COMMA_ (tableName | viewName) (partitionExtensionClause | AT_ dbLink)? )* IN lockmodeClause MODE ( NOWAIT | WAIT INTEGER_)?
     ;
 

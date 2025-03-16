@@ -26,9 +26,10 @@ import org.apache.shardingsphere.parser.rule.builder.DefaultSQLParserRuleConfigu
 import org.apache.shardingsphere.parser.rule.builder.SQLParserRuleBuilder;
 import org.apache.shardingsphere.sqlfederation.optimizer.context.parser.OptimizerParserContext;
 import org.apache.shardingsphere.sqlfederation.optimizer.context.parser.OptimizerParserContextFactory;
-import org.apache.shardingsphere.sqlfederation.optimizer.context.planner.OptimizerPlannerContext;
-import org.apache.shardingsphere.sqlfederation.optimizer.context.planner.OptimizerPlannerContextFactory;
+import org.apache.shardingsphere.sqlfederation.optimizer.context.planner.OptimizerMetaData;
+import org.apache.shardingsphere.sqlfederation.optimizer.context.planner.OptimizerMetaDataFactory;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -44,11 +45,11 @@ public final class OptimizerContextFactory {
      * @param databases databases
      * @return created optimizer context
      */
-    public static OptimizerContext create(final Map<String, ShardingSphereDatabase> databases) {
+    public static OptimizerContext create(final Collection<ShardingSphereDatabase> databases) {
         Map<String, OptimizerParserContext> parserContexts = OptimizerParserContextFactory.create(databases);
         // TODO consider to use sqlParserRule in global rule
         SQLParserRule sqlParserRule = new SQLParserRuleBuilder().build(new DefaultSQLParserRuleConfigurationBuilder().build(), databases, new ConfigurationProperties(new Properties()));
-        Map<String, OptimizerPlannerContext> plannerContexts = OptimizerPlannerContextFactory.create(databases, parserContexts, sqlParserRule);
-        return new OptimizerContext(sqlParserRule, parserContexts, plannerContexts);
+        Map<String, OptimizerMetaData> optimizerMetaData = OptimizerMetaDataFactory.create(databases);
+        return new OptimizerContext(sqlParserRule, parserContexts, optimizerMetaData);
     }
 }

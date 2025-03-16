@@ -19,13 +19,13 @@ package org.apache.shardingsphere.sqlfederation.rule;
 
 import lombok.Getter;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
 import org.apache.shardingsphere.infra.rule.scope.GlobalRule;
-import org.apache.shardingsphere.sqlfederation.api.config.SQLFederationRuleConfiguration;
+import org.apache.shardingsphere.sqlfederation.config.SQLFederationRuleConfiguration;
+import org.apache.shardingsphere.sqlfederation.constant.SQLFederationOrder;
 import org.apache.shardingsphere.sqlfederation.optimizer.context.OptimizerContext;
 import org.apache.shardingsphere.sqlfederation.optimizer.context.OptimizerContextFactory;
 
-import java.util.Map;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -38,25 +38,27 @@ public final class SQLFederationRule implements GlobalRule {
     
     private final AtomicReference<OptimizerContext> optimizerContext;
     
-    private final RuleAttributes attributes;
-    
-    public SQLFederationRule(final SQLFederationRuleConfiguration ruleConfig, final Map<String, ShardingSphereDatabase> databases) {
+    public SQLFederationRule(final SQLFederationRuleConfiguration ruleConfig, final Collection<ShardingSphereDatabase> databases) {
         configuration = ruleConfig;
         optimizerContext = new AtomicReference<>(OptimizerContextFactory.create(databases));
-        attributes = new RuleAttributes();
     }
     
     @Override
-    public void refresh(final Map<String, ShardingSphereDatabase> databases, final GlobalRuleChangedType changedType) {
+    public void refresh(final Collection<ShardingSphereDatabase> databases, final GlobalRuleChangedType changedType) {
         optimizerContext.set(OptimizerContextFactory.create(databases));
     }
     
     /**
      * Get optimizer context.
-     * 
+     *
      * @return optimizer context
      */
     public OptimizerContext getOptimizerContext() {
         return optimizerContext.get();
+    }
+    
+    @Override
+    public int getOrder() {
+        return SQLFederationOrder.ORDER;
     }
 }

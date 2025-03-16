@@ -16,20 +16,23 @@
 #
 
 name: OPTIMIZER_TRACE
+type: TABLE
 columns:
   query:
     caseSensitive: false
-    dataType: -1
+    dataType: 12
     generated: false
     name: QUERY
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   trace:
     caseSensitive: false
-    dataType: -1
+    dataType: 12
     generated: false
     name: TRACE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 4
     generated: false
     name: MISSING_BYTES_BEYOND_MAX_MEM_SIZE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: -6
     generated: false
     name: INSUFFICIENT_PRIVILEGES
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true

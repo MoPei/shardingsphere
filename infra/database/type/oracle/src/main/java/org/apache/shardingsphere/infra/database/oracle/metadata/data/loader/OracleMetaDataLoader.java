@@ -25,7 +25,7 @@ import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnM
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.database.datatype.DataTypeLoader;
+import org.apache.shardingsphere.infra.database.core.metadata.database.datatype.DataTypeRegistry;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.TableType;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
@@ -44,7 +44,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -82,28 +81,34 @@ public final class OracleMetaDataLoader implements DialectMetaDataLoader {
     
     @Override
     public Collection<SchemaMetaData> load(final MetaDataLoaderMaterial material) throws SQLException {
-        Collection<String> viewNames = new LinkedList<>();
-        Map<String, Collection<ColumnMetaData>> columnMetaDataMap = new HashMap<>(material.getActualTableNames().size(), 1F);
-        Map<String, Collection<IndexMetaData>> indexMetaDataMap = new HashMap<>(material.getActualTableNames().size(), 1F);
-        try (Connection connection = new MetaDataLoaderConnection(TypedSPILoader.getService(DatabaseType.class, "Oracle"), material.getDataSource().getConnection())) {
-            for (List<String> each : Lists.partition(new ArrayList<>(material.getActualTableNames()), MAX_EXPRESSION_SIZE)) {
-                viewNames.addAll(loadViewNames(connection, each));
-                columnMetaDataMap.putAll(loadColumnMetaDataMap(connection, each));
-                indexMetaDataMap.putAll(loadIndexMetaData(connection, each));
-            }
-        }
         Collection<TableMetaData> tableMetaDataList = new LinkedList<>();
-        for (Entry<String, Collection<ColumnMetaData>> entry : columnMetaDataMap.entrySet()) {
-            tableMetaDataList.add(new TableMetaData(entry.getKey(), entry.getValue(), indexMetaDataMap.getOrDefault(entry.getKey(), Collections.emptyList()), Collections.emptyList(),
-                    viewNames.contains(entry.getKey()) ? TableType.VIEW : TableType.TABLE));
+        try (Connection connection = new MetaDataLoaderConnection(TypedSPILoader.getService(DatabaseType.class, "Oracle"), material.getDataSource().getConnection())) {
+            tableMetaDataList.addAll(getTableMetaDataList(connection, connection.getSchema(), material.getActualTableNames()));
         }
         return Collections.singletonList(new SchemaMetaData(material.getDefaultSchemaName(), tableMetaDataList));
     }
     
-    private Collection<String> loadViewNames(final Connection connection, final Collection<String> tables) throws SQLException {
+    private Collection<TableMetaData> getTableMetaDataList(final Connection connection, final String schema, final Collection<String> tableNames) throws SQLException {
+        Collection<String> viewNames = new LinkedList<>();
+        Map<String, Collection<ColumnMetaData>> columnMetaDataMap = new HashMap<>(tableNames.size(), 1F);
+        Map<String, Collection<IndexMetaData>> indexMetaDataMap = new HashMap<>(tableNames.size(), 1F);
+        for (List<String> each : Lists.partition(new ArrayList<>(tableNames), MAX_EXPRESSION_SIZE)) {
+            viewNames.addAll(loadViewNames(connection, each, schema));
+            columnMetaDataMap.putAll(loadColumnMetaDataMap(connection, each, schema));
+            indexMetaDataMap.putAll(loadIndexMetaData(connection, each, schema));
+        }
+        Collection<TableMetaData> result = new LinkedList<>();
+        for (Entry<String, Collection<ColumnMetaData>> entry : columnMetaDataMap.entrySet()) {
+            result.add(new TableMetaData(entry.getKey(), entry.getValue(), indexMetaDataMap.getOrDefault(entry.getKey(), Collections.emptyList()), Collections.emptyList(),
+                    viewNames.contains(entry.getKey()) ? TableType.VIEW : TableType.TABLE));
+        }
+        return result;
+    }
+    
+    private Collection<String> loadViewNames(final Connection connection, final Collection<String> tables, final String schema) throws SQLException {
         Collection<String> result = new LinkedList<>();
         try (PreparedStatement preparedStatement = connection.prepareStatement(getViewMetaDataSQL(tables))) {
-            preparedStatement.setString(1, connection.getSchema());
+            preparedStatement.setString(1, schema);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     result.add(resultSet.getString(1));
@@ -117,16 +122,15 @@ public final class OracleMetaDataLoader implements DialectMetaDataLoader {
         return String.format(VIEW_META_DATA_SQL, tableNames.stream().map(each -> String.format("'%s'", each)).collect(Collectors.joining(",")));
     }
     
-    private Map<String, Collection<ColumnMetaData>> loadColumnMetaDataMap(final Connection connection, final Collection<String> tables) throws SQLException {
+    private Map<String, Collection<ColumnMetaData>> loadColumnMetaDataMap(final Connection connection, final Collection<String> tables, final String schema) throws SQLException {
         Map<String, Collection<ColumnMetaData>> result = new HashMap<>(tables.size(), 1F);
         try (PreparedStatement preparedStatement = connection.prepareStatement(getTableMetaDataSQL(tables, connection.getMetaData()))) {
-            Map<String, Integer> dataTypes = new DataTypeLoader().load(connection.getMetaData(), getType());
             Map<String, Collection<String>> tablePrimaryKeys = loadTablePrimaryKeys(connection, tables);
-            preparedStatement.setString(1, connection.getSchema());
+            preparedStatement.setString(1, schema);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String tableName = resultSet.getString("TABLE_NAME");
-                    ColumnMetaData columnMetaData = loadColumnMetaData(dataTypes, resultSet, tablePrimaryKeys.getOrDefault(tableName, Collections.emptyList()), connection.getMetaData());
+                    ColumnMetaData columnMetaData = loadColumnMetaData(resultSet, tablePrimaryKeys.getOrDefault(tableName, Collections.emptyList()), connection.getMetaData());
                     if (!result.containsKey(tableName)) {
                         result.put(tableName, new LinkedList<>());
                     }
@@ -137,8 +141,7 @@ public final class OracleMetaDataLoader implements DialectMetaDataLoader {
         return result;
     }
     
-    private ColumnMetaData loadColumnMetaData(final Map<String, Integer> dataTypeMap, final ResultSet resultSet, final Collection<String> primaryKeys,
-                                              final DatabaseMetaData databaseMetaData) throws SQLException {
+    private ColumnMetaData loadColumnMetaData(final ResultSet resultSet, final Collection<String> primaryKeys, final DatabaseMetaData databaseMetaData) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
         String dataType = getOriginalDataType(resultSet.getString("DATA_TYPE"));
         boolean primaryKey = primaryKeys.contains(columnName);
@@ -148,8 +151,7 @@ public final class OracleMetaDataLoader implements DialectMetaDataLoader {
         boolean caseSensitive = null != collation && collation.endsWith("_CS");
         boolean isVisible = "NO".equals(resultSet.getString("HIDDEN_COLUMN"));
         boolean nullable = "Y".equals(resultSet.getString("NULLABLE"));
-        Integer dataTypeCode = Optional.ofNullable(dataTypeMap.get(dataType)).orElse(Types.OTHER);
-        return new ColumnMetaData(columnName, dataTypeCode, primaryKey, generated, caseSensitive, isVisible, false, nullable);
+        return new ColumnMetaData(columnName, DataTypeRegistry.getDataType(getDatabaseType(), dataType).orElse(Types.OTHER), primaryKey, generated, caseSensitive, isVisible, false, nullable);
     }
     
     private String getOriginalDataType(final String dataType) {
@@ -181,10 +183,10 @@ public final class OracleMetaDataLoader implements DialectMetaDataLoader {
         return databaseMetaData.getDatabaseMajorVersion() >= COLLATION_START_MAJOR_VERSION && databaseMetaData.getDatabaseMinorVersion() >= IDENTITY_COLUMN_START_MINOR_VERSION;
     }
     
-    private Map<String, Collection<IndexMetaData>> loadIndexMetaData(final Connection connection, final Collection<String> tableNames) throws SQLException {
+    private Map<String, Collection<IndexMetaData>> loadIndexMetaData(final Connection connection, final Collection<String> tableNames, final String schema) throws SQLException {
         Map<String, Collection<IndexMetaData>> result = new HashMap<>(tableNames.size(), 1F);
         try (PreparedStatement preparedStatement = connection.prepareStatement(getIndexMetaDataSQL(tableNames))) {
-            preparedStatement.setString(1, connection.getSchema());
+            preparedStatement.setString(1, schema);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String indexName = resultSet.getString("INDEX_NAME");
@@ -193,9 +195,8 @@ public final class OracleMetaDataLoader implements DialectMetaDataLoader {
                     if (!result.containsKey(tableName)) {
                         result.put(tableName, new LinkedList<>());
                     }
-                    IndexMetaData indexMetaData = new IndexMetaData(indexName);
+                    IndexMetaData indexMetaData = new IndexMetaData(indexName, loadIndexColumnNames(connection, tableName, indexName));
                     indexMetaData.setUnique(isUnique);
-                    indexMetaData.getColumns().addAll(loadIndexColumnNames(connection, tableName, indexName));
                     result.get(tableName).add(indexMetaData);
                 }
             }
@@ -229,7 +230,7 @@ public final class OracleMetaDataLoader implements DialectMetaDataLoader {
                 while (resultSet.next()) {
                     String columnName = resultSet.getString("COLUMN_NAME");
                     String tableName = resultSet.getString("TABLE_NAME");
-                    result.computeIfAbsent(tableName, k -> new LinkedList<>()).add(columnName);
+                    result.computeIfAbsent(tableName, key -> new LinkedList<>()).add(columnName);
                 }
             }
         }

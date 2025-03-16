@@ -18,15 +18,15 @@
 package org.apache.shardingsphere.mask.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleAlterExecutor;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.mask.api.config.MaskRuleConfiguration;
-import org.apache.shardingsphere.mask.api.config.rule.MaskColumnRuleConfiguration;
-import org.apache.shardingsphere.mask.api.config.rule.MaskTableRuleConfiguration;
+import org.apache.shardingsphere.mask.config.MaskRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskColumnRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskTableRuleConfiguration;
 import org.apache.shardingsphere.mask.distsql.handler.converter.MaskRuleStatementConverter;
 import org.apache.shardingsphere.mask.distsql.segment.MaskRuleSegment;
 import org.apache.shardingsphere.mask.distsql.statement.AlterMaskRuleStatement;
@@ -57,7 +57,7 @@ public final class AlterMaskRuleExecutor implements DatabaseRuleAlterExecutor<Al
     private void checkToBeAlteredRules(final AlterMaskRuleStatement sqlStatement) {
         Collection<String> currentMaskTableNames = rule.getConfiguration().getTables().stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toList());
         Collection<String> notExistedMaskTableNames = getToBeAlteredMaskTableNames(sqlStatement).stream().filter(each -> !currentMaskTableNames.contains(each)).collect(Collectors.toList());
-        ShardingSpherePreconditions.checkState(notExistedMaskTableNames.isEmpty(), () -> new MissingRequiredRuleException("Mask", database.getName(), notExistedMaskTableNames));
+        ShardingSpherePreconditions.checkMustEmpty(notExistedMaskTableNames, () -> new MissingRequiredRuleException("Mask", database.getName(), notExistedMaskTableNames));
     }
     
     private Collection<String> getToBeAlteredMaskTableNames(final AlterMaskRuleStatement sqlStatement) {
@@ -76,30 +76,13 @@ public final class AlterMaskRuleExecutor implements DatabaseRuleAlterExecutor<Al
                 .flatMap(each -> each.getColumns().stream()).collect(Collectors.toList());
         columns.addAll(toBeAlteredRuleConfig.getTables().stream().flatMap(each -> each.getColumns().stream()).collect(Collectors.toList()));
         Collection<String> inUsedAlgorithmNames = columns.stream().map(MaskColumnRuleConfiguration::getMaskAlgorithm).collect(Collectors.toSet());
-        Map<String, AlgorithmConfiguration> toBeDroppedAlgorithms = new HashMap<>();
+        Map<String, AlgorithmConfiguration> toBeDroppedAlgorithms = new HashMap<>(rule.getConfiguration().getMaskAlgorithms().size(), 1F);
         for (String each : rule.getConfiguration().getMaskAlgorithms().keySet()) {
             if (!inUsedAlgorithmNames.contains(each)) {
                 toBeDroppedAlgorithms.put(each, rule.getConfiguration().getMaskAlgorithms().get(each));
             }
         }
         return new MaskRuleConfiguration(Collections.emptyList(), toBeDroppedAlgorithms);
-    }
-    
-    private void dropRuleConfiguration(final MaskRuleConfiguration currentRuleConfig, final MaskRuleConfiguration toBeAlteredRuleConfig) {
-        Collection<String> toBeAlteredRuleName = toBeAlteredRuleConfig.getTables().stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toList());
-        currentRuleConfig.getTables().removeIf(each -> toBeAlteredRuleName.contains(each.getName()));
-    }
-    
-    private void addRuleConfiguration(final MaskRuleConfiguration currentRuleConfig, final MaskRuleConfiguration toBeAlteredRuleConfig) {
-        currentRuleConfig.getTables().addAll(toBeAlteredRuleConfig.getTables());
-        currentRuleConfig.getMaskAlgorithms().putAll(toBeAlteredRuleConfig.getMaskAlgorithms());
-    }
-    
-    private void dropUnusedAlgorithms(final MaskRuleConfiguration currentRuleConfig) {
-        Collection<String> inUsedAlgorithms = currentRuleConfig.getTables().stream().flatMap(each -> each.getColumns().stream()).map(MaskColumnRuleConfiguration::getMaskAlgorithm)
-                .collect(Collectors.toSet());
-        Collection<String> unusedAlgorithms = currentRuleConfig.getMaskAlgorithms().keySet().stream().filter(each -> !inUsedAlgorithms.contains(each)).collect(Collectors.toSet());
-        unusedAlgorithms.forEach(each -> currentRuleConfig.getMaskAlgorithms().remove(each));
     }
     
     @Override

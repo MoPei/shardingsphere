@@ -24,7 +24,7 @@ import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeSegment;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -37,7 +37,7 @@ public final class DataTypeConverter {
     
     /**
      * Convert data type segment to sql node.
-     * 
+     *
      * @param segment data type segment
      * @return sql node
      */
@@ -45,7 +45,12 @@ public final class DataTypeConverter {
         if (null == segment) {
             return Optional.empty();
         }
-        return Optional.of(new SqlDataTypeSpec(new SqlBasicTypeNameSpec(Objects.requireNonNull(SqlTypeName.get(segment.getDataTypeName())), segment.getDataLength().getPrecision(), SqlParserPos.ZERO),
-                SqlParserPos.ZERO));
+        return Optional.of(new SqlDataTypeSpec(getSqlBasicTypeNameSpec(segment), SqlParserPos.ZERO));
+    }
+    
+    private static SqlBasicTypeNameSpec getSqlBasicTypeNameSpec(final DataTypeSegment segment) {
+        SqlTypeName sqlTypeName = Objects.requireNonNull(SqlTypeName.get(segment.getDataTypeName().toUpperCase()));
+        return segment.getDataTypeLength().isPresent() ? new SqlBasicTypeNameSpec(sqlTypeName, segment.getDataLength().getPrecision(), SqlParserPos.ZERO)
+                : new SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO);
     }
 }

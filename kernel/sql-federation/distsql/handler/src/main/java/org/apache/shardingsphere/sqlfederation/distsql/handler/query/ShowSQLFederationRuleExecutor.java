@@ -22,7 +22,7 @@ import org.apache.shardingsphere.distsql.handler.aware.DistSQLExecutorRuleAware;
 import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.mode.manager.ContextManager;
-import org.apache.shardingsphere.sqlfederation.api.config.SQLFederationRuleConfiguration;
+import org.apache.shardingsphere.sqlfederation.config.SQLFederationRuleConfiguration;
 import org.apache.shardingsphere.sqlfederation.distsql.statement.queryable.ShowSQLFederationRuleStatement;
 import org.apache.shardingsphere.sqlfederation.rule.SQLFederationRule;
 
@@ -48,7 +48,7 @@ public final class ShowSQLFederationRuleExecutor implements DistSQLQueryExecutor
         SQLFederationRuleConfiguration ruleConfig = rule.getConfiguration();
         boolean sqlFederationEnabled = ruleConfig.isSqlFederationEnabled();
         boolean allQueryUseSQLFederation = ruleConfig.isAllQueryUseSQLFederation();
-        String executionPlanCache = null == ruleConfig.getExecutionPlanCache() ? "" : ruleConfig.getExecutionPlanCache().toString();
+        String executionPlanCache = String.valueOf(ruleConfig.getExecutionPlanCache());
         return Collections.singleton(new LocalDataQueryResultRow(sqlFederationEnabled, allQueryUseSQLFederation, executionPlanCache));
     }
     

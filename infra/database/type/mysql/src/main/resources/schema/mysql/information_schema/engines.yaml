@@ -16,12 +16,14 @@
 #
 
 name: ENGINES
+type: TABLE
 columns:
   engine:
     caseSensitive: false
     dataType: 12
     generated: false
     name: ENGINE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 12
     generated: false
     name: SUPPORT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 12
     generated: false
     name: COMMENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: 12
     generated: false
     name: TRANSACTIONS
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -54,6 +59,7 @@ columns:
     dataType: 12
     generated: false
     name: XA
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -62,6 +68,7 @@ columns:
     dataType: 12
     generated: false
     name: SAVEPOINTS
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true

@@ -16,20 +16,23 @@
 #
 
 name: TRIGGERS
+type: TABLE
 columns:
   trigger_catalog:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TRIGGER_CATALOG
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   trigger_schema:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TRIGGER_SCHEMA
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,38 +41,43 @@ columns:
     dataType: 12
     generated: false
     name: TRIGGER_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   event_manipulation:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: 1
     generated: false
     name: EVENT_MANIPULATION
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   event_object_catalog:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: EVENT_OBJECT_CATALOG
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   event_object_schema:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: EVENT_OBJECT_SCHEMA
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   event_object_table:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: EVENT_OBJECT_TABLE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -78,22 +86,25 @@ columns:
     dataType: 4
     generated: false
     name: ACTION_ORDER
+    nullable: false
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true
   action_condition:
     caseSensitive: false
-    dataType: -1
+    dataType: -2
     generated: false
     name: ACTION_CONDITION
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   action_statement:
-    caseSensitive: false
+    caseSensitive: true
     dataType: -1
     generated: false
     name: ACTION_STATEMENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -102,30 +113,34 @@ columns:
     dataType: 12
     generated: false
     name: ACTION_ORIENTATION
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   action_timing:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: 1
     generated: false
     name: ACTION_TIMING
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   action_reference_old_table:
     caseSensitive: false
-    dataType: 12
+    dataType: -2
     generated: false
     name: ACTION_REFERENCE_OLD_TABLE
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   action_reference_new_table:
     caseSensitive: false
-    dataType: 12
+    dataType: -2
     generated: false
     name: ACTION_REFERENCE_NEW_TABLE
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -134,6 +149,7 @@ columns:
     dataType: 12
     generated: false
     name: ACTION_REFERENCE_OLD_ROW
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -142,6 +158,7 @@ columns:
     dataType: 12
     generated: false
     name: ACTION_REFERENCE_NEW_ROW
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -150,22 +167,25 @@ columns:
     dataType: 93
     generated: false
     name: CREATED
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   sql_mode:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: 1
     generated: false
     name: SQL_MODE
+    nullable: false
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true
   definer:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: DEFINER
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -174,6 +194,7 @@ columns:
     dataType: 12
     generated: false
     name: CHARACTER_SET_CLIENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -182,6 +203,7 @@ columns:
     dataType: 12
     generated: false
     name: COLLATION_CONNECTION
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -190,6 +212,7 @@ columns:
     dataType: 12
     generated: false
     name: DATABASE_COLLATION
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true

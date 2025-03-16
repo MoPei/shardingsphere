@@ -20,9 +20,8 @@ package org.apache.shardingsphere.driver.jdbc.core.datasource.metadata;
 import org.apache.groovy.util.Maps;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.jdbc.core.resultset.DatabaseMetaDataResultSet;
-import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
 import org.apache.shardingsphere.infra.database.core.connector.ConnectionProperties;
-import org.apache.shardingsphere.infra.instance.InstanceContext;
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
@@ -50,7 +49,6 @@ import java.util.Collections;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -91,15 +89,15 @@ class ShardingSphereDatabaseMetaDataTest {
         when(shardingSphereConnection.getDatabaseConnectionManager().getRandomPhysicalDataSourceName()).thenReturn(DATA_SOURCE_NAME);
         when(shardingSphereConnection.getDatabaseConnectionManager().getRandomConnection()).thenReturn(connection);
         when(shardingSphereConnection.getContextManager().getMetaDataContexts()).thenReturn(metaDataContexts);
-        when(shardingSphereConnection.getDatabaseName()).thenReturn(DefaultDatabase.LOGIC_NAME);
+        when(shardingSphereConnection.getCurrentDatabaseName()).thenReturn("foo_db");
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
-        when(metaDataContexts.getMetaData().getDatabase(shardingSphereConnection.getDatabaseName())).thenReturn(database);
+        when(metaDataContexts.getMetaData().getDatabase(shardingSphereConnection.getCurrentDatabaseName())).thenReturn(database);
         ShardingRule shardingRule = mockShardingRule();
         when(database.getRuleMetaData().getRules()).thenReturn(Collections.singleton(shardingRule));
-        ConnectionProperties connectionProperties = mock(ConnectionProperties.class);
-        when(connectionProperties.getCatalog()).thenReturn("test");
-        when(connectionProperties.getSchema()).thenReturn("test");
-        when(database.getResourceMetaData().getStorageUnits().get(DATA_SOURCE_NAME).getConnectionProperties()).thenReturn(connectionProperties);
+        ConnectionProperties connectionProps = mock(ConnectionProperties.class);
+        when(connectionProps.getCatalog()).thenReturn("test");
+        when(connectionProps.getSchema()).thenReturn("test");
+        when(database.getResourceMetaData().getStorageUnits().get(DATA_SOURCE_NAME).getConnectionProperties()).thenReturn(connectionProps);
         shardingSphereDatabaseMetaData = new ShardingSphereDatabaseMetaData(shardingSphereConnection);
     }
     
@@ -107,7 +105,7 @@ class ShardingSphereDatabaseMetaDataTest {
         ShardingRuleConfiguration ruleConfig = new ShardingRuleConfiguration();
         ShardingTableRuleConfiguration shardingTableRuleConfig = new ShardingTableRuleConfiguration(TABLE_NAME, DATA_SOURCE_NAME + "." + TABLE_NAME);
         ruleConfig.setTables(Collections.singleton(shardingTableRuleConfig));
-        return new ShardingRule(ruleConfig, Maps.of(DATA_SOURCE_NAME, new MockedDataSource()), mock(InstanceContext.class));
+        return new ShardingRule(ruleConfig, Maps.of(DATA_SOURCE_NAME, new MockedDataSource()), mock(ComputeNodeInstanceContext.class), Collections.emptyList());
     }
     
     @Test
@@ -777,68 +775,70 @@ class ShardingSphereDatabaseMetaDataTest {
     }
     
     @Test
-    void assertOwnInsertsAreVisible() {
-        assertTrue(shardingSphereDatabaseMetaData.ownInsertsAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    void assertOwnInsertsAreVisible() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.ownInsertsAreVisible(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.ownInsertsAreVisible(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertOwnUpdatesAreVisible() {
-        assertTrue(shardingSphereDatabaseMetaData.ownUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    void assertOwnUpdatesAreVisible() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.ownUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.ownUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertOwnDeletesAreVisible() {
-        assertTrue(shardingSphereDatabaseMetaData.ownDeletesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    void assertOwnDeletesAreVisible() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.ownDeletesAreVisible(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.ownDeletesAreVisible(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertOthersInsertsAreVisible() {
-        assertTrue(shardingSphereDatabaseMetaData.othersInsertsAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    void assertOthersInsertsAreVisible() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.othersInsertsAreVisible(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.othersInsertsAreVisible(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertOthersUpdatesAreVisible() {
-        assertTrue(shardingSphereDatabaseMetaData.othersUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    void assertOthersUpdatesAreVisible() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.othersUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.othersUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertOthersDeletesAreVisible() {
-        assertTrue(shardingSphereDatabaseMetaData.othersDeletesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    void assertOthersDeletesAreVisible() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.othersDeletesAreVisible(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.othersDeletesAreVisible(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertInsertsAreDetected() {
-        assertTrue(shardingSphereDatabaseMetaData.insertsAreDetected(ResultSet.TYPE_FORWARD_ONLY));
+    void assertInsertsAreDetected() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.insertsAreDetected(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.insertsAreDetected(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertUpdatesAreDetected() {
-        assertTrue(shardingSphereDatabaseMetaData.updatesAreDetected(ResultSet.TYPE_FORWARD_ONLY));
+    void assertUpdatesAreDetected() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.updatesAreDetected(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.updatesAreDetected(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertDeletesAreDetected() {
-        assertTrue(shardingSphereDatabaseMetaData.deletesAreDetected(ResultSet.TYPE_FORWARD_ONLY));
+    void assertDeletesAreDetected() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.deletesAreDetected(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.deletesAreDetected(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertSupportsResultSetType() {
-        assertTrue(shardingSphereDatabaseMetaData.supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY));
+    void assertSupportsResultSetType() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY), is(databaseMetaData.supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY)));
     }
     
     @Test
-    void assertSupportsResultSetConcurrency() {
-        assertTrue(shardingSphereDatabaseMetaData.supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY));
+    void assertSupportsResultSetConcurrency() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY),
+                is(databaseMetaData.supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)));
     }
     
     @Test
-    void assertSupportsResultSetHoldability() {
-        assertTrue(shardingSphereDatabaseMetaData.supportsResultSetHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT));
+    void assertSupportsResultSetHoldability() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.supportsResultSetHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT),
+                is(databaseMetaData.supportsResultSetHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT)));
     }
     
     @Test
-    void assertSupportsTransactionIsolationLevel() {
-        assertTrue(shardingSphereDatabaseMetaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE));
+    void assertSupportsTransactionIsolationLevel() throws SQLException {
+        assertThat(shardingSphereDatabaseMetaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE), is(databaseMetaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE)));
     }
     
     @Test

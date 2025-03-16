@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-infra</artifactId>
-        <version>5.4.2-SNAPSHOT</version>
+        <version>5.5.3-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-infra-algorithm</artifactId>
     <packaging>pom</packaging>
@@ -29,7 +29,6 @@
     
     <modules>
         <module>core</module>
-        <module>key-generator</module>
-        <module>load-balancer</module>
+        <module>type</module>
     </modules>
 </project>

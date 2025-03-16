@@ -18,11 +18,11 @@
 package org.apache.shardingsphere.encrypt.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDropExecutor;
-import org.apache.shardingsphere.encrypt.api.config.EncryptRuleConfiguration;
-import org.apache.shardingsphere.encrypt.api.config.rule.EncryptTableRuleConfiguration;
+import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
+import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
 import org.apache.shardingsphere.encrypt.distsql.statement.DropEncryptRuleStatement;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
@@ -56,21 +56,19 @@ public final class DropEncryptRuleExecutor implements DatabaseRuleDropExecutor<D
     }
     
     private void checkToBeDroppedEncryptTableNames(final DropEncryptRuleStatement sqlStatement) {
-        Collection<String> currentEncryptTableNames = rule.getConfiguration().getTables()
-                .stream().map(EncryptTableRuleConfiguration::getName).collect(Collectors.toList());
-        Collection<String> notExistedTableNames = sqlStatement.getTables().stream().filter(each -> !currentEncryptTableNames.contains(each)).collect(Collectors.toList());
-        ShardingSpherePreconditions.checkState(notExistedTableNames.isEmpty(), () -> new MissingRequiredRuleException("Encrypt", database.getName(), notExistedTableNames));
+        Collection<String> notExistedTableNames = sqlStatement.getTables().stream().filter(each -> !rule.getAllTableNames().contains(each)).collect(Collectors.toList());
+        ShardingSpherePreconditions.checkMustEmpty(notExistedTableNames, () -> new MissingRequiredRuleException("Encrypt", database.getName(), notExistedTableNames));
     }
     
     @Override
     public boolean hasAnyOneToBeDropped(final DropEncryptRuleStatement sqlStatement) {
-        return !Collections.disjoint(rule.getConfiguration().getTables().stream().map(EncryptTableRuleConfiguration::getName).collect(Collectors.toSet()), sqlStatement.getTables());
+        return !Collections.disjoint(rule.getAllTableNames(), sqlStatement.getTables());
     }
     
     @Override
     public EncryptRuleConfiguration buildToBeDroppedRuleConfiguration(final DropEncryptRuleStatement sqlStatement) {
         Collection<EncryptTableRuleConfiguration> toBeDroppedTables = new LinkedList<>();
-        Map<String, AlgorithmConfiguration> toBeDroppedEncryptors = new HashMap<>();
+        Map<String, AlgorithmConfiguration> toBeDroppedEncryptors = new HashMap<>(sqlStatement.getTables().size(), 1F);
         for (String each : sqlStatement.getTables()) {
             toBeDroppedTables.add(new EncryptTableRuleConfiguration(each, Collections.emptyList()));
             dropRule(each);
@@ -80,13 +78,8 @@ public final class DropEncryptRuleExecutor implements DatabaseRuleDropExecutor<D
     }
     
     private void dropRule(final String ruleName) {
-        Optional<EncryptTableRuleConfiguration> encryptTableRuleConfig = rule.getConfiguration().getTables().stream()
-                .filter(each -> each.getName().equals(ruleName)).findAny();
+        Optional<EncryptTableRuleConfiguration> encryptTableRuleConfig = rule.getConfiguration().getTables().stream().filter(each -> each.getName().equalsIgnoreCase(ruleName)).findAny();
         encryptTableRuleConfig.ifPresent(optional -> rule.getConfiguration().getTables().remove(encryptTableRuleConfig.get()));
-    }
-    
-    private void dropUnusedEncryptor(final EncryptRuleConfiguration currentRuleConfig) {
-        UnusedAlgorithmFinder.findUnusedEncryptor(currentRuleConfig).forEach(each -> currentRuleConfig.getEncryptors().remove(each));
     }
     
     @Override

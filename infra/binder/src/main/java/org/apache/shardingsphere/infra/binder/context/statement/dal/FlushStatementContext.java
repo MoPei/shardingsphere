@@ -18,14 +18,10 @@
 package org.apache.shardingsphere.infra.binder.context.statement.dal;
 
 import lombok.Getter;
-import org.apache.shardingsphere.infra.binder.context.statement.CommonSQLStatementContext;
 import org.apache.shardingsphere.infra.binder.context.segment.table.TablesContext;
+import org.apache.shardingsphere.infra.binder.context.statement.CommonSQLStatementContext;
 import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.FlushStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.handler.dal.FlushStatementHandler;
-
-import java.util.Collection;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.FlushStatement;
 
 /**
  * Flush statement context.
@@ -37,16 +33,11 @@ public final class FlushStatementContext extends CommonSQLStatementContext imple
     
     public FlushStatementContext(final FlushStatement sqlStatement) {
         super(sqlStatement);
-        tablesContext = new TablesContext(FlushStatementHandler.getSimpleTableSegment(sqlStatement), getDatabaseType());
+        tablesContext = new TablesContext(sqlStatement.getTables());
     }
     
     @Override
     public FlushStatement getSqlStatement() {
         return (FlushStatement) super.getSqlStatement();
-    }
-    
-    @Override
-    public Collection<SimpleTableSegment> getAllTables() {
-        return FlushStatementHandler.getSimpleTableSegment(getSqlStatement());
     }
 }

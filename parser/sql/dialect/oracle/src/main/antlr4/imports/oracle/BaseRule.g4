@@ -36,7 +36,7 @@ literals
     ;
 
 intervalLiterals
-    : INTERVAL stringLiterals intervalUnit (intervalPrecision)? (TO intervalUnit (intervalPrecision)?)?
+    : INTERVAL simpleExpr intervalUnit (intervalPrecision)? (TO intervalUnit (intervalPrecision)?)?
     ;
 
 bindLiterals
@@ -73,7 +73,7 @@ hexadecimalLiterals
 bitValueLiterals
     : BIT_NUM_
     ;
-    
+
 booleanLiterals
     : TRUE | FALSE
     ;
@@ -119,7 +119,7 @@ unreservedWord1
     | BECOME | CHANGE | NOTIFICATION | PRIVILEGE | PURGE | RESUMABLE
     | SYSGUID | SYSBACKUP | SYSDBA | SYSDG | SYSKM | SYSOPER | DBA_RECYCLEBIN |SCHEMA
     | DO | DEFINER | CURRENT_USER | CASCADED | CLOSE | OPEN | NEXT | NAME | NAMES
-    | COLLATION | REAL | TYPE | FIRST | RANK | SAMPLE | SYSTIMESTAMP | MINUTE | ANY 
+    | COLLATION | REAL | TYPE | FIRST | RANK | SAMPLE | SYSTIMESTAMP | MINUTE | ANY
     | LENGTH | SINGLE_C | TIME_UNIT | TARGET | PUBLIC | ID | STATE | PRIORITY
     | PRIMARY | FOREIGN | KEY | POSITION | PRECISION | FUNCTION | PROCEDURE | SPECIFICATION | CASE
     | WHEN | CAST | TRIM | SUBSTRING | JOIN
@@ -334,7 +334,8 @@ unreservedWord3
     | WIDTH_BUCKET | WRAPPED | XID | XMLAGG | XMLATTRIBUTES | XMLCAST | XMLCDATA | XMLCOLATTVAL | XMLCOMMENT | XMLCONCAT | XMLDIFF
     | XMLEXISTS | XMLEXISTS2 | XMLFOREST | XMLINDEX_REWRITE | XMLINDEX_REWRITE_IN_SELECT | XMLINDEX_SEL_IDX_TBL | XMLISNODE
     | XMLISVALID | XMLNAMESPACES | XMLPARSE | XMLPATCH | XMLPI | XMLQUERY | XMLROOT | XMLSERIALIZE | XMLTABLE | XMLTOOBJECT
-    | XMLTRANSFORM | XMLTRANSFORMBLOB | XML_DML_RWT_STMT | XPATHTABLE | XS_SYS_CONTEXT | X_DYN_PRUNE | RESULT | TABLE | NUMBER | CHAR | SQLCODE
+    | XMLTRANSFORM | XMLTRANSFORMBLOB | XML_DML_RWT_STMT | XPATHTABLE | XS_SYS_CONTEXT | X_DYN_PRUNE | RESULT | TABLE | NUMBER | CHAR
+    | SQLCODE | TAB | TERM | NUM | INNER
     ;
 
 schemaName
@@ -638,7 +639,7 @@ alias
     ;
 
 dataTypeLength
-    : LP_ (INTEGER_ (COMMA_ (MINUS_)? INTEGER_)? (CHAR | BYTE)?)? RP_
+    : LP_ (length=INTEGER_ (COMMA_ (MINUS_)? INTEGER_)? type=(CHAR | BYTE)?)? RP_
     ;
 
 primaryKey
@@ -663,6 +664,11 @@ expr
     | expr datetimeExpr
     | multisetExpr
     | builtinFunctionsExpr
+    | dataManipulationLanguageExpr
+    ;
+
+dataManipulationLanguageExpr
+    : UPDATING | INSERTING | DELETING
     ;
 
 andOperator
@@ -678,7 +684,7 @@ notOperator
     ;
 
 booleanPrimary
-    : booleanPrimary IS NOT? (TRUE | FALSE | UNKNOWN | NULL)
+    : booleanPrimary IS NOT? (TRUE | FALSE | UNKNOWN | NULL | NAN)
     | (PRIOR | DISTINCT) predicate
     | CONNECT_BY_ROOT predicate
     | booleanPrimary SAFE_EQ_ predicate
@@ -688,7 +694,7 @@ booleanPrimary
     ;
 
 comparisonOperator
-    : EQ_ | GTE_ | GT_ | LTE_ | LT_ | NEQ_
+    : EQ_ | GTE_ | GT_ | LTE_ | LT_ | NEQ_ | (GT_ | LT_) EQ_ | LT_ GT_ | (NOT_ | CARET_) EQ_
     ;
 
 predicate
@@ -747,9 +753,9 @@ keepClause
 aggregationFunctionName
     : MAX | MIN | SUM | COUNT | AVG | GROUPING | LISTAGG | PERCENT_RANK | PERCENTILE_CONT | PERCENTILE_DISC | CUME_DIST | RANK
     | REGR_SLOPE | REGR_INTERCEPT | REGR_COUNT | REGR_R2 | REGR_AVGX | REGR_AVGY | REGR_SXX | REGR_SYY | REGR_SXY
-    | COLLECT | CORR | CORR_S | CORR_K | COVAR_POP | COVAR_SAMP | DENSE_RANK | FIRST 
-    | GROUP_ID | GROUPING_ID | LAST | MEDIAN | STATS_BINOMIAL_TEST | STATS_CROSSTAB | STATS_F_TEST | STATS_KS_TEST 
-    | STATS_MODE | STATS_MW_TEST | STATS_ONE_WAY_ANOVA | STATS_T_TEST_ONE | STATS_T_TEST_PAIRED | STATS_T_TEST_INDEP 
+    | COLLECT | CORR | CORR_S | CORR_K | COVAR_POP | COVAR_SAMP | DENSE_RANK | FIRST
+    | GROUP_ID | GROUPING_ID | LAST | MEDIAN | STATS_BINOMIAL_TEST | STATS_CROSSTAB | STATS_F_TEST | STATS_KS_TEST
+    | STATS_MODE | STATS_MW_TEST | STATS_ONE_WAY_ANOVA | STATS_T_TEST_ONE | STATS_T_TEST_PAIRED | STATS_T_TEST_INDEP
     | STATS_T_TEST_INDEPU | STATS_WSR_TEST | STDDEV | STDDEV_POP | STDDEV_SAMP | VAR_POP | VAR_SAMP | VARIANCE
     ;
 
@@ -790,7 +796,11 @@ leadLagInfo
 
 specialFunction
     : castFunction | charFunction | extractFunction | formatFunction | firstOrLastValueFunction | trimFunction | featureFunction
-    | setFunction | translateFunction | cursorFunction | toDateFunction | approxRank | wmConcatFunction
+    | setFunction | translateFunction | cursorFunction | toDateFunction | approxRank | wmConcatFunction | predictionCostFunction
+    ;
+
+predictionCostFunction
+    : PREDICTION_COST LP_ (schemaName DOT_)? modelName (COMMA_ classExpr=expr)? costMatrixClause? miningAttributeClause? RP_
     ;
 
 wmConcatFunction
@@ -819,7 +829,7 @@ setFunction
 
 featureFunction
     : featureFunctionName LP_ (schemaName DOT_)? modelName (COMMA_ featureId)? (COMMA_ numberLiterals (COMMA_ numberLiterals)?)?
-    (DESC | ASC | ABS)? cost_matrix_clause? miningAttributeClause (AND miningAttributeClause)? RP_
+    (DESC | ASC | ABS)? costMatrixClause? miningAttributeClause (AND miningAttributeClause)? RP_
     ;
 
 featureFunctionName
@@ -827,7 +837,7 @@ featureFunctionName
     | PREDICTION_PROBABILITY | PREDICTION_SET | PREDICTION_BOUNDS | PREDICTION | PREDICTION_DETAILS
     ;
 
-cost_matrix_clause
+costMatrixClause
     : COST (MODEL (AUTO)?)? | LP_ literals RP_ (COMMA_ LP_ literals RP_)* VALUES LP_ LP_ literals (COMMA_ literals)* RP_ (COMMA_ LP_ literals (COMMA_ literals)* RP_) RP_
     ;
 
@@ -878,7 +888,7 @@ charSet
     : NCHAR_CS
     | ignoredIdentifier
     ;
-    
+
 extractFunction
     : EXTRACT LP_ (YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | TIMEZONE_HOUR | TIMEZONE_MINUTE | TIMEZONE_REGION | TIMEZONE_ABBR) FROM expr RP_
     ;
@@ -944,7 +954,11 @@ lobItemList
     ;
 
 dataType
-    : dataTypeName dataTypeLength? | specialDatatype | dataTypeName dataTypeLength? datetimeTypeSuffix | typeAttribute
+    : dataTypeName dataTypeLength? | specialDatatype | dataTypeName dataTypeLength? datetimeTypeSuffix | customDataType | typeAttribute
+    ;
+
+customDataType
+    : dataTypeName DOT_ identifier
     ;
 
 specialDatatype
@@ -962,7 +976,7 @@ dataTypeName
 datetimeTypeSuffix
     : (WITH LOCAL? TIME ZONE)? | TO MONTH | TO SECOND (LP_ NUMBER_ RP_)?
     ;
-    
+
 typeAttribute
     : (variableName | objectName) MOD_ TYPE
     ;
@@ -1264,7 +1278,7 @@ rollbackSegment
     ;
 
 queryName
-    : (owner DOT_)? name
+    : alias
     ;
 
 cycleValue
@@ -1468,9 +1482,9 @@ cellReference
     ;
 
 multisetCondition
-    : isASetCondition 
-    | isEmptyCondition 
-    | memberCondition 
+    : isASetCondition
+    | isEmptyCondition
+    | memberCondition
     | submultisetCondition
     ;
 
@@ -1563,7 +1577,7 @@ jsonEqualCondition
     ;
 
 jsonExistsCondition
-    : JSON_EXISTS LP_ expr (FORMAT JSON)? COMMA_ jsonBasicPathExpr 
+    : JSON_EXISTS LP_ expr (FORMAT JSON)? COMMA_ jsonBasicPathExpr
     jsonPassingClause? jsonExistsOnErrorClause? jsonExistsOnEmptyClause? RP_
     ;
 
@@ -1632,9 +1646,9 @@ jsonFilterExpr
     ;
 
 jsonCond
-    : jsonCond OR_ jsonCond | jsonCond AND_ jsonCond | jsonNegation 
-    | LP_ jsonCond RP_ | jsonComparison | jsonExistsCond 
-    | jsonInCond | jsonLikeCond | jsonLikeRegexCond 
+    : jsonCond OR_ jsonCond | jsonCond AND_ jsonCond | jsonNegation
+    | LP_ jsonCond RP_ | jsonComparison | jsonExistsCond
+    | jsonInCond | jsonLikeCond | jsonLikeRegexCond
     | jsonEqRegexCond | jsonHasSubstringCond | jsonStartsWithCond
     ;
 
@@ -1684,7 +1698,7 @@ valueList
 
 jsonComparison
     : (jsonRelativePathExpr jsonComparePred (jsonVar | jsonScalar))
-    | ((jsonVar | jsonScalar) jsonComparePred jsonRelativePathExpr) 
+    | ((jsonVar | jsonScalar) jsonComparePred jsonRelativePathExpr)
     | (jsonScalar jsonComparePred jsonScalar)
     ;
 
@@ -1713,8 +1727,8 @@ jsonString
     ;
 
 compoundCondition
-    : LP_ condition RP_ 
-    | NOT condition 
+    : LP_ condition RP_
+    | NOT condition
     | condition (AND | OR) condition
     ;
 
@@ -1723,7 +1737,7 @@ existsCondition
     ;
 
 inCondition
-    : (expr NOT? IN LP_ (expressionList | subquery) RP_) 
+    : (expr NOT? IN LP_ (expressionList | subquery) RP_)
     | (exprList NOT? IN LP_ ((expressionList (COMMA_ expressionList)*) | subquery) RP_)
     ;
 
@@ -1794,7 +1808,7 @@ attributeDimensionName
 sequenceName
     : identifier
     ;
-    
+
 spfileName
     : STRING_
     ;
@@ -1986,7 +2000,7 @@ xmlFunction
     | xmlSerializeFunction
     | xmlTableFunction
     | xmlIsSchemaValidFunction
-    | specifiedFunctionName = (SYS_XMLGEN | SYS_XMLAGG | APPENDCHILDXML | DELETEXML | EXISTSNODE | EXTRACT | EXTRACTVALUE 
+    | specifiedFunctionName = (SYS_XMLGEN | SYS_XMLAGG | APPENDCHILDXML | DELETEXML | EXISTSNODE | EXTRACT | EXTRACTVALUE
         | INSERTCHILDXML | INSERTCHILDXMLAFTER | INSERTCHILDXMLBEFORE | INSERTXMLAFTER | INSERTXMLBEFORE
         | SYS_DBURIGEN | UPDATEXML | XMLCONCAT | XMLDIFF | XMLEXISTS | XMLISVALID | XMLPATCH | XMLSEQUENCE | XMLTRANSFORM) exprList
     | specifiedFunctionName = (DEPTH | PATH) LP_ correlationInteger RP_
@@ -2058,7 +2072,7 @@ xmlTableFunction
     ;
 
 xmlIsSchemaValidFunction
-    : (owner DOT_)* name DOT_ ISSCHEMAVALID LP_ expr (COMMA_ expr)* RP_ 
+    : (owner DOT_)* name DOT_ ISSCHEMAVALID LP_ expr (COMMA_ expr)* RP_
     ;
 
 xmlNamespacesClause

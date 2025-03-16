@@ -17,15 +17,15 @@
 
 package org.apache.shardingsphere.shadow.distsql.fixture;
 
-import org.apache.shardingsphere.shadow.api.shadow.hint.HintShadowAlgorithm;
-import org.apache.shardingsphere.shadow.api.shadow.hint.PreciseHintShadowValue;
+import org.apache.shardingsphere.shadow.spi.hint.HintShadowAlgorithm;
+import org.apache.shardingsphere.shadow.spi.hint.PreciseHintShadowValue;
 
 import java.util.Collection;
 
 public final class DistSQLShadowAlgorithmFixture implements HintShadowAlgorithm<String> {
     
     @Override
-    public boolean isShadow(final Collection<String> relatedShadowTables, final PreciseHintShadowValue<String> hintShadowValue) {
+    public boolean isShadow(final Collection<String> shadowTableNames, final PreciseHintShadowValue<String> hintShadowValue) {
         return false;
     }
     

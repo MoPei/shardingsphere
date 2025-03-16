@@ -16,28 +16,32 @@
 #
 
 name: STATISTICS
+type: TABLE
 columns:
   table_catalog:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TABLE_CATALOG
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   table_schema:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TABLE_SCHEMA
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   table_name:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TABLE_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,14 +50,16 @@ columns:
     dataType: 4
     generated: false
     name: NON_UNIQUE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   index_schema:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: INDEX_SCHEMA
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -62,6 +68,7 @@ columns:
     dataType: 12
     generated: false
     name: INDEX_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -70,14 +77,16 @@ columns:
     dataType: 4
     generated: false
     name: SEQ_IN_INDEX
+    nullable: false
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true
   column_name:
     caseSensitive: false
     dataType: 12
     generated: false
     name: COLUMN_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -86,30 +95,34 @@ columns:
     dataType: 12
     generated: false
     name: COLLATION
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   cardinality:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: CARDINALITY
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   sub_part:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: SUB_PART
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   packed:
     caseSensitive: false
-    dataType: 12
+    dataType: -2
     generated: false
     name: PACKED
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -118,14 +131,16 @@ columns:
     dataType: 12
     generated: false
     name: NULLABLE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   index_type:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: INDEX_TYPE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -134,14 +149,16 @@ columns:
     dataType: 12
     generated: false
     name: COMMENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   index_comment:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: INDEX_COMMENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -150,14 +167,16 @@ columns:
     dataType: 12
     generated: false
     name: IS_VISIBLE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   expression:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: -1
     generated: false
     name: EXPRESSION
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true

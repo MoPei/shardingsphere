@@ -16,12 +16,14 @@
 #
 
 name: SCHEMA_PRIVILEGES
+type: TABLE
 columns:
   grantee:
     caseSensitive: false
     dataType: 12
     generated: false
     name: GRANTEE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 12
     generated: false
     name: TABLE_CATALOG
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 12
     generated: false
     name: TABLE_SCHEMA
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: 12
     generated: false
     name: PRIVILEGE_TYPE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -54,6 +59,7 @@ columns:
     dataType: 12
     generated: false
     name: IS_GRANTABLE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true

@@ -17,36 +17,57 @@
 
 package org.apache.shardingsphere.sqlfederation.distsql.handler.update;
 
-import org.apache.shardingsphere.sqlfederation.api.config.SQLFederationRuleConfiguration;
+import org.apache.shardingsphere.distsql.statement.DistSQLStatement;
+import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.infra.config.rule.scope.GlobalRuleConfiguration;
+import org.apache.shardingsphere.sql.parser.api.CacheOption;
+import org.apache.shardingsphere.sqlfederation.config.SQLFederationRuleConfiguration;
 import org.apache.shardingsphere.sqlfederation.distsql.segment.CacheOptionSegment;
 import org.apache.shardingsphere.sqlfederation.distsql.statement.updatable.AlterSQLFederationRuleStatement;
 import org.apache.shardingsphere.sqlfederation.rule.SQLFederationRule;
 import org.apache.shardingsphere.sqlfederation.rule.builder.DefaultSQLFederationRuleConfigurationBuilder;
-import org.junit.jupiter.api.Test;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.update.GlobalRuleDefinitionExecutorTest;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.sql.SQLException;
+import java.util.stream.Stream;
+
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-class AlterSQLFederationRuleExecutorTest {
+class AlterSQLFederationRuleExecutorTest extends GlobalRuleDefinitionExecutorTest {
     
-    @Test
-    void assertExecute() {
-        AlterSQLFederationRuleExecutor executor = new AlterSQLFederationRuleExecutor();
-        AlterSQLFederationRuleStatement sqlStatement = new AlterSQLFederationRuleStatement(true, true, new CacheOptionSegment(64, 512L));
-        SQLFederationRule rule = mock(SQLFederationRule.class);
-        when(rule.getConfiguration()).thenReturn(getSQLFederationRuleConfiguration());
-        executor.setRule(rule);
-        SQLFederationRuleConfiguration actual = executor.buildToBeAlteredRuleConfiguration(sqlStatement);
-        assertTrue(actual.isSqlFederationEnabled());
-        assertTrue(actual.isAllQueryUseSQLFederation());
-        assertThat(actual.getExecutionPlanCache().getInitialCapacity(), is(64));
-        assertThat(actual.getExecutionPlanCache().getMaximumSize(), is(512L));
+    AlterSQLFederationRuleExecutorTest() {
+        super(mock(SQLFederationRule.class));
     }
     
-    private SQLFederationRuleConfiguration getSQLFederationRuleConfiguration() {
-        return new DefaultSQLFederationRuleConfigurationBuilder().build();
+    @ParameterizedTest(name = "{0}")
+    @ArgumentsSource(TestCaseArgumentsProvider.class)
+    void assertExecuteUpdate(final String name, final GlobalRuleConfiguration ruleConfig,
+                             final DistSQLStatement sqlStatement, final RuleConfiguration matchedRuleConfig, final Class<? extends Exception> expectedException) throws SQLException {
+        assertExecuteUpdate(ruleConfig, sqlStatement, matchedRuleConfig, expectedException);
+    }
+    
+    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
+        
+        @Override
+        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
+            return Stream.of(
+                    Arguments.arguments("normal",
+                            new DefaultSQLFederationRuleConfigurationBuilder().build(),
+                            new AlterSQLFederationRuleStatement(true, true, new CacheOptionSegment(64, 512L)),
+                            new SQLFederationRuleConfiguration(true, true, new CacheOption(64, 512L)), null),
+                    Arguments.arguments("withNotExistedDistributedTransactionType",
+                            new DefaultSQLFederationRuleConfigurationBuilder().build(),
+                            new AlterSQLFederationRuleStatement(null, null, null),
+                            new SQLFederationRuleConfiguration(false, false, new CacheOption(2000, 65535L)), null),
+                    Arguments.arguments("withNotExistedXATransactionProvider",
+                            new DefaultSQLFederationRuleConfigurationBuilder().build(),
+                            new AlterSQLFederationRuleStatement(null, null, new CacheOptionSegment(null, null)),
+                            new SQLFederationRuleConfiguration(false, false, new CacheOption(2000, 65535L)), null));
+        }
     }
 }

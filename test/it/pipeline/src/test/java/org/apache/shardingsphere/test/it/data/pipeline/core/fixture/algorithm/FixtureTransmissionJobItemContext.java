@@ -23,7 +23,7 @@ import org.apache.shardingsphere.data.pipeline.core.context.TransmissionJobItemC
 import org.apache.shardingsphere.data.pipeline.core.context.TransmissionProcessContext;
 import org.apache.shardingsphere.data.pipeline.core.job.JobStatus;
 import org.apache.shardingsphere.data.pipeline.core.job.progress.TransmissionJobItemProgress;
-import org.apache.shardingsphere.data.pipeline.core.job.progress.listener.PipelineJobProgressUpdatedParameter;
+import org.apache.shardingsphere.data.pipeline.core.job.progress.listener.PipelineJobUpdateProgress;
 import org.apache.shardingsphere.data.pipeline.core.importer.sink.PipelineSink;
 import org.apache.shardingsphere.data.pipeline.core.task.PipelineTask;
 
@@ -32,7 +32,7 @@ import java.util.Collection;
 public final class FixtureTransmissionJobItemContext implements TransmissionJobItemContext {
     
     @Override
-    public void onProgressUpdated(final PipelineJobProgressUpdatedParameter param) {
+    public void onProgressUpdated(final PipelineJobUpdateProgress updateProgress) {
     }
     
     @Override
@@ -67,7 +67,7 @@ public final class FixtureTransmissionJobItemContext implements TransmissionJobI
     
     @Override
     public long getProcessedRecordsCount() {
-        return 0;
+        return 0L;
     }
     
     @Override
@@ -76,7 +76,7 @@ public final class FixtureTransmissionJobItemContext implements TransmissionJobI
     
     @Override
     public long getInventoryRecordsCount() {
-        return 0;
+        return 0L;
     }
     
     @Override

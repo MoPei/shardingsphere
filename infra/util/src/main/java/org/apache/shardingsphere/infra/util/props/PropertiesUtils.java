@@ -20,9 +20,9 @@ package org.apache.shardingsphere.infra.util.props;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Properties utilities.
@@ -31,26 +31,12 @@ import java.util.TreeMap;
 public final class PropertiesUtils {
     
     /**
-     * Convert properties To string.
+     * Convert properties to string.
      *
      * @param props properties
      * @return properties string
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static String toString(final Properties props) {
-        StringBuilder result = new StringBuilder();
-        Iterator<String> iterator = new TreeMap(props).keySet().iterator();
-        while (iterator.hasNext()) {
-            String key = iterator.next();
-            Object value = props.get(key);
-            if (null == value) {
-                continue;
-            }
-            result.append(String.format("'%s'='%s'", key, value));
-            if (iterator.hasNext()) {
-                result.append(",").append(' ');
-            }
-        }
-        return result.toString();
+        return new TreeMap<>(props).entrySet().stream().map(entry -> String.format("'%s'='%s'", entry.getKey(), entry.getValue())).collect(Collectors.joining(", "));
     }
 }

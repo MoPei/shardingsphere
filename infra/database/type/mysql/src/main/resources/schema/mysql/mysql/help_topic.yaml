@@ -16,12 +16,14 @@
 #
 
 name: help_topic
+type: TABLE
 columns:
   help_topic_id:
     caseSensitive: false
     dataType: 4
     generated: false
     name: help_topic_id
+    nullable: false
     primaryKey: true
     unsigned: true
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 1
     generated: false
     name: name
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 5
     generated: false
     name: help_category_id
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: -1
     generated: false
     name: description
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -54,6 +59,7 @@ columns:
     dataType: -1
     generated: false
     name: example
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -62,11 +68,18 @@ columns:
     dataType: -1
     generated: false
     name: url
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
 indexes:
   primary:
     name: PRIMARY
+    unique: true
+    columns:
+      - help_topic_id
   name:
     name: name
+    unique: true
+    columns:
+      - name

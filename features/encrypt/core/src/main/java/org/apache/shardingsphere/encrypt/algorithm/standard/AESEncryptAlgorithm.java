@@ -17,30 +17,20 @@
 
 package org.apache.shardingsphere.encrypt.algorithm.standard;
 
-import com.google.common.base.Strings;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.SneakyThrows;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.codec.digest.MessageDigestAlgorithms;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithmMetaData;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
-import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.algorithm.cryptographic.core.CryptographicAlgorithm;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Properties;
 
 /**
  * AES encrypt algorithm.
  */
-@EqualsAndHashCode
 public final class AESEncryptAlgorithm implements EncryptAlgorithm {
     
     private static final String AES_KEY = "aes-key-value";
@@ -50,44 +40,33 @@ public final class AESEncryptAlgorithm implements EncryptAlgorithm {
     @Getter
     private final EncryptAlgorithmMetaData metaData = new EncryptAlgorithmMetaData(true, true, false);
     
-    private byte[] secretKey;
+    private Properties props;
+    
+    private CryptographicAlgorithm cryptographicAlgorithm;
     
     @Override
     public void init(final Properties props) {
-        secretKey = getSecretKey(props);
+        this.props = props;
+        cryptographicAlgorithm = TypedSPILoader.getService(CryptographicAlgorithm.class, getType(), props);
     }
     
-    private byte[] getSecretKey(final Properties props) {
-        String aesKey = props.getProperty(AES_KEY);
-        ShardingSpherePreconditions.checkState(!Strings.isNullOrEmpty(aesKey), () -> new AlgorithmInitializationException(this, "%s can not be null or empty", AES_KEY));
-        String digestAlgorithm = props.getProperty(DIGEST_ALGORITHM_NAME, MessageDigestAlgorithms.SHA_1);
-        return Arrays.copyOf(DigestUtils.getDigest(digestAlgorithm.toUpperCase()).digest(aesKey.getBytes(StandardCharsets.UTF_8)), 16);
-    }
-    
-    @SneakyThrows(GeneralSecurityException.class)
     @Override
     public String encrypt(final Object plainValue, final AlgorithmSQLContext algorithmSQLContext) {
-        if (null == plainValue) {
-            return null;
-        }
-        byte[] result = getCipher(Cipher.ENCRYPT_MODE).doFinal(String.valueOf(plainValue).getBytes(StandardCharsets.UTF_8));
-        return Base64.getEncoder().encodeToString(result);
+        Object result = cryptographicAlgorithm.encrypt(plainValue);
+        return null == result ? null : String.valueOf(result);
     }
     
-    @SneakyThrows(GeneralSecurityException.class)
     @Override
     public Object decrypt(final Object cipherValue, final AlgorithmSQLContext algorithmSQLContext) {
-        if (null == cipherValue) {
-            return null;
-        }
-        byte[] result = getCipher(Cipher.DECRYPT_MODE).doFinal(Base64.getDecoder().decode(cipherValue.toString().trim()));
-        return new String(result, StandardCharsets.UTF_8);
+        return cryptographicAlgorithm.decrypt(cipherValue);
     }
     
-    private Cipher getCipher(final int decryptMode) throws GeneralSecurityException {
-        Cipher result = Cipher.getInstance(getType());
-        result.init(decryptMode, new SecretKeySpec(secretKey, getType()));
-        return result;
+    @Override
+    public AlgorithmConfiguration toConfiguration() {
+        Properties properties = new Properties();
+        properties.put(AES_KEY, props.getProperty(AES_KEY));
+        properties.put(DIGEST_ALGORITHM_NAME, StringUtils.upperCase(props.getProperty(DIGEST_ALGORITHM_NAME)));
+        return new AlgorithmConfiguration(getType(), properties);
     }
     
     @Override

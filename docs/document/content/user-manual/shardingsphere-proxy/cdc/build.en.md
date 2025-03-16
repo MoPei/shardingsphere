@@ -12,7 +12,7 @@ Users can introduce the CDC Client into their own projects to implement data con
 ## Constraints
 
 - Pure JAVA development, JDK recommended 1.8 or above.
-- CDC Server requires SharingSphere-Proxy to use cluster mode, currently supports ZooKeeper as the registry center.
+- CDC Server requires ShardingSphere-Proxy to use cluster mode, currently supports ZooKeeper as the registry center.
 - CDC only synchronizes data, does not synchronize table structure, and currently does not support DDL statement synchronization.
 - CDC incremental task will not split transaction data of the database shards. If you want to enable XA transaction compatibility, both openGauss and ShardingSphere-Proxy need the GLT module.
 
@@ -46,7 +46,7 @@ Can be introduced from the maven repository
 
 ### CDC Server User Manual
 
-1. Modify the configuration file `conf/global.yaml` and turn on the CDC function. Currently, `mode` must be `Cluster`, and the corresponding registry center needs to be started in advance. If the GLT provider uses Redis, Redis needs to be started in advance.
+Modify the configuration file `conf/global.yaml` and turn on the CDC function. Currently, `mode` must be `Cluster`, and the corresponding registry center needs to be started in advance. If the GLT provider uses Redis, Redis needs to be started in advance.
 
 Configuration example:
 
@@ -100,7 +100,7 @@ If the backend is connected to the following databases, download the correspondi
 
 | Database | JDBC Driver                                                                                          |
 |----------|------------------------------------------------------------------------------------------------------|
-| MySQL    | [mysql-connector-java-8.0.31.jar](https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.31/) |
+| MySQL    | [mysql-connector-j-8.3.0.jar](https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/) |
 
 4. Start ShardingSphere-Proxy:
 

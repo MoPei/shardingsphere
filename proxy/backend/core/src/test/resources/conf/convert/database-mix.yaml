@@ -106,7 +106,7 @@ rules:
     snowflake:
       type: SNOWFLAKE
 - !READWRITE_SPLITTING
-  dataSources:
+  dataSourceGroups:
     readwrite_ds_0:
       writeDataSourceName: ds_0
       readDataSourceNames:
@@ -128,6 +128,7 @@ rules:
       type: AES
       props:
         aes-key-value: 123456abc
+        digest-algorithm-name: SHA-1
   tables:
     t_encrypt:
       columns:

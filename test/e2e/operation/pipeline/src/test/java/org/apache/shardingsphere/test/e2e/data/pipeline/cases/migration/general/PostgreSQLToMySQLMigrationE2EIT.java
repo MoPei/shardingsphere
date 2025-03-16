@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.test.e2e.data.pipeline.cases.migration.general;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -43,6 +44,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,22 +54,22 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Slf4j
 @PipelineE2ESettings(fetchSingle = true, database = @PipelineE2EDatabaseSettings(type = "MySQL", scenarioFiles = "env/common/none.xml"))
+@Slf4j
 class PostgreSQLToMySQLMigrationE2EIT extends AbstractMigrationE2EIT {
     
     @ParameterizedTest(name = "{0}")
     @EnabledIf("isEnabled")
     @ArgumentsSource(PipelineE2ETestCaseArgumentsProvider.class)
     void assertMySQLToPostgreSQLMigrationSuccess(final PipelineTestParameter testParam) throws SQLException {
-        PostgreSQLContainer<?> postgreSQLContainer = null;
+        PostgreSQLContainer<?> postgresqlContainer = null;
         try (PipelineContainerComposer containerComposer = new PipelineContainerComposer(testParam, new MigrationJobType())) {
             if (PipelineEnvTypeEnum.DOCKER == PipelineE2EEnvironment.getInstance().getItEnvType()) {
-                postgreSQLContainer = new PostgreSQLContainer<>("postgres:13");
-                postgreSQLContainer.withNetwork(containerComposer.getContainerComposer().getContainers().getNetwork()).withNetworkAliases("postgresql.host")
+                postgresqlContainer = new PostgreSQLContainer<>("postgres:13");
+                postgresqlContainer.withNetwork(containerComposer.getContainerComposer().getContainers().getNetwork()).withNetworkAliases("postgresql.host")
                         .withDatabaseName("postgres").withUsername("postgres").withPassword("postgres").withCommand("-c wal_level=logical").start();
             }
-            String jdbcUrl = PipelineE2EEnvironment.getInstance().getItEnvType() == PipelineEnvTypeEnum.DOCKER ? postgreSQLContainer.getJdbcUrl() : "jdbc:postgresql://localhost:5432/postgres";
+            String jdbcUrl = PipelineE2EEnvironment.getInstance().getItEnvType() == PipelineEnvTypeEnum.DOCKER ? postgresqlContainer.getJdbcUrl() : "jdbc:postgresql://localhost:5432/postgres";
             initSourceTable(jdbcUrl);
             registerMigrationSourceStorageUnit(containerComposer);
             containerComposer.registerStorageUnit(PipelineContainerComposer.DS_0);
@@ -75,7 +77,7 @@ class PostgreSQLToMySQLMigrationE2EIT extends AbstractMigrationE2EIT {
                     + "KEY_GENERATE_STRATEGY(COLUMN=order_id, TYPE(NAME='snowflake')))", 2);
             initTargetTable(containerComposer);
             containerComposer.proxyExecuteWithLog("MIGRATE TABLE source_ds.t_order INTO t_order", 2);
-            Awaitility.await().ignoreExceptions().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> !listJobId(containerComposer).isEmpty());
+            Awaitility.await().ignoreExceptions().atMost(10L, TimeUnit.SECONDS).pollInterval(1L, TimeUnit.SECONDS).until(() -> !listJobId(containerComposer).isEmpty());
             String jobId = listJobId(containerComposer).get(0);
             containerComposer.waitJobStatusReached(String.format("SHOW MIGRATION STATUS %s", jobId), JobStatus.EXECUTE_INCREMENTAL_TASK, 15);
             try (Connection connection = DriverManager.getConnection(jdbcUrl, "postgres", "postgres")) {
@@ -88,8 +90,8 @@ class PostgreSQLToMySQLMigrationE2EIT extends AbstractMigrationE2EIT {
             List<String> lastJobIds = listJobId(containerComposer);
             assertTrue(lastJobIds.isEmpty());
         } finally {
-            if (null != postgreSQLContainer) {
-                postgreSQLContainer.close();
+            if (null != postgresqlContainer) {
+                postgresqlContainer.close();
             }
         }
     }
@@ -132,7 +134,30 @@ class PostgreSQLToMySQLMigrationE2EIT extends AbstractMigrationE2EIT {
         try (Connection connection = containerComposer.getProxyDataSource().getConnection()) {
             connection.createStatement().execute("CREATE TABLE IF NOT EXISTS t_order (order_id BIGINT PRIMARY KEY,user_id INT,status VARCHAR(32), c_datetime DATETIME(6),c_date DATE,c_time TIME,"
                     + "c_bytea BLOB,c_decimal DECIMAL(10,2))");
-            connection.createStatement().execute("TRUNCATE TABLE t_order");
+            if (waitForTableExistence(connection, "t_order")) {
+                connection.createStatement().execute("TRUNCATE TABLE t_order");
+            } else {
+                throw new SQLException("Table t_order does not exist");
+            }
+        }
+    }
+    
+    @SneakyThrows
+    private static boolean waitForTableExistence(final Connection connection, final String tableName) {
+        int elapsedTime = 0;
+        while (elapsedTime < 60) {
+            if (tableExists(connection, tableName)) {
+                return true;
+            }
+            Thread.sleep(3 * 1000L);
+            elapsedTime += 3;
+        }
+        return false;
+    }
+    
+    private static boolean tableExists(final Connection connection, final String tableName) throws SQLException {
+        try (ResultSet rs = connection.getMetaData().getTables(null, null, tableName, new String[]{"TABLE"})) {
+            return rs.next();
         }
     }
     

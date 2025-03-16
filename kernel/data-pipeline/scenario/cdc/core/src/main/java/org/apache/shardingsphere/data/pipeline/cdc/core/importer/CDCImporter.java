@@ -35,7 +35,7 @@ import org.apache.shardingsphere.data.pipeline.core.importer.sink.PipelineSink;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.FinishedRecord;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Record;
-import org.apache.shardingsphere.data.pipeline.core.job.progress.listener.PipelineJobProgressUpdatedParameter;
+import org.apache.shardingsphere.data.pipeline.core.job.progress.listener.PipelineJobUpdateProgress;
 import org.apache.shardingsphere.data.pipeline.core.ratelimit.JobRateLimitAlgorithm;
 
 import java.util.ArrayList;
@@ -71,13 +71,13 @@ public final class CDCImporter extends AbstractPipelineLifecycleRunnable impleme
     
     private final PriorityQueue<CSNRecords> csnRecordsQueue = new PriorityQueue<>(new CSNRecordsComparator());
     
-    private final Cache<String, List<Pair<CDCChannelProgressPair, CDCAckPosition>>> ackCache = Caffeine.newBuilder().maximumSize(10000).expireAfterAccess(5, TimeUnit.MINUTES).build();
+    private final Cache<String, List<Pair<CDCChannelProgressPair, CDCAckPosition>>> ackCache = Caffeine.newBuilder().maximumSize(10000L).expireAfterAccess(5L, TimeUnit.MINUTES).build();
     
     @Override
     protected void runBlocking() {
         CDCImporterManager.putImporter(this);
         for (CDCChannelProgressPair each : channelProgressPairs) {
-            each.getJobProgressListener().onProgressUpdated(new PipelineJobProgressUpdatedParameter(0));
+            each.getJobProgressListener().onProgressUpdated(new PipelineJobUpdateProgress(0));
         }
         while (isRunning()) {
             if (needSorting) {
@@ -223,7 +223,7 @@ public final class CDCImporter extends AbstractPipelineLifecycleRunnable impleme
         Record lastRecord = records.get(records.size() - 1);
         if (records.stream().noneMatch(DataRecord.class::isInstance)) {
             channel.ack(records);
-            channelProgressPair.getJobProgressListener().onProgressUpdated(new PipelineJobProgressUpdatedParameter(0));
+            channelProgressPair.getJobProgressListener().onProgressUpdated(new PipelineJobUpdateProgress(0));
             if (lastRecord instanceof FinishedRecord) {
                 channelProgressPairs.remove(channelProgressPair);
             }
@@ -255,7 +255,7 @@ public final class CDCImporter extends AbstractPipelineLifecycleRunnable impleme
             if (lastRecord instanceof FinishedRecord) {
                 channelProgressPairs.remove(each.getKey());
             }
-            each.getLeft().getJobProgressListener().onProgressUpdated(new PipelineJobProgressUpdatedParameter(ackPosition.getDataRecordCount()));
+            each.getLeft().getJobProgressListener().onProgressUpdated(new PipelineJobUpdateProgress(ackPosition.getDataRecordCount()));
         }
         ackCache.invalidate(ackId);
     }

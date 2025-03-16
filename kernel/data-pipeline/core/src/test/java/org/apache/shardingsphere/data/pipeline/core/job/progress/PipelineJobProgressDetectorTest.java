@@ -17,22 +17,18 @@
 
 package org.apache.shardingsphere.data.pipeline.core.job.progress;
 
-import org.apache.shardingsphere.data.pipeline.core.execute.ExecuteEngine;
+import org.apache.shardingsphere.data.pipeline.core.execute.PipelineExecuteEngine;
 import org.apache.shardingsphere.data.pipeline.core.importer.Importer;
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.Dumper;
 import org.apache.shardingsphere.data.pipeline.core.ingest.position.IngestPosition;
 import org.apache.shardingsphere.data.pipeline.core.ingest.position.type.finished.IngestFinishedPosition;
 import org.apache.shardingsphere.data.pipeline.core.ingest.position.type.placeholder.IngestPlaceholderPosition;
 import org.apache.shardingsphere.data.pipeline.core.task.InventoryTask;
-import org.apache.shardingsphere.data.pipeline.core.task.PipelineTask;
 import org.apache.shardingsphere.data.pipeline.core.task.progress.InventoryTaskProgress;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -43,79 +39,59 @@ class PipelineJobProgressDetectorTest {
     
     @Test
     void assertAllInventoryTasksAreFinishedWhenCollectionIsEmpty() {
-        assertTrue(PipelineJobProgressDetector.isAllInventoryTasksFinished(new ArrayList<>()));
+        assertTrue(PipelineJobProgressDetector.isAllInventoryTasksFinished(Collections.emptyList()));
     }
     
     @Test
     void assertAllInventoryTasksAreFinishedWhenNotAllTasksAreFinished() {
         AtomicReference<IngestPosition> finishedPosition = new AtomicReference<>(new IngestFinishedPosition());
         AtomicReference<IngestPosition> unfinishedPosition = new AtomicReference<>(new IngestPlaceholderPosition());
-        InventoryTask actualTask1 = new InventoryTask("foo_id_1", mock(ExecuteEngine.class), mock(ExecuteEngine.class), mock(Dumper.class), mock(Importer.class), finishedPosition);
-        InventoryTask actualTask2 = new InventoryTask("foo_id_2", mock(ExecuteEngine.class), mock(ExecuteEngine.class), mock(Dumper.class), mock(Importer.class), unfinishedPosition);
-        Collection<PipelineTask> inventoryTaskArrayList = new ArrayList<>();
-        inventoryTaskArrayList.add(actualTask1);
-        inventoryTaskArrayList.add(actualTask2);
-        assertFalse(PipelineJobProgressDetector.isAllInventoryTasksFinished(inventoryTaskArrayList));
+        InventoryTask actualTask1 = new InventoryTask("foo_id_1", mock(PipelineExecuteEngine.class), mock(PipelineExecuteEngine.class), mock(Dumper.class), mock(Importer.class), finishedPosition);
+        InventoryTask actualTask2 = new InventoryTask("foo_id_2", mock(PipelineExecuteEngine.class), mock(PipelineExecuteEngine.class), mock(Dumper.class), mock(Importer.class), unfinishedPosition);
+        assertFalse(PipelineJobProgressDetector.isAllInventoryTasksFinished(Arrays.asList(actualTask1, actualTask2)));
     }
     
     @Test
     void assertAllInventoryTasksAreFinished() {
         AtomicReference<IngestPosition> finishedPosition = new AtomicReference<>(new IngestFinishedPosition());
-        InventoryTask actualTask1 = new InventoryTask("foo_id_1", mock(ExecuteEngine.class), mock(ExecuteEngine.class), mock(Dumper.class), mock(Importer.class), finishedPosition);
-        InventoryTask actualTask2 = new InventoryTask("foo_id_2", mock(ExecuteEngine.class), mock(ExecuteEngine.class), mock(Dumper.class), mock(Importer.class), finishedPosition);
-        Collection<PipelineTask> inventoryTaskArrayList = new ArrayList<>();
-        inventoryTaskArrayList.add(actualTask1);
-        inventoryTaskArrayList.add(actualTask2);
-        assertTrue(PipelineJobProgressDetector.isAllInventoryTasksFinished(inventoryTaskArrayList));
+        InventoryTask actualTask1 = new InventoryTask("foo_id_1", mock(PipelineExecuteEngine.class), mock(PipelineExecuteEngine.class), mock(Dumper.class), mock(Importer.class), finishedPosition);
+        InventoryTask actualTask2 = new InventoryTask("foo_id_2", mock(PipelineExecuteEngine.class), mock(PipelineExecuteEngine.class), mock(Dumper.class), mock(Importer.class), finishedPosition);
+        assertTrue(PipelineJobProgressDetector.isAllInventoryTasksFinished(Arrays.asList(actualTask1, actualTask2)));
     }
     
     @Test
     void assertIsInventoryFinishedWhenCollectionElementIsNull() {
         TransmissionJobItemProgress jobItemProgress = null;
-        Collection<TransmissionJobItemProgress> jobItemProgresses = new ArrayList<>();
-        jobItemProgresses.add(jobItemProgress);
-        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, jobItemProgresses));
+        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, Collections.singleton(jobItemProgress)));
     }
     
     @Test
     void assertIsInventoryFinishedWhenJobCountDoesNotMatchJobItemProgresses() {
         TransmissionJobItemProgress transmissionJobItemProgress = new TransmissionJobItemProgress();
-        List<TransmissionJobItemProgress> jobItemProgresses = new ArrayList<>();
-        jobItemProgresses.add(transmissionJobItemProgress);
-        assertFalse(PipelineJobProgressDetector.isInventoryFinished(2, jobItemProgresses));
+        assertFalse(PipelineJobProgressDetector.isInventoryFinished(2, Collections.singleton(transmissionJobItemProgress)));
     }
     
     @Test
     void assertIsInventoryFinishedWhenInventoryTaskProgressHasEmptyMap() {
-        JobItemInventoryTasksProgress jobItemInventoryTasksProgress = new JobItemInventoryTasksProgress(new HashMap<>());
+        JobItemInventoryTasksProgress jobItemInventoryTasksProgress = new JobItemInventoryTasksProgress(Collections.emptyMap());
         TransmissionJobItemProgress transmissionJobItemProgress = new TransmissionJobItemProgress();
         transmissionJobItemProgress.setInventory(jobItemInventoryTasksProgress);
-        List<TransmissionJobItemProgress> jobItemProgresses = new ArrayList<>();
-        jobItemProgresses.add(transmissionJobItemProgress);
-        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, jobItemProgresses));
+        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, Collections.singleton(transmissionJobItemProgress)));
     }
     
     @Test
     void assertIsInventoryFinishedWhenNotAllInventoryTasksCompleted() {
-        Map<String, InventoryTaskProgress> progresses = new HashMap<>();
-        progresses.put("TEST", new InventoryTaskProgress(new IngestPlaceholderPosition()));
-        JobItemInventoryTasksProgress inventoryTasksProgress = new JobItemInventoryTasksProgress(progresses);
+        JobItemInventoryTasksProgress inventoryTasksProgress = new JobItemInventoryTasksProgress(Collections.singletonMap("TEST", new InventoryTaskProgress(new IngestPlaceholderPosition())));
         TransmissionJobItemProgress transmissionJobItemProgress = new TransmissionJobItemProgress();
         transmissionJobItemProgress.setInventory(inventoryTasksProgress);
-        List<TransmissionJobItemProgress> jobItemProgresses = new ArrayList<>();
-        jobItemProgresses.add(transmissionJobItemProgress);
-        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, jobItemProgresses));
+        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, Collections.singleton(transmissionJobItemProgress)));
     }
     
     @Test
     void assertIsInventoryFinished() {
-        Map<String, InventoryTaskProgress> progresses = new HashMap<>();
-        progresses.put("TEST", new InventoryTaskProgress(new IngestFinishedPosition()));
-        JobItemInventoryTasksProgress inventoryTasksProgress = new JobItemInventoryTasksProgress(progresses);
+        JobItemInventoryTasksProgress inventoryTasksProgress = new JobItemInventoryTasksProgress(Collections.singletonMap("TEST", new InventoryTaskProgress(new IngestFinishedPosition())));
         TransmissionJobItemProgress transmissionJobItemProgress = new TransmissionJobItemProgress();
         transmissionJobItemProgress.setInventory(inventoryTasksProgress);
-        List<TransmissionJobItemProgress> jobItemProgresses = new ArrayList<>();
-        jobItemProgresses.add(transmissionJobItemProgress);
-        assertTrue(PipelineJobProgressDetector.isInventoryFinished(1, jobItemProgresses));
+        assertTrue(PipelineJobProgressDetector.isInventoryFinished(1, Collections.singleton(transmissionJobItemProgress)));
     }
 }

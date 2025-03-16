@@ -16,12 +16,14 @@
 #
 
 name: KEYWORDS
+type: TABLE
 columns:
   word:
     caseSensitive: false
     dataType: 12
     generated: false
     name: WORD
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 4
     generated: false
     name: RESERVED
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true

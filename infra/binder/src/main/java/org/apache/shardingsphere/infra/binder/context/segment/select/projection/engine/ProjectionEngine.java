@@ -28,19 +28,18 @@ import org.apache.shardingsphere.infra.binder.context.segment.select.projection.
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.ShorthandProjection;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.SubqueryProjection;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.AggregationType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.Paren;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationDistinctProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ColumnProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ExpressionProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ShorthandProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.SubqueryProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.AggregationType;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.Paren;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationDistinctProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ColumnProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ExpressionProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ShorthandProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.SubqueryProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -61,13 +60,12 @@ public final class ProjectionEngine {
     /**
      * Create projection.
      *
-     * @param table table segment
      * @param projectionSegment projection segment
      * @return projection
      */
-    public Optional<Projection> createProjection(final TableSegment table, final ProjectionSegment projectionSegment) {
+    public Optional<Projection> createProjection(final ProjectionSegment projectionSegment) {
         if (projectionSegment instanceof ShorthandProjectionSegment) {
-            return Optional.of(createProjection(table, (ShorthandProjectionSegment) projectionSegment));
+            return Optional.of(createProjection((ShorthandProjectionSegment) projectionSegment));
         }
         if (projectionSegment instanceof ColumnProjectionSegment) {
             return Optional.of(createProjection((ColumnProjectionSegment) projectionSegment));
@@ -82,7 +80,7 @@ public final class ProjectionEngine {
             return Optional.of(createProjection((AggregationProjectionSegment) projectionSegment));
         }
         if (projectionSegment instanceof SubqueryProjectionSegment) {
-            return Optional.of(createProjection(table, (SubqueryProjectionSegment) projectionSegment));
+            return Optional.of(createProjection((SubqueryProjectionSegment) projectionSegment));
         }
         if (projectionSegment instanceof ParameterMarkerExpressionSegment) {
             return Optional.of(createProjection((ParameterMarkerExpressionSegment) projectionSegment));
@@ -94,26 +92,24 @@ public final class ProjectionEngine {
         return new ParameterMarkerProjection(projectionSegment.getParameterMarkerIndex(), projectionSegment.getParameterMarkerType(), projectionSegment.getAlias().orElse(null));
     }
     
-    private SubqueryProjection createProjection(final TableSegment table, final SubqueryProjectionSegment projectionSegment) {
-        Projection subqueryProjection = createProjection(table, projectionSegment.getSubquery().getSelect().getProjections().getProjections().iterator().next())
+    private SubqueryProjection createProjection(final SubqueryProjectionSegment projectionSegment) {
+        Projection subqueryProjection = createProjection(projectionSegment.getSubquery().getSelect().getProjections().getProjections().iterator().next())
                 .orElseThrow(() -> new IllegalArgumentException("Subquery projection must have at least one projection column."));
         return new SubqueryProjection(projectionSegment, subqueryProjection, projectionSegment.getAlias().orElse(null), databaseType);
     }
     
-    private ShorthandProjection createProjection(final TableSegment table, final ShorthandProjectionSegment projectionSegment) {
+    private ShorthandProjection createProjection(final ShorthandProjectionSegment projectionSegment) {
         IdentifierValue owner = projectionSegment.getOwner().map(OwnerSegment::getIdentifier).orElse(null);
-        Collection<Projection> projections = new LinkedHashSet<>();
-        projectionSegment.getActualProjectionSegments().forEach(each -> createProjection(table, each).ifPresent(projections::add));
+        Collection<Projection> projections = new LinkedHashSet<>(projectionSegment.getActualProjectionSegments().size(), 1F);
+        projectionSegment.getActualProjectionSegments().forEach(each -> createProjection(each).ifPresent(projections::add));
         return new ShorthandProjection(owner, projections);
     }
     
     private ColumnProjection createProjection(final ColumnProjectionSegment projectionSegment) {
         IdentifierValue owner = projectionSegment.getColumn().getOwner().isPresent() ? projectionSegment.getColumn().getOwner().get().getIdentifier() : null;
         IdentifierValue alias = projectionSegment.getAliasName().isPresent() ? projectionSegment.getAlias().orElse(null) : null;
-        ColumnProjection result = new ColumnProjection(owner, projectionSegment.getColumn().getIdentifier(), alias, databaseType);
-        result.setOriginalColumn(projectionSegment.getColumn().getColumnBoundedInfo().getOriginalColumn());
-        result.setOriginalTable(projectionSegment.getColumn().getColumnBoundedInfo().getOriginalTable());
-        return result;
+        return new ColumnProjection(owner, projectionSegment.getColumn().getIdentifier(), alias, databaseType,
+                projectionSegment.getColumn().getLeftParentheses().orElse(null), projectionSegment.getColumn().getRightParentheses().orElse(null), projectionSegment.getColumn().getColumnBoundInfo());
     }
     
     private ExpressionProjection createProjection(final ExpressionProjectionSegment projectionSegment) {
@@ -124,8 +120,8 @@ public final class ProjectionEngine {
         IdentifierValue alias =
                 projectionSegment.getAlias().orElseGet(() -> new IdentifierValue(DerivedColumn.AGGREGATION_DISTINCT_DERIVED.getDerivedColumnAlias(aggregationDistinctDerivedColumnCount++)));
         AggregationDistinctProjection result = new AggregationDistinctProjection(
-                projectionSegment.getStartIndex(), projectionSegment.getStopIndex(), projectionSegment.getType(), projectionSegment.getExpression(), alias,
-                projectionSegment.getDistinctInnerExpression(), databaseType);
+                projectionSegment.getStartIndex(), projectionSegment.getStopIndex(), projectionSegment.getType(), projectionSegment, alias,
+                projectionSegment.getDistinctInnerExpression(), databaseType, projectionSegment.getSeparator().orElse(null));
         if (AggregationType.AVG == result.getType()) {
             appendAverageDistinctDerivedProjection(result);
         }
@@ -133,7 +129,9 @@ public final class ProjectionEngine {
     }
     
     private AggregationProjection createProjection(final AggregationProjectionSegment projectionSegment) {
-        AggregationProjection result = new AggregationProjection(projectionSegment.getType(), projectionSegment.getExpression(), projectionSegment.getAlias().orElse(null), databaseType);
+        AggregationProjection result =
+                new AggregationProjection(projectionSegment.getType(), projectionSegment, projectionSegment.getAlias().orElse(null), databaseType,
+                        projectionSegment.getSeparator().orElse(null));
         if (AggregationType.AVG == result.getType()) {
             appendAverageDerivedProjection(result);
             // TODO replace avg to constant, avoid calculate useless avg
@@ -145,11 +143,13 @@ public final class ProjectionEngine {
         String distinctInnerExpression = averageDistinctProjection.getDistinctInnerExpression();
         String countAlias = DerivedColumn.AVG_COUNT_ALIAS.getDerivedColumnAlias(aggregationAverageDerivedColumnCount);
         String innerExpression = averageDistinctProjection.getExpression().substring(averageDistinctProjection.getExpression().indexOf(Paren.PARENTHESES.getLeftParen()));
+        AggregationProjectionSegment countExpression = new AggregationProjectionSegment(0, 0, AggregationType.COUNT, AggregationType.COUNT.name() + innerExpression);
         AggregationDistinctProjection countDistinctProjection =
-                new AggregationDistinctProjection(0, 0, AggregationType.COUNT, AggregationType.COUNT.name() + innerExpression, new IdentifierValue(countAlias), distinctInnerExpression, databaseType);
+                new AggregationDistinctProjection(0, 0, AggregationType.COUNT, countExpression, new IdentifierValue(countAlias), distinctInnerExpression, databaseType);
         String sumAlias = DerivedColumn.AVG_SUM_ALIAS.getDerivedColumnAlias(aggregationAverageDerivedColumnCount);
+        AggregationProjectionSegment sumExpression = new AggregationProjectionSegment(0, 0, AggregationType.SUM, AggregationType.SUM.name() + innerExpression);
         AggregationDistinctProjection sumDistinctProjection =
-                new AggregationDistinctProjection(0, 0, AggregationType.SUM, AggregationType.SUM.name() + innerExpression, new IdentifierValue(sumAlias), distinctInnerExpression, databaseType);
+                new AggregationDistinctProjection(0, 0, AggregationType.SUM, sumExpression, new IdentifierValue(sumAlias), distinctInnerExpression, databaseType);
         averageDistinctProjection.getDerivedAggregationProjections().add(countDistinctProjection);
         averageDistinctProjection.getDerivedAggregationProjections().add(sumDistinctProjection);
         aggregationAverageDerivedColumnCount++;
@@ -158,9 +158,11 @@ public final class ProjectionEngine {
     private void appendAverageDerivedProjection(final AggregationProjection averageProjection) {
         String countAlias = DerivedColumn.AVG_COUNT_ALIAS.getDerivedColumnAlias(aggregationAverageDerivedColumnCount);
         String innerExpression = averageProjection.getExpression().substring(averageProjection.getExpression().indexOf(Paren.PARENTHESES.getLeftParen()));
-        AggregationProjection countProjection = new AggregationProjection(AggregationType.COUNT, AggregationType.COUNT.name() + innerExpression, new IdentifierValue(countAlias), databaseType);
+        AggregationProjectionSegment countExpression = new AggregationProjectionSegment(0, 0, AggregationType.COUNT, AggregationType.COUNT.name() + innerExpression);
+        AggregationProjection countProjection = new AggregationProjection(AggregationType.COUNT, countExpression, new IdentifierValue(countAlias), databaseType);
         String sumAlias = DerivedColumn.AVG_SUM_ALIAS.getDerivedColumnAlias(aggregationAverageDerivedColumnCount);
-        AggregationProjection sumProjection = new AggregationProjection(AggregationType.SUM, AggregationType.SUM.name() + innerExpression, new IdentifierValue(sumAlias), databaseType);
+        AggregationProjectionSegment sumExpression = new AggregationProjectionSegment(0, 0, AggregationType.SUM, AggregationType.SUM.name() + innerExpression);
+        AggregationProjection sumProjection = new AggregationProjection(AggregationType.SUM, sumExpression, new IdentifierValue(sumAlias), databaseType);
         averageProjection.getDerivedAggregationProjections().add(countProjection);
         averageProjection.getDerivedAggregationProjections().add(sumProjection);
         aggregationAverageDerivedColumnCount++;

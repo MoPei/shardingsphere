@@ -19,15 +19,21 @@ package org.apache.shardingsphere.test.natived.jdbc.features;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.apache.shardingsphere.test.natived.jdbc.commons.entity.Address;
-import org.apache.shardingsphere.test.natived.jdbc.commons.entity.Order;
-import org.apache.shardingsphere.test.natived.jdbc.commons.entity.OrderItem;
-import org.apache.shardingsphere.test.natived.jdbc.commons.repository.AddressRepository;
-import org.apache.shardingsphere.test.natived.jdbc.commons.repository.OrderItemRepository;
-import org.apache.shardingsphere.test.natived.jdbc.commons.repository.OrderRepository;
+import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
+import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.test.natived.commons.entity.Address;
+import org.apache.shardingsphere.test.natived.commons.entity.Order;
+import org.apache.shardingsphere.test.natived.commons.entity.OrderItem;
+import org.apache.shardingsphere.test.natived.commons.repository.AddressRepository;
+import org.apache.shardingsphere.test.natived.commons.repository.OrderItemRepository;
+import org.apache.shardingsphere.test.natived.commons.repository.OrderRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,30 +46,43 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 class EncryptTest {
     
+    private DataSource logicDataSource;
+    
     private OrderRepository orderRepository;
     
     private OrderItemRepository orderItemRepository;
     
     private AddressRepository addressRepository;
     
+    @AfterEach
+    void afterEach() throws SQLException {
+        try (Connection connection = logicDataSource.getConnection()) {
+            ContextManager contextManager = connection.unwrap(ShardingSphereConnection.class).getContextManager();
+            for (StorageUnit each : contextManager.getStorageUnits(DefaultDatabase.LOGIC_NAME).values()) {
+                each.getDataSource().unwrap(HikariDataSource.class).close();
+            }
+            contextManager.close();
+        }
+    }
+    
     @Test
     void assertEncryptInLocalTransactions() throws SQLException {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
-        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/features/encrypt.yaml");
-        DataSource dataSource = new HikariDataSource(config);
-        orderRepository = new OrderRepository(dataSource);
-        orderItemRepository = new OrderItemRepository(dataSource);
-        addressRepository = new AddressRepository(dataSource);
-        this.initEnvironment();
-        this.processSuccess();
-        this.cleanEnvironment();
+        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/jdbc/features/encrypt.yaml");
+        logicDataSource = new HikariDataSource(config);
+        orderRepository = new OrderRepository(logicDataSource);
+        orderItemRepository = new OrderItemRepository(logicDataSource);
+        addressRepository = new AddressRepository(logicDataSource);
+        initEnvironment();
+        processSuccess();
+        cleanEnvironment();
     }
     
     private void initEnvironment() throws SQLException {
         orderRepository.createTableIfNotExistsInMySQL();
         orderItemRepository.createTableIfNotExistsInMySQL();
-        addressRepository.createTableIfNotExists();
+        addressRepository.createTableIfNotExistsInMySQL();
         orderRepository.truncateTable();
         orderItemRepository.truncateTable();
         addressRepository.truncateTable();
@@ -72,11 +91,11 @@ class EncryptTest {
     private void processSuccess() throws SQLException {
         final Collection<Long> orderIds = insertData();
         assertThat(orderRepository.selectAll(),
-                equalTo(IntStream.range(1, 11).mapToObj(i -> new Order(i, i % 2, i, i, "INSERT_TEST")).collect(Collectors.toList())));
+                equalTo(IntStream.range(1, 11).mapToObj(each -> new Order(each, each % 2, each, each, "INSERT_TEST")).collect(Collectors.toList())));
         assertThat(orderItemRepository.selectAll(),
-                equalTo(IntStream.range(1, 11).mapToObj(i -> new OrderItem(i, i, i, "13800000001", "INSERT_TEST")).collect(Collectors.toList())));
+                equalTo(IntStream.range(1, 11).mapToObj(each -> new OrderItem(each, each, each, "13800000001", "INSERT_TEST")).collect(Collectors.toList())));
         assertThat(addressRepository.selectAll(),
-                equalTo(LongStream.range(1, 11).mapToObj(i -> new Address(i, "address_test_" + i)).collect(Collectors.toList())));
+                equalTo(LongStream.range(1L, 11L).mapToObj(each -> new Address(each, "address_test_" + each)).collect(Collectors.toList())));
         deleteData(orderIds);
         assertThat(orderRepository.selectAll(), equalTo(new ArrayList<>()));
         assertThat(orderItemRepository.selectAll(), equalTo(new ArrayList<>()));
@@ -106,7 +125,7 @@ class EncryptTest {
     }
     
     private void deleteData(final Collection<Long> orderIds) throws SQLException {
-        long count = 1;
+        long count = 1L;
         for (Long each : orderIds) {
             orderRepository.delete(each);
             orderItemRepository.delete(each);
@@ -115,8 +134,8 @@ class EncryptTest {
     }
     
     private void cleanEnvironment() throws SQLException {
-        orderRepository.dropTable();
-        orderItemRepository.dropTable();
-        addressRepository.dropTable();
+        orderRepository.dropTableInMySQL();
+        orderItemRepository.dropTableInMySQL();
+        addressRepository.dropTableInMySQL();
     }
 }

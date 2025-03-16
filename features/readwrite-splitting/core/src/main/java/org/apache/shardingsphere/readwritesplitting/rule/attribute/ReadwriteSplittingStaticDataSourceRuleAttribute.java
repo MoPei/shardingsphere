@@ -17,19 +17,16 @@
 
 package org.apache.shardingsphere.readwritesplitting.rule.attribute;
 
-import com.google.common.base.Preconditions;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.instance.InstanceContext;
-import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedDatabase;
-import org.apache.shardingsphere.infra.rule.event.DataSourceStatusChangedEvent;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
+import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedDataSource;
 import org.apache.shardingsphere.infra.rule.attribute.datasource.StaticDataSourceRuleAttribute;
 import org.apache.shardingsphere.infra.state.datasource.DataSourceState;
-import org.apache.shardingsphere.mode.event.storage.StorageNodeDataSourceChangedEvent;
-import org.apache.shardingsphere.mode.event.storage.StorageNodeDataSourceDeletedEvent;
-import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingDataSourceRule;
+import org.apache.shardingsphere.readwritesplitting.deliver.QualifiedDataSourceDeletedEvent;
+import org.apache.shardingsphere.readwritesplitting.exception.logic.ReadwriteSplittingDataSourceRuleNotFoundException;
+import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingDataSourceGroupRule;
 
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -41,48 +38,37 @@ public final class ReadwriteSplittingStaticDataSourceRuleAttribute implements St
     
     private final String databaseName;
     
-    private final Map<String, ReadwriteSplittingDataSourceRule> dataSourceRules;
+    private final Map<String, ReadwriteSplittingDataSourceGroupRule> dataSourceGroupRules;
     
-    private final InstanceContext instanceContext;
-    
-    @Override
-    public Map<String, Collection<String>> getDataSourceMapper() {
-        Map<String, Collection<String>> result = new HashMap<>();
-        for (Entry<String, ReadwriteSplittingDataSourceRule> entry : dataSourceRules.entrySet()) {
-            result.put(entry.getValue().getName(), entry.getValue().getReadwriteSplittingGroup().getAllDataSources());
-        }
-        return result;
-    }
+    private final ComputeNodeInstanceContext computeNodeInstanceContext;
     
     @Override
-    public void updateStatus(final DataSourceStatusChangedEvent event) {
-        StorageNodeDataSourceChangedEvent dataSourceEvent = (StorageNodeDataSourceChangedEvent) event;
-        QualifiedDatabase qualifiedDatabase = dataSourceEvent.getQualifiedDatabase();
-        ReadwriteSplittingDataSourceRule dataSourceRule = dataSourceRules.get(qualifiedDatabase.getGroupName());
-        Preconditions.checkNotNull(dataSourceRule, "Can not find readwrite-splitting data source rule in database `%s`", qualifiedDatabase.getDatabaseName());
-        if (DataSourceState.DISABLED == dataSourceEvent.getDataSource().getStatus()) {
-            dataSourceRule.disableDataSource(dataSourceEvent.getQualifiedDatabase().getDataSourceName());
+    public void updateStatus(final QualifiedDataSource qualifiedDataSource, final DataSourceState status) {
+        ReadwriteSplittingDataSourceGroupRule dataSourceGroupRule = dataSourceGroupRules.get(qualifiedDataSource.getGroupName());
+        ShardingSpherePreconditions.checkNotNull(dataSourceGroupRule,
+                () -> new ReadwriteSplittingDataSourceRuleNotFoundException(qualifiedDataSource.getGroupName(), qualifiedDataSource.getDatabaseName()));
+        if (DataSourceState.DISABLED == status) {
+            dataSourceGroupRule.disableDataSource(qualifiedDataSource.getDataSourceName());
         } else {
-            dataSourceRule.enableDataSource(dataSourceEvent.getQualifiedDatabase().getDataSourceName());
+            dataSourceGroupRule.enableDataSource(qualifiedDataSource.getDataSourceName());
         }
     }
     
     @Override
     public void cleanStorageNodeDataSource(final String groupName) {
-        Preconditions.checkNotNull(dataSourceRules.get(groupName), String.format("`%s` group name not exist in database `%s`", groupName, databaseName));
-        deleteStorageNodeDataSources(dataSourceRules.get(groupName));
-    }
-    
-    private void deleteStorageNodeDataSources(final ReadwriteSplittingDataSourceRule rule) {
-        rule.getReadwriteSplittingGroup().getReadDataSources()
-                .forEach(each -> instanceContext.getEventBusContext().post(new StorageNodeDataSourceDeletedEvent(new QualifiedDatabase(databaseName, rule.getName(), each))));
+        ShardingSpherePreconditions.checkContainsKey(dataSourceGroupRules, groupName, () -> new ReadwriteSplittingDataSourceRuleNotFoundException(groupName, databaseName));
+        deleteStorageNodeDataSources(dataSourceGroupRules.get(groupName));
     }
     
     @Override
     public void cleanStorageNodeDataSources() {
-        for (Entry<String, ReadwriteSplittingDataSourceRule> entry : dataSourceRules.entrySet()) {
+        for (Entry<String, ReadwriteSplittingDataSourceGroupRule> entry : dataSourceGroupRules.entrySet()) {
             deleteStorageNodeDataSources(entry.getValue());
         }
     }
     
+    private void deleteStorageNodeDataSources(final ReadwriteSplittingDataSourceGroupRule rule) {
+        rule.getReadwriteSplittingGroup().getReadDataSources().forEach(each -> computeNodeInstanceContext.getEventBusContext()
+                .post(new QualifiedDataSourceDeletedEvent(new QualifiedDataSource(databaseName, rule.getName(), each))));
+    }
 }

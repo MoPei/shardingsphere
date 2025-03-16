@@ -16,12 +16,14 @@
 #
 
 name: INNODB_FT_CONFIG
+type: TABLE
 columns:
   key:
     caseSensitive: false
     dataType: 12
     generated: false
     name: KEY
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 12
     generated: false
     name: VALUE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true

@@ -17,8 +17,10 @@
 
 package org.apache.shardingsphere.infra.util.directory;
 
-import lombok.RequiredArgsConstructor;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.JarURLConnection;
@@ -37,15 +39,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Classpath resource directory reader.
  */
-@RequiredArgsConstructor
-public class ClasspathResourceDirectoryReader {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@Slf4j
+public final class ClasspathResourceDirectoryReader {
     
     private static final Collection<String> JAR_URL_PROTOCOLS = new HashSet<>(Arrays.asList("jar", "war", "zip", "wsjar", "vfszip"));
     
@@ -74,13 +81,9 @@ public class ClasspathResourceDirectoryReader {
         }
         if (JAR_URL_PROTOCOLS.contains(resourceUrl.getProtocol())) {
             JarFile jarFile = getJarFile(resourceUrl);
-            if (null == jarFile) {
-                return false;
-            }
-            return jarFile.getJarEntry(name).isDirectory();
-        } else {
-            return Files.isDirectory(Paths.get(resourceUrl.toURI()));
+            return null != jarFile && jarFile.getJarEntry(name).isDirectory();
         }
+        return Paths.get(resourceUrl.toURI()).toFile().isDirectory();
     }
     
     /**
@@ -113,9 +116,6 @@ public class ClasspathResourceDirectoryReader {
     @SneakyThrows(IOException.class)
     public static Stream<String> read(final ClassLoader classLoader, final String directory) {
         Enumeration<URL> directoryUrlEnumeration = classLoader.getResources(directory);
-        if (null == directoryUrlEnumeration) {
-            return Stream.empty();
-        }
         return Collections.list(directoryUrlEnumeration).stream().flatMap(directoryUrl -> {
             if (JAR_URL_PROTOCOLS.contains(directoryUrl.getProtocol())) {
                 return readDirectoryInJar(directory, directoryUrl);
@@ -130,7 +130,30 @@ public class ClasspathResourceDirectoryReader {
         if (null == jar) {
             return Stream.empty();
         }
-        return jar.stream().filter(each -> each.getName().startsWith(directory) && !each.isDirectory()).map(JarEntry::getName);
+        return getJarEntryStream(jar).filter(each -> each.getName().startsWith(directory) && !each.isDirectory()).map(JarEntry::getName);
+    }
+    
+    /**
+     * Prior to Spring Boot 2.3, the `JarFile` class in Spring Boot did not override the `stream()` method, see <a href="https://github.com/spring-projects/spring-boot/issues/23821">issue</a>.
+     *
+     * @param jar jar
+     * @return Stream of JarEntry
+     */
+    private static Stream<JarEntry> getJarEntryStream(final JarFile jar) {
+        Enumeration<JarEntry> entries = jar.entries();
+        return StreamSupport.stream(Spliterators.spliterator(
+                new Iterator<JarEntry>() {
+                    
+                    @Override
+                    public boolean hasNext() {
+                        return entries.hasMoreElements();
+                    }
+                    
+                    @Override
+                    public JarEntry next() {
+                        return entries.nextElement();
+                    }
+                }, jar.size(), Spliterator.ORDERED | Spliterator.DISTINCT | Spliterator.IMMUTABLE | Spliterator.NONNULL), false);
     }
     
     @SneakyThrows(IOException.class)
@@ -175,9 +198,9 @@ public class ClasspathResourceDirectoryReader {
         }
     }
     
+    @SuppressWarnings("resource")
     private static Stream<String> loadFromDirectory(final String directory, final URL directoryUrl) throws URISyntaxException, IOException {
         Path directoryPath = Paths.get(directoryUrl.toURI());
-        // noinspection resource
         Stream<Path> walkStream = Files.find(directoryPath, Integer.MAX_VALUE, (path, basicFileAttributes) -> !basicFileAttributes.isDirectory(), FileVisitOption.FOLLOW_LINKS);
         return walkStream.map(path -> {
             StringBuilder stringBuilder = new StringBuilder();

@@ -16,12 +16,14 @@
 #
 
 name: ndb_binlog_index
+type: TABLE
 columns:
   position:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: Position
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -30,14 +32,16 @@ columns:
     dataType: 12
     generated: false
     name: File
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   epoch:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: epoch
+    nullable: false
     primaryKey: true
     unsigned: true
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: 4
     generated: false
     name: inserts
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -54,6 +59,7 @@ columns:
     dataType: 4
     generated: false
     name: updates
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -62,6 +68,7 @@ columns:
     dataType: 4
     generated: false
     name: deletes
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -70,6 +77,7 @@ columns:
     dataType: 4
     generated: false
     name: schemaops
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -78,14 +86,16 @@ columns:
     dataType: 4
     generated: false
     name: orig_server_id
+    nullable: false
     primaryKey: true
     unsigned: true
     visible: true
   orig_epoch:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: orig_epoch
+    nullable: false
     primaryKey: true
     unsigned: true
     visible: true
@@ -94,14 +104,16 @@ columns:
     dataType: 4
     generated: false
     name: gci
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   next_position:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: next_position
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -110,9 +122,15 @@ columns:
     dataType: 12
     generated: false
     name: next_file
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
 indexes:
   primary:
     name: PRIMARY
+    unique: true
+    columns:
+      - epoch
+      - orig_server_id
+      - orig_epoch

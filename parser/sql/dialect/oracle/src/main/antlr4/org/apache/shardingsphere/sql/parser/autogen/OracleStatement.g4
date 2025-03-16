@@ -29,7 +29,7 @@ execute
     | alterTable
     | dropTable
     | truncateTable
-    | lockTable
+    | lock
     | createIndex
     | dropIndex
     | alterIndex
@@ -162,5 +162,7 @@ execute
     | createTrigger
     | show
     | spool
+    | createOperator
+    | createOutline
     ) SEMI_? SLASH_? EOF
     ;

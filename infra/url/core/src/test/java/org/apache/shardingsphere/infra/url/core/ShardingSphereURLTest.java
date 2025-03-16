@@ -46,10 +46,12 @@ class ShardingSphereURLTest {
         
         @Override
         public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
-            Map<String, String> multiParams = new HashMap<>();
+            Map<String, String> multiParams = new HashMap<>(2, 1F);
             multiParams.put("databaseName", "sharding_db");
             multiParams.put("placeholder-type", "none");
             return Stream.of(Arguments.of("absolutepath:/Users/shardingsphere/config.yaml", "absolutepath:", "/Users/shardingsphere/config.yaml", Collections.emptyMap()),
+                    Arguments.of("absolutepath:/Users/shardingsphere/config.yaml?", "absolutepath:", "/Users/shardingsphere/config.yaml", Collections.emptyMap()),
+                    Arguments.of("absolutepath:/Users/shardingsphere/config.yaml?databaseName", "absolutepath:", "/Users/shardingsphere/config.yaml", Collections.emptyMap()),
                     Arguments.of("absolutepath:C:\\Users\\shardingsphere\\config.yaml", "absolutepath:", "C:\\Users\\shardingsphere\\config.yaml", Collections.emptyMap()),
                     Arguments.of("absolutepath:/Users/configDirName?databaseName=sharding_db", "absolutepath:", "/Users/configDirName", Collections.singletonMap("databaseName", "sharding_db")),
                     Arguments.of("absolutepath:/Users/configDirName/?databaseName=sharding_db", "absolutepath:", "/Users/configDirName/", Collections.singletonMap("databaseName", "sharding_db")),

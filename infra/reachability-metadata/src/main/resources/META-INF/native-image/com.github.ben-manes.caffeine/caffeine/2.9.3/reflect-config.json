@@ -1,5 +1,25 @@
 [
 {
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.PDW"},
+  "name":"com.github.benmanes.caffeine.cache.PDW",
+  "fields":[{"name":"writeTime"}]
+},
+{
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.BoundedLocalCache$BoundedLocalLoadingCache"},
+  "name":"com.github.benmanes.caffeine.cache.SIMS",
+  "methods":[{"name":"<init>","parameterTypes":["com.github.benmanes.caffeine.cache.Caffeine","com.github.benmanes.caffeine.cache.CacheLoader","boolean"] }]
+},
+{
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.BoundedLocalCache$BoundedLocalManualCache"},
+  "name":"com.github.benmanes.caffeine.cache.SIMSW",
+  "methods":[{"name":"<init>","parameterTypes":["com.github.benmanes.caffeine.cache.Caffeine","com.github.benmanes.caffeine.cache.CacheLoader","boolean"] }]
+},
+{
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.NodeFactory"},
+  "name":"com.github.benmanes.caffeine.cache.PDMS",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.BBHeader$ReadAndWriteCounterRef"},
   "name":"com.github.benmanes.caffeine.cache.BBHeader$ReadAndWriteCounterRef",
   "fields":[{"name":"writeCounter"}]
@@ -40,23 +60,38 @@
   "fields":[{"name":"value"}]
 },
 {
-  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.PDW"},
-  "name":"com.github.benmanes.caffeine.cache.PDW",
-  "fields":[{"name":"writeTime"}]
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.PS"},
+  "name":"com.github.benmanes.caffeine.cache.PS",
+  "fields":[{"name":"key"}, {"name":"value"}]
 },
 {
-  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.SIMSW"},
-  "name":"com.github.benmanes.caffeine.cache.PDWMS",
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.PSA"},
+  "name":"com.github.benmanes.caffeine.cache.PSA",
+  "fields":[{"name":"accessTime"}]
+},
+{
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.SSMSA"},
+  "name":"com.github.benmanes.caffeine.cache.PSAMS",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.BoundedLocalCache$BoundedLocalLoadingCache"},
-  "name":"com.github.benmanes.caffeine.cache.SIMS",
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.PSW"},
+  "name":"com.github.benmanes.caffeine.cache.PSW",
+  "fields":[{"name":"writeTime"}]
+},
+{
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.SSMSW"},
+  "name":"com.github.benmanes.caffeine.cache.PSWMS",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.BoundedLocalCache$BoundedLocalManualCache"},
+  "name":"com.github.benmanes.caffeine.cache.SSMSA",
   "methods":[{"name":"<init>","parameterTypes":["com.github.benmanes.caffeine.cache.Caffeine","com.github.benmanes.caffeine.cache.CacheLoader","boolean"] }]
 },
 {
   "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.BoundedLocalCache$BoundedLocalManualCache"},
-  "name":"com.github.benmanes.caffeine.cache.SIMSW",
+  "name":"com.github.benmanes.caffeine.cache.SSMSW",
   "methods":[{"name":"<init>","parameterTypes":["com.github.benmanes.caffeine.cache.Caffeine","com.github.benmanes.caffeine.cache.CacheLoader","boolean"] }]
 },
 {
@@ -65,13 +100,18 @@
   "fields":[{"name":"tableBusy"}]
 },
 {
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.NodeFactory"},
+  "name":"com.github.benmanes.caffeine.cache.PDWMS",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.StripedBuffer"},
   "name":"java.lang.Thread",
   "fields":[{"name":"threadLocalRandomProbe"}]
 },
 {
-  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.NodeFactory"},
-  "name":"com.github.benmanes.caffeine.cache.PDMS",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
+  "condition":{"typeReachable":"com.github.benmanes.caffeine.cache.UnsafeAccess"},
+  "name":"sun.misc.Unsafe",
+  "fields":[{"name":"theUnsafe"}]
 }
 ]

@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.infra.database.mysql.metadata.data.loader;
 
-import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import com.cedarsoftware.util.CaseInsensitiveSet;
 import org.apache.shardingsphere.infra.database.core.metadata.data.loader.type.SchemaMetaDataLoader;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
@@ -33,6 +33,7 @@ import org.mockito.quality.Strictness;
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -52,7 +53,8 @@ class MySQLSchemaMetaDataLoaderTest {
     @BeforeEach
     void setUp() throws SQLException {
         ResultSet tableResultSet = mockTableResultSet();
-        when(dataSource.getConnection().getMetaData().getTables("catalog", "public", null, new String[]{"TABLE", "VIEW", "SYSTEM TABLE", "SYSTEM VIEW"})).thenReturn(tableResultSet);
+        when(dataSource.getConnection().getMetaData().getTables("catalog", "public", null, new String[]{"TABLE", "PARTITIONED TABLE", "VIEW", "SYSTEM TABLE", "SYSTEM VIEW"}))
+                .thenReturn(tableResultSet);
         when(dataSource.getConnection().getCatalog()).thenReturn("catalog");
         when(dataSource.getConnection().getSchema()).thenReturn("public");
         ResultSet schemaResultSet = mockSchemaResultSet();
@@ -61,8 +63,8 @@ class MySQLSchemaMetaDataLoaderTest {
     
     private ResultSet mockTableResultSet() throws SQLException {
         ResultSet result = mock(ResultSet.class);
-        when(result.next()).thenReturn(true, true, true, true, false);
-        when(result.getString("TABLE_NAME")).thenReturn("tbl", "$tbl", "/tbl", "##tbl");
+        when(result.next()).thenReturn(true, true, true, true, true, false);
+        when(result.getString("TABLE_NAME")).thenReturn("tbl", "$tbl", "/tbl", "##tbl", "partitioned_tbl");
         return result;
     }
     
@@ -75,8 +77,8 @@ class MySQLSchemaMetaDataLoaderTest {
     
     @Test
     void assertLoadSchemaTableNames() throws SQLException {
-        Map<String, Collection<String>> schemaTableNames = Collections.singletonMap(DefaultDatabase.LOGIC_NAME, Collections.singletonList("tbl"));
-        assertThat(SchemaMetaDataLoader.loadSchemaTableNames(DefaultDatabase.LOGIC_NAME, TypedSPILoader.getService(DatabaseType.class, "MySQL"), dataSource), is(schemaTableNames));
+        Map<String, Collection<String>> schemaTableNames = Collections.singletonMap("foo_db", new CaseInsensitiveSet<>(Arrays.asList("tbl", "partitioned_tbl")));
+        assertThat(SchemaMetaDataLoader.loadSchemaTableNames("foo_db", TypedSPILoader.getService(DatabaseType.class, "MySQL"), dataSource, Collections.emptyList()), is(schemaTableNames));
     }
     
     @Test

@@ -393,6 +393,37 @@
         </where>
     </delete>
 
+    <delete sql-case-id="delete_using_with_clause">
+        <with start-index="0" stop-index="63">
+            <common-table-expression name = "cte" start-index="5" stop-index="63">
+                <subquery-expression start-index="5" stop-index="63">
+                    <select>
+                        <from>
+                            <simple-table name="t_order" start-index="34" stop-index="40" />
+                        </from>
+                        <projections start-index="20" stop-index="27">
+                            <column-projection name="order_id" start-index="20" stop-index="27" />
+                        </projections>
+                        <where start-index="42" stop-index="62">
+                            <expr>
+                                <binary-operation-expression start-index="48" stop-index="62">
+                                    <left>
+                                        <column name="order_id" start-index="48" stop-index="55"/>
+                                    </left>
+                                    <operator>=</operator>
+                                    <right>
+                                        <literal-expression value="1000" start-index="59" stop-index="62"/>
+                                    </right>
+                                </binary-operation-expression>
+                            </expr>
+                        </where>
+                    </select>
+                </subquery-expression>
+            </common-table-expression>
+        </with>
+        <table name="t_order" start-index="77" stop-index="83"/>
+    </delete>
+
     <delete sql-case-id="delete_without_columns_with_with_clause">
         <with start-index="0" stop-index="50">
             <common-table-expression name="cte" start-index="5" stop-index="50">
@@ -527,7 +558,7 @@
     </delete>
 
     <delete sql-case-id="delete_with_simple_subquery">
-        <subquery-table>
+        <subquery-table start-index="12" stop-index="36">
             <subquery>
                 <select>
                     <from start-index="27" stop-index="35">
@@ -571,7 +602,7 @@
     </delete>
 
     <delete sql-case-id="delete_with_simple_subquery_without_from">
-        <subquery-table>
+        <subquery-table start-index="7" stop-index="43">
             <subquery>
                 <select>
                     <from start-index="27" stop-index="35">
@@ -741,5 +772,35 @@
                 </binary-operation-expression>
             </expr>
         </where>
+    </delete>
+    <delete sql-case-id="delete_returning_expressions">
+        <table name="t2" start-index="12" stop-index="13" />
+        <where start-index="15" stop-index="26">
+            <expr>
+                <binary-operation-expression start-index="21" stop-index="26">
+                    <left>
+                        <column name="id" start-index="21" stop-index="22" />
+                    </left>
+                    <right>
+                        <literal-expression value="2" start-index="26" stop-index="26" />
+                    </right>
+                    <operator>=</operator>
+                </binary-operation-expression>
+            </expr>
+        </where>
+        <returning start-index="29" stop-index="44">
+            <projections start-index="39" stop-index="44">
+                <column-projection name="id" start-index="39" stop-index="40" />
+                <expression-projection start-index="42" stop-index="44" text="t&amp;t">
+                    <left>
+                        <column name="t" start-index="42" stop-index="42" />
+                    </left>
+                    <operator>&amp;</operator>
+                    <right>
+                        <column name="t" start-index="44" stop-index="44" />
+                    </right>
+                </expression-projection>
+            </projections>
+        </returning>
     </delete>
 </sql-parser-test-cases>

@@ -16,28 +16,32 @@
 #
 
 name: PARTITIONS
+type: TABLE
 columns:
   table_catalog:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TABLE_CATALOG
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   table_schema:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TABLE_SCHEMA
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   table_name:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TABLE_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: 12
     generated: false
     name: PARTITION_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -54,6 +59,7 @@ columns:
     dataType: 12
     generated: false
     name: SUBPARTITION_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -62,6 +68,7 @@ columns:
     dataType: 4
     generated: false
     name: PARTITION_ORDINAL_POSITION
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
@@ -70,6 +77,7 @@ columns:
     dataType: 4
     generated: false
     name: SUBPARTITION_ORDINAL_POSITION
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
@@ -78,6 +86,7 @@ columns:
     dataType: 12
     generated: false
     name: PARTITION_METHOD
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -86,78 +95,88 @@ columns:
     dataType: 12
     generated: false
     name: SUBPARTITION_METHOD
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   partition_expression:
-    caseSensitive: false
-    dataType: -1
+    caseSensitive: true
+    dataType: 12
     generated: false
     name: PARTITION_EXPRESSION
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   subpartition_expression:
-    caseSensitive: false
-    dataType: -1
+    caseSensitive: true
+    dataType: 12
     generated: false
     name: SUBPARTITION_EXPRESSION
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   partition_description:
-    caseSensitive: false
+    caseSensitive: true
     dataType: -1
     generated: false
     name: PARTITION_DESCRIPTION
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   table_rows:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: TABLE_ROWS
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
   avg_row_length:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: AVG_ROW_LENGTH
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
   data_length:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: DATA_LENGTH
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
   max_data_length:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: MAX_DATA_LENGTH
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
   index_length:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: INDEX_LENGTH
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
   data_free:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: DATA_FREE
+    nullable: true
     primaryKey: false
     unsigned: true
     visible: true
@@ -166,6 +185,7 @@ columns:
     dataType: 93
     generated: false
     name: CREATE_TIME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -174,6 +194,7 @@ columns:
     dataType: 93
     generated: false
     name: UPDATE_TIME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -182,22 +203,25 @@ columns:
     dataType: 93
     generated: false
     name: CHECK_TIME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   checksum:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: CHECKSUM
+    nullable: true
     primaryKey: false
-    unsigned: true
+    unsigned: false
     visible: true
   partition_comment:
-    caseSensitive: false
-    dataType: 12
+    caseSensitive: true
+    dataType: -1
     generated: false
     name: PARTITION_COMMENT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -206,14 +230,16 @@ columns:
     dataType: 12
     generated: false
     name: NODEGROUP
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   tablespace_name:
-    caseSensitive: false
+    caseSensitive: true
     dataType: 12
     generated: false
     name: TABLESPACE_NAME
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true

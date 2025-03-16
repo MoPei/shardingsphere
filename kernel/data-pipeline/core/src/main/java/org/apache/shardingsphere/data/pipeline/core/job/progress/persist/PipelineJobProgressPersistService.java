@@ -53,7 +53,7 @@ public final class PipelineJobProgressPersistService {
     private static final long DELAY_SECONDS = 1L;
     
     static {
-        JOB_PERSIST_EXECUTOR.scheduleWithFixedDelay(new PersistJobContextRunnable(), 0, DELAY_SECONDS, TimeUnit.SECONDS);
+        JOB_PERSIST_EXECUTOR.scheduleWithFixedDelay(new PersistJobContextRunnable(), 0L, DELAY_SECONDS, TimeUnit.SECONDS);
     }
     
     /**
@@ -82,12 +82,7 @@ public final class PipelineJobProgressPersistService {
      * @param shardingItem sharding item
      */
     public static void notifyPersist(final String jobId, final int shardingItem) {
-        getPersistContext(jobId, shardingItem).ifPresent(persistContext -> persistContext.getUnhandledEventCount().incrementAndGet());
-    }
-    
-    private static Optional<PipelineJobProgressPersistContext> getPersistContext(final String jobId, final int shardingItem) {
-        Map<Integer, PipelineJobProgressPersistContext> persistContextMap = JOB_PROGRESS_PERSIST_MAP.getOrDefault(jobId, Collections.emptyMap());
-        return Optional.ofNullable(persistContextMap.get(shardingItem));
+        getPersistContext(jobId, shardingItem).ifPresent(optional -> optional.getUnhandledEventCount().incrementAndGet());
     }
     
     /**
@@ -97,7 +92,11 @@ public final class PipelineJobProgressPersistService {
      * @param shardingItem sharding item
      */
     public static void persistNow(final String jobId, final int shardingItem) {
-        getPersistContext(jobId, shardingItem).ifPresent(persistContext -> PersistJobContextRunnable.persist(jobId, shardingItem, persistContext));
+        getPersistContext(jobId, shardingItem).ifPresent(optional -> PersistJobContextRunnable.persist(jobId, shardingItem, optional));
+    }
+    
+    private static Optional<PipelineJobProgressPersistContext> getPersistContext(final String jobId, final int shardingItem) {
+        return Optional.ofNullable(JOB_PROGRESS_PERSIST_MAP.getOrDefault(jobId, Collections.emptyMap()).get(shardingItem));
     }
     
     private static final class PersistJobContextRunnable implements Runnable {
@@ -126,8 +125,8 @@ public final class PipelineJobProgressPersistService {
         
         private static void persist0(final String jobId, final int shardingItem, final PipelineJobProgressPersistContext persistContext) {
             long currentUnhandledEventCount = persistContext.getUnhandledEventCount().get();
-            ShardingSpherePreconditions.checkState(currentUnhandledEventCount >= 0, () -> new IllegalStateException("Current unhandled event count must be greater than or equal to 0"));
-            if (0 == currentUnhandledEventCount) {
+            ShardingSpherePreconditions.checkState(currentUnhandledEventCount >= 0L, () -> new IllegalStateException("Current unhandled event count must be greater than or equal to 0"));
+            if (0L == currentUnhandledEventCount) {
                 return;
             }
             Optional<PipelineJobItemContext> jobItemContext = PipelineJobRegistry.getItemContext(jobId, shardingItem);

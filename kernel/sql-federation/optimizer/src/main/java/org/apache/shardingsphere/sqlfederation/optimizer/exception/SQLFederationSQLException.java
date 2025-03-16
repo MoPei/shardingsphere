@@ -27,9 +27,13 @@ public abstract class SQLFederationSQLException extends FeatureSQLException {
     
     private static final long serialVersionUID = 4689889693356895996L;
     
-    private static final int FEATURE_CODE = 20;
+    private static final int FEATURE_CODE = 1;
     
     protected SQLFederationSQLException(final SQLState sqlState, final int errorCode, final String reason, final Object... messageArgs) {
         super(sqlState, FEATURE_CODE, errorCode, reason, messageArgs);
+    }
+    
+    protected SQLFederationSQLException(final SQLState sqlState, final int errorCode, final Exception cause, final String reason, final Object... messageArgs) {
+        super(sqlState, FEATURE_CODE, errorCode, cause, reason, messageArgs);
     }
 }

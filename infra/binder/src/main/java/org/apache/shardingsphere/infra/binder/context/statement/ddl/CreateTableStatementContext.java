@@ -23,13 +23,13 @@ import org.apache.shardingsphere.infra.binder.context.statement.CommonSQLStateme
 import org.apache.shardingsphere.infra.binder.context.type.ConstraintAvailable;
 import org.apache.shardingsphere.infra.binder.context.type.IndexAvailable;
 import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.ColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.CreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.ColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateTableStatement;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -44,27 +44,26 @@ public final class CreateTableStatementContext extends CommonSQLStatementContext
     
     public CreateTableStatementContext(final CreateTableStatement sqlStatement) {
         super(sqlStatement);
-        tablesContext = new TablesContext(sqlStatement.getTable(), getDatabaseType());
+        tablesContext = new TablesContext(getTables(sqlStatement));
     }
     
-    @Override
-    public CreateTableStatement getSqlStatement() {
-        return (CreateTableStatement) super.getSqlStatement();
-    }
-    
-    @Override
-    public Collection<SimpleTableSegment> getAllTables() {
+    private Collection<SimpleTableSegment> getTables(final CreateTableStatement sqlStatement) {
         Collection<SimpleTableSegment> result = new LinkedList<>();
-        result.add(getSqlStatement().getTable());
-        for (ColumnDefinitionSegment each : getSqlStatement().getColumnDefinitions()) {
+        result.add(sqlStatement.getTable());
+        for (ColumnDefinitionSegment each : sqlStatement.getColumnDefinitions()) {
             result.addAll(each.getReferencedTables());
         }
-        for (ConstraintDefinitionSegment each : getSqlStatement().getConstraintDefinitions()) {
+        for (ConstraintDefinitionSegment each : sqlStatement.getConstraintDefinitions()) {
             if (each.getReferencedTable().isPresent()) {
                 result.add(each.getReferencedTable().get());
             }
         }
         return result;
+    }
+    
+    @Override
+    public CreateTableStatement getSqlStatement() {
+        return (CreateTableStatement) super.getSqlStatement();
     }
     
     @Override

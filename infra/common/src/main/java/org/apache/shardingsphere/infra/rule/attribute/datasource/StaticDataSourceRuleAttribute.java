@@ -17,11 +17,9 @@
 
 package org.apache.shardingsphere.infra.rule.attribute.datasource;
 
-import org.apache.shardingsphere.infra.rule.event.DataSourceStatusChangedEvent;
+import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedDataSource;
 import org.apache.shardingsphere.infra.rule.attribute.RuleAttribute;
-
-import java.util.Collection;
-import java.util.Map;
+import org.apache.shardingsphere.infra.state.datasource.DataSourceState;
 
 /**
  * Static data source rule attribute.
@@ -29,18 +27,12 @@ import java.util.Map;
 public interface StaticDataSourceRuleAttribute extends RuleAttribute {
     
     /**
-     * Get data source mapper.
-     *
-     * @return data source mapper
-     */
-    Map<String, Collection<String>> getDataSourceMapper();
-    
-    /**
      * Update data source status.
      *
-     * @param event data source status changed event
+     * @param qualifiedDataSource qualified data source
+     * @param status data source state
      */
-    void updateStatus(DataSourceStatusChangedEvent event);
+    void updateStatus(QualifiedDataSource qualifiedDataSource, DataSourceState status);
     
     /**
      * Clean single storage node data source.

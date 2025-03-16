@@ -16,20 +16,23 @@
 #
 
 name: INNODB_TRX
+type: TABLE
 columns:
   trx_id:
     caseSensitive: false
-    dataType: 12
+    dataType: -5
     generated: false
     name: trx_id
+    nullable: false
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true
   trx_state:
     caseSensitive: false
     dataType: 12
     generated: false
     name: trx_state
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 93
     generated: false
     name: trx_started
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: 12
     generated: false
     name: trx_requested_lock_id
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -54,22 +59,25 @@ columns:
     dataType: 93
     generated: false
     name: trx_wait_started
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   trx_weight:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_weight
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   trx_mysql_thread_id:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_mysql_thread_id
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -78,6 +86,7 @@ columns:
     dataType: 12
     generated: false
     name: trx_query
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -86,62 +95,70 @@ columns:
     dataType: 12
     generated: false
     name: trx_operation_state
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
   trx_tables_in_use:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_tables_in_use
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   trx_tables_locked:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_tables_locked
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   trx_lock_structs:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_lock_structs
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   trx_lock_memory_bytes:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_lock_memory_bytes
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   trx_rows_locked:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_rows_locked
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   trx_rows_modified:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_rows_modified
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
   trx_concurrency_tickets:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_concurrency_tickets
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -150,6 +167,7 @@ columns:
     dataType: 12
     generated: false
     name: trx_isolation_level
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -158,6 +176,7 @@ columns:
     dataType: 4
     generated: false
     name: trx_unique_checks
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -166,6 +185,7 @@ columns:
     dataType: 4
     generated: false
     name: trx_foreign_key_checks
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -174,6 +194,7 @@ columns:
     dataType: 12
     generated: false
     name: trx_last_foreign_key_error
+    nullable: true
     primaryKey: false
     unsigned: false
     visible: true
@@ -182,14 +203,16 @@ columns:
     dataType: 4
     generated: false
     name: trx_adaptive_hash_latched
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   trx_adaptive_hash_timeout:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: trx_adaptive_hash_timeout
+    nullable: false
     primaryKey: false
     unsigned: true
     visible: true
@@ -198,6 +221,7 @@ columns:
     dataType: 4
     generated: false
     name: trx_is_read_only
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -206,6 +230,16 @@ columns:
     dataType: 4
     generated: false
     name: trx_autocommit_non_locking
+    nullable: false
     primaryKey: false
     unsigned: false
+    visible: true
+  trx_schedule_weight:
+    caseSensitive: false
+    dataType: -5
+    generated: false
+    name: trx_schedule_weight
+    nullable: true
+    primaryKey: false
+    unsigned: true
     visible: true

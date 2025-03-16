@@ -20,7 +20,7 @@ package org.apache.shardingsphere.sharding.distsql.handler.update;
 import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Setter;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDropExecutor;
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -53,13 +53,13 @@ public final class DropShardingTableReferenceExecutor implements DatabaseRuleDro
     }
     
     private void checkCurrentRuleConfiguration() {
-        ShardingSpherePreconditions.checkState(!rule.getConfiguration().getBindingTableGroups().isEmpty(), () -> new MissingRequiredRuleException("Sharding table reference", database.getName()));
+        ShardingSpherePreconditions.checkNotEmpty(rule.getConfiguration().getBindingTableGroups(), () -> new MissingRequiredRuleException("Sharding table reference", database.getName()));
     }
     
     private void checkToBeDroppedShardingTableReferenceRules(final DropShardingTableReferenceRuleStatement sqlStatement) {
         Collection<String> currentRuleNames = getCurrentShardingTableReferenceRuleNames();
         Collection<String> notExistedRuleNames = sqlStatement.getNames().stream().filter(each -> !currentRuleNames.contains(each)).collect(Collectors.toList());
-        ShardingSpherePreconditions.checkState(notExistedRuleNames.isEmpty(), () -> new MissingRequiredRuleException("Sharding table reference", database.getName(), notExistedRuleNames));
+        ShardingSpherePreconditions.checkMustEmpty(notExistedRuleNames, () -> new MissingRequiredRuleException("Sharding table reference", database.getName(), notExistedRuleNames));
     }
     
     private Collection<String> getCurrentShardingTableReferenceRuleNames() {

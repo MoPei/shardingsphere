@@ -19,17 +19,16 @@ package org.apache.shardingsphere.infra.algorithm.core.exception;
 
 import org.apache.shardingsphere.infra.algorithm.core.ShardingSphereAlgorithm;
 import org.apache.shardingsphere.infra.exception.core.external.sql.sqlstate.XOpenSQLState;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.kernel.category.MetaDataSQLException;
 
 /**
  * Algorithm initialization exception.
  */
-public final class AlgorithmInitializationException extends MetaDataSQLException {
+public final class AlgorithmInitializationException extends AlgorithmDefinitionException {
     
     private static final long serialVersionUID = -7634670846091616790L;
     
     public AlgorithmInitializationException(final ShardingSphereAlgorithm algorithm, final String reason, final Object... args) {
-        super(XOpenSQLState.CHECK_OPTION_VIOLATION, 11, "Algorithm '%s.'%s' initialization failed, reason is: %s.",
+        super(XOpenSQLState.CHECK_OPTION_VIOLATION, 0, "Algorithm '%s.'%s' initialization failed, reason is: %s.",
                 algorithm.getClass().getSuperclass().getSimpleName(), algorithm.getType(), String.format(reason, args));
     }
 }

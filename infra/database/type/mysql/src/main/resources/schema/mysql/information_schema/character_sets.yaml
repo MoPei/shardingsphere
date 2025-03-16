@@ -16,12 +16,14 @@
 #
 
 name: CHARACTER_SETS
+type: TABLE
 columns:
   character_set_name:
     caseSensitive: false
     dataType: 12
     generated: false
     name: CHARACTER_SET_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -30,6 +32,7 @@ columns:
     dataType: 12
     generated: false
     name: DEFAULT_COLLATE_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -38,6 +41,7 @@ columns:
     dataType: 12
     generated: false
     name: DESCRIPTION
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -46,6 +50,7 @@ columns:
     dataType: 4
     generated: false
     name: MAXLEN
+    nullable: false
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true

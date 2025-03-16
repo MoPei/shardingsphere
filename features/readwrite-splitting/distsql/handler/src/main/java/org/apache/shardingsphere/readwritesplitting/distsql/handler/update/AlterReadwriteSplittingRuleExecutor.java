@@ -17,26 +17,21 @@
 
 package org.apache.shardingsphere.readwritesplitting.distsql.handler.update;
 
-import com.google.common.base.Preconditions;
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleAlterExecutor;
+import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.readwritesplitting.api.ReadwriteSplittingRuleConfiguration;
-import org.apache.shardingsphere.readwritesplitting.api.rule.ReadwriteSplittingDataSourceRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.config.ReadwriteSplittingRuleConfiguration;
 import org.apache.shardingsphere.readwritesplitting.distsql.handler.checker.ReadwriteSplittingRuleStatementChecker;
 import org.apache.shardingsphere.readwritesplitting.distsql.handler.converter.ReadwriteSplittingRuleStatementConverter;
 import org.apache.shardingsphere.readwritesplitting.distsql.statement.AlterReadwriteSplittingRuleStatement;
 import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingRule;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Alter readwrite-splitting rule executor.
@@ -61,31 +56,10 @@ public final class AlterReadwriteSplittingRuleExecutor implements DatabaseRuleAl
     
     @Override
     public ReadwriteSplittingRuleConfiguration buildToBeDroppedRuleConfiguration(final ReadwriteSplittingRuleConfiguration toBeAlteredRuleConfig) {
-        Collection<ReadwriteSplittingDataSourceRuleConfiguration> dataSources = new LinkedList<>();
-        Map<String, AlgorithmConfiguration> loadBalancers = new HashMap<>();
-        List<String> toBeAlteredDataSourceNames = toBeAlteredRuleConfig.getDataSources().stream().map(ReadwriteSplittingDataSourceRuleConfiguration::getName).collect(Collectors.toList());
-        for (ReadwriteSplittingDataSourceRuleConfiguration each : rule.getConfiguration().getDataSources()) {
-            if (toBeAlteredDataSourceNames.contains(each.getName())) {
-                dataSources.add(each);
-                loadBalancers.put(each.getLoadBalancerName(), rule.getConfiguration().getLoadBalancers().get(each.getLoadBalancerName()));
-            }
-        }
-        return new ReadwriteSplittingRuleConfiguration(dataSources, loadBalancers);
-    }
-    
-    private void dropRuleConfiguration(final ReadwriteSplittingRuleConfiguration currentRuleConfig, final ReadwriteSplittingRuleConfiguration toBeAlteredRuleConfig) {
-        for (ReadwriteSplittingDataSourceRuleConfiguration each : toBeAlteredRuleConfig.getDataSources()) {
-            Optional<ReadwriteSplittingDataSourceRuleConfiguration> toBeRemovedDataSourceRuleConfig =
-                    currentRuleConfig.getDataSources().stream().filter(dataSource -> each.getName().equals(dataSource.getName())).findAny();
-            Preconditions.checkState(toBeRemovedDataSourceRuleConfig.isPresent());
-            currentRuleConfig.getDataSources().remove(toBeRemovedDataSourceRuleConfig.get());
-            currentRuleConfig.getLoadBalancers().remove(toBeRemovedDataSourceRuleConfig.get().getLoadBalancerName());
-        }
-    }
-    
-    private void addRuleConfiguration(final ReadwriteSplittingRuleConfiguration currentRuleConfig, final ReadwriteSplittingRuleConfiguration toBeAlteredRuleConfig) {
-        currentRuleConfig.getDataSources().addAll(toBeAlteredRuleConfig.getDataSources());
-        currentRuleConfig.getLoadBalancers().putAll(toBeAlteredRuleConfig.getLoadBalancers());
+        Collection<String> unusedLoadBalancers = UnusedAlgorithmFinder.findUnusedLoadBalancers(rule.getConfiguration());
+        Map<String, AlgorithmConfiguration> toBeDroppedLoadBalancers = new HashMap<>(unusedLoadBalancers.size(), 1F);
+        unusedLoadBalancers.forEach(each -> toBeDroppedLoadBalancers.put(each, rule.getConfiguration().getLoadBalancers().get(each)));
+        return new ReadwriteSplittingRuleConfiguration(Collections.emptyList(), toBeDroppedLoadBalancers);
     }
     
     @Override

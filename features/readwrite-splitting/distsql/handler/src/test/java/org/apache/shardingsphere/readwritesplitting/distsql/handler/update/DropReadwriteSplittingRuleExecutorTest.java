@@ -17,17 +17,17 @@
 
 package org.apache.shardingsphere.readwritesplitting.distsql.handler.update;
 
-import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.RuleDefinitionViolationException;
-import org.apache.shardingsphere.distsql.handler.exception.rule.RuleInUsedException;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.datanode.DataNode;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InUsedRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.RuleDefinitionException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.DataNodeRuleAttribute;
 import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
-import org.apache.shardingsphere.readwritesplitting.api.ReadwriteSplittingRuleConfiguration;
-import org.apache.shardingsphere.readwritesplitting.api.rule.ReadwriteSplittingDataSourceRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.config.ReadwriteSplittingRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.config.rule.ReadwriteSplittingDataSourceGroupRuleConfiguration;
 import org.apache.shardingsphere.readwritesplitting.distsql.statement.DropReadwriteSplittingRuleStatement;
 import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingRule;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +39,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
@@ -47,6 +46,7 @@ import java.util.Properties;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +64,7 @@ class DropReadwriteSplittingRuleExecutorTest {
     }
     
     @Test
-    void assertCheckSQLStatementWithoutToBeDroppedRule() throws RuleDefinitionViolationException {
+    void assertCheckSQLStatementWithoutToBeDroppedRule() throws RuleDefinitionException {
         ReadwriteSplittingRule rule = mock(ReadwriteSplittingRule.class);
         when(rule.getConfiguration()).thenReturn(new ReadwriteSplittingRuleConfiguration(Collections.emptyList(), Collections.emptyMap()));
         executor.setRule(rule);
@@ -72,12 +72,12 @@ class DropReadwriteSplittingRuleExecutorTest {
     }
     
     @Test
-    void assertCheckSQLStatementWithIfExists() throws RuleDefinitionViolationException {
+    void assertCheckSQLStatementWithIfExists() throws RuleDefinitionException {
         executor.checkBeforeUpdate(new DropReadwriteSplittingRuleStatement(true, Collections.singleton("readwrite_ds")));
     }
     
     @Test
-    void assertCheckSQLStatementWithInUsed() throws RuleDefinitionViolationException {
+    void assertCheckSQLStatementWithInUsed() throws RuleDefinitionException {
         DataSourceMapperRuleAttribute dataSourceMapperRuleAttribute = mock(DataSourceMapperRuleAttribute.class);
         when(database.getRuleMetaData().getAttributes(DataSourceMapperRuleAttribute.class)).thenReturn(Collections.singleton(dataSourceMapperRuleAttribute));
         DataNodeRuleAttribute dataNodeRuleAttribute = mock(DataNodeRuleAttribute.class);
@@ -88,7 +88,7 @@ class DropReadwriteSplittingRuleExecutorTest {
         executor.setDatabase(database);
         when(rule.getConfiguration()).thenReturn(createCurrentRuleConfiguration());
         executor.setRule(rule);
-        assertThrows(RuleInUsedException.class, () -> executor.checkBeforeUpdate(createSQLStatement()));
+        assertThrows(InUsedRuleException.class, () -> executor.checkBeforeUpdate(createSQLStatement()));
     }
     
     @Test
@@ -98,6 +98,7 @@ class DropReadwriteSplittingRuleExecutorTest {
         when(rule.getConfiguration()).thenReturn(ruleConfig);
         executor.setRule(rule);
         ReadwriteSplittingRuleConfiguration actual = executor.buildToBeDroppedRuleConfiguration(createSQLStatement());
+        assertThat(actual.getDataSourceGroups().size(), is(1));
         assertThat(actual.getLoadBalancers().size(), is(1));
     }
     
@@ -108,7 +109,8 @@ class DropReadwriteSplittingRuleExecutorTest {
         when(rule.getConfiguration()).thenReturn(ruleConfig);
         executor.setRule(rule);
         ReadwriteSplittingRuleConfiguration actual = executor.buildToBeDroppedRuleConfiguration(createSQLStatement());
-        assertThat(actual.getLoadBalancers().size(), is(0));
+        assertThat(actual.getDataSourceGroups().size(), is(1));
+        assertTrue(actual.getLoadBalancers().isEmpty());
     }
     
     @Test
@@ -118,6 +120,7 @@ class DropReadwriteSplittingRuleExecutorTest {
         when(rule.getConfiguration()).thenReturn(ruleConfig);
         executor.setRule(rule);
         ReadwriteSplittingRuleConfiguration actual = executor.buildToBeDroppedRuleConfiguration(createSQLStatement());
+        assertThat(actual.getDataSourceGroups().size(), is(1));
         assertThat(actual.getLoadBalancers().size(), is(1));
     }
     
@@ -126,28 +129,25 @@ class DropReadwriteSplittingRuleExecutorTest {
     }
     
     private ReadwriteSplittingRuleConfiguration createCurrentRuleConfiguration() {
-        ReadwriteSplittingDataSourceRuleConfiguration dataSourceRuleConfig = new ReadwriteSplittingDataSourceRuleConfiguration("readwrite_ds",
+        ReadwriteSplittingDataSourceGroupRuleConfiguration dataSourceGroupConfig = new ReadwriteSplittingDataSourceGroupRuleConfiguration("readwrite_ds",
                 "", Collections.emptyList(), "readwrite_ds");
-        Map<String, AlgorithmConfiguration> loadBalancers = new LinkedHashMap<>();
-        loadBalancers.put("readwrite_ds", new AlgorithmConfiguration("TEST", new Properties()));
-        return new ReadwriteSplittingRuleConfiguration(new LinkedList<>(Collections.singleton(dataSourceRuleConfig)), loadBalancers);
+        Map<String, AlgorithmConfiguration> loadBalancers = Collections.singletonMap("readwrite_ds", new AlgorithmConfiguration("TEST", new Properties()));
+        return new ReadwriteSplittingRuleConfiguration(new LinkedList<>(Collections.singleton(dataSourceGroupConfig)), loadBalancers);
     }
     
     private ReadwriteSplittingRuleConfiguration createCurrentRuleConfigurationWithoutLoadBalancerName() {
-        ReadwriteSplittingDataSourceRuleConfiguration dataSourceRuleConfig = new ReadwriteSplittingDataSourceRuleConfiguration("readwrite_ds",
+        ReadwriteSplittingDataSourceGroupRuleConfiguration dataSourceGroupConfig = new ReadwriteSplittingDataSourceGroupRuleConfiguration("readwrite_ds",
                 "", new LinkedList<>(), null);
-        Map<String, AlgorithmConfiguration> loadBalancers = new LinkedHashMap<>();
-        loadBalancers.put("readwrite_ds", new AlgorithmConfiguration("TEST", new Properties()));
-        return new ReadwriteSplittingRuleConfiguration(new LinkedList<>(Collections.singleton(dataSourceRuleConfig)), loadBalancers);
+        Map<String, AlgorithmConfiguration> loadBalancers = Collections.singletonMap("readwrite_ds", new AlgorithmConfiguration("TEST", new Properties()));
+        return new ReadwriteSplittingRuleConfiguration(new LinkedList<>(Collections.singleton(dataSourceGroupConfig)), loadBalancers);
     }
     
     private ReadwriteSplittingRuleConfiguration createMultipleCurrentRuleConfigurations() {
-        ReadwriteSplittingDataSourceRuleConfiguration fooDataSourceRuleConfig = new ReadwriteSplittingDataSourceRuleConfiguration("foo_ds",
-                "", new LinkedList<>(), "TEST");
-        ReadwriteSplittingDataSourceRuleConfiguration barDataSourceRuleConfig = new ReadwriteSplittingDataSourceRuleConfiguration("bar_ds",
-                "", new LinkedList<>(), "TEST");
-        Map<String, AlgorithmConfiguration> loadBalancers = new LinkedHashMap<>();
-        loadBalancers.put("TEST", new AlgorithmConfiguration("TEST", new Properties()));
-        return new ReadwriteSplittingRuleConfiguration(new LinkedList<>(Arrays.asList(fooDataSourceRuleConfig, barDataSourceRuleConfig)), loadBalancers);
+        ReadwriteSplittingDataSourceGroupRuleConfiguration fooDataSourceGroupConfig = new ReadwriteSplittingDataSourceGroupRuleConfiguration(
+                "foo_ds", "", new LinkedList<>(), "TEST");
+        ReadwriteSplittingDataSourceGroupRuleConfiguration barDataSourceGroupConfig = new ReadwriteSplittingDataSourceGroupRuleConfiguration(
+                "bar_ds", "", new LinkedList<>(), "TEST");
+        Map<String, AlgorithmConfiguration> loadBalancers = Collections.singletonMap("TEST", new AlgorithmConfiguration("TEST", new Properties()));
+        return new ReadwriteSplittingRuleConfiguration(new LinkedList<>(Arrays.asList(fooDataSourceGroupConfig, barDataSourceGroupConfig)), loadBalancers);
     }
 }

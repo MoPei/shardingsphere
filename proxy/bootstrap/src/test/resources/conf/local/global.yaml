@@ -18,7 +18,7 @@
 mode:
   type: Cluster
   repository:
-    type: GOV_FIXTURE
+    type: PROXY_FIXTURE
     props:
       namespace: governance_ds
       server-lists: localhost:2181
@@ -31,6 +31,7 @@ authority:
   users:
     - user: root
       password: root
+      admin: true
     - user: sharding
       password: sharding
   privilege:

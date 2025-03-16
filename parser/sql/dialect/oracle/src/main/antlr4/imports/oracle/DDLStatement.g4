@@ -39,6 +39,50 @@ createIndex
     : CREATE createIndexSpecification INDEX indexName ON createIndexDefinitionClause usableSpecification? invalidationSpecification?
     ;
 
+createOperator
+    : CREATE OPERATOR operatorName bindDefinitionClause
+    ;
+
+bindDefinitionClause
+    : BINDING bindDefinition (COMMA_ bindDefinition)*
+    ;
+
+bindDefinition
+    : LP_ dataType (COMMA_ dataType)* RP_ returnDefinition
+    ;
+
+returnDefinition
+    : RETURN returnTypeDef operatorBindClause? implementsOperator
+    ;
+
+implementsOperator
+    : USING functionNameDef
+    ;
+
+operatorBindClause
+    : withIndexContextDef COMMA_ scanContextDef primaryBindingDef?
+    ;
+
+primaryBindingDef
+    : COMPUTE ANCILLARY DATA
+    ;
+
+scanContextDef
+    : SCAN CONTEXT identifier
+    ;
+
+withIndexContextDef
+   : WITH INDEX CONTEXT
+   ;
+
+returnTypeDef
+    : dataType
+    ;
+
+functionNameDef
+    : identifier (DOT_ functionName)?
+    ;
+
 createType
     : CREATE (OR REPLACE)? (EDITIONABLE | NONEDITIONABLE)? TYPE plsqlTypeSource
     ;
@@ -140,7 +184,7 @@ dropPackage
 dropTrigger
     : DROP TRIGGER triggerName
     ;
- 
+
 dropIndex
     : DROP INDEX indexName ONLINE? FORCE? invalidationSpecification? (ON tableName)?
     ;
@@ -225,7 +269,7 @@ xmlTypeVirtualColumnsClause
     ;
 
 xmlTypeViewClause
-    : OF XMLTYPE xmlSchemaSpec? WITH OBJECT (IDENTIFIER | ID) (DEFAULT | LP_ expr (COMMA_ expr)* RL_)
+    : OF XMLTYPE xmlSchemaSpec? WITH OBJECT (IDENTIFIER | ID) (DEFAULT | LP_ expr (COMMA_ expr)* RP_)
     ;
 
 xmlSchemaSpec
@@ -551,7 +595,7 @@ bitmapJoinIndexClause
 columnSortsClause_
     : LP_? columnSortClause_ (COMMA_ columnSortClause_)* RP_?
     ;
-    
+
 columnSortClause_
     : (tableName | alias)? columnName (ASC | DESC)?
     ;
@@ -1773,7 +1817,7 @@ alterDatabaseDictionary
     | DELETE CREDENTIALS KEY
     )
     ;
-    
+
 alterDatabase
     : ALTER databaseClauses
     ( startupClauses
@@ -2592,7 +2636,7 @@ createDatabaseLink
     : CREATE SHARED? PUBLIC? DATABASE LINK dbLink 
     (connectToClause | dbLinkAuthentication)* (USING connectString)?
     ;
-    
+
 alterDatabaseLink
     : ALTER SHARED? PUBLIC? DATABASE LINK dbLink (
     | CONNECT TO username IDENTIFIED BY password dbLinkAuthentication?
@@ -2952,7 +2996,7 @@ createRestorePoint
 dropRestorePoint
     : DROP RESTORE POINT restorePointName (FOR PLUGGABLE DATABASE pdbName)?
     ;
-    
+
 dropOperator
     : DROP OPERATOR (schemaName DOT_)? operatorName FORCE?
     ;
@@ -4280,4 +4324,9 @@ noAuditTraditional
 
 dropDatabase
     : DROP DATABASE (INCLUDING BACKUPS)? NOPROMPT?
+    ;
+
+createOutline
+    : CREATE (OR REPLACE)? (PUBLIC | PRIVATE)? OUTLINE outlineName?
+    (FROM (PUBLIC | PRIVATE)? outlineName)? (FOR CATEGORY categoryName)? (ON (select | delete | update | insert | createTable))?
     ;

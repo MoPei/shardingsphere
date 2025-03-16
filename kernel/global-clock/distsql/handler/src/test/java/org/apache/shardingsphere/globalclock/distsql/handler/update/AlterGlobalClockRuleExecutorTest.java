@@ -17,37 +17,45 @@
 
 package org.apache.shardingsphere.globalclock.distsql.handler.update;
 
-import org.apache.shardingsphere.globalclock.api.config.GlobalClockRuleConfiguration;
-import org.apache.shardingsphere.globalclock.core.rule.GlobalClockRule;
-import org.apache.shardingsphere.globalclock.core.rule.builder.DefaultGlobalClockRuleConfigurationBuilder;
+import org.apache.shardingsphere.distsql.statement.DistSQLStatement;
+import org.apache.shardingsphere.globalclock.config.GlobalClockRuleConfiguration;
 import org.apache.shardingsphere.globalclock.distsql.statement.updatable.AlterGlobalClockRuleStatement;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
-import org.junit.jupiter.api.Test;
+import org.apache.shardingsphere.globalclock.rule.GlobalClockRule;
+import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.infra.config.rule.scope.GlobalRuleConfiguration;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.update.GlobalRuleDefinitionExecutorTest;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.sql.SQLException;
+import java.util.Properties;
+import java.util.stream.Stream;
+
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-class AlterGlobalClockRuleExecutorTest {
+class AlterGlobalClockRuleExecutorTest extends GlobalRuleDefinitionExecutorTest {
     
-    @Test
-    void assertExecute() {
-        AlterGlobalClockRuleExecutor executor = new AlterGlobalClockRuleExecutor();
-        AlterGlobalClockRuleStatement sqlStatement = new AlterGlobalClockRuleStatement("TSO", "redis", Boolean.TRUE, PropertiesBuilder.build(new Property("host", "127.0.0.1")));
-        GlobalClockRule rule = mock(GlobalClockRule.class);
-        when(rule.getConfiguration()).thenReturn(getSQLParserRuleConfiguration());
-        executor.setRule(rule);
-        GlobalClockRuleConfiguration actual = executor.buildToBeAlteredRuleConfiguration(sqlStatement);
-        assertThat(actual.getType(), is("TSO"));
-        assertThat(actual.getProvider(), is("redis"));
-        assertTrue(actual.isEnabled());
-        assertThat(actual.getProps().size(), is(1));
+    AlterGlobalClockRuleExecutorTest() {
+        super(mock(GlobalClockRule.class));
     }
     
-    private GlobalClockRuleConfiguration getSQLParserRuleConfiguration() {
-        return new DefaultGlobalClockRuleConfigurationBuilder().build();
+    @ParameterizedTest(name = "{0}")
+    @ArgumentsSource(TestCaseArgumentsProvider.class)
+    void assertExecuteUpdate(final String name, final GlobalRuleConfiguration ruleConfig, final DistSQLStatement sqlStatement, final RuleConfiguration matchedRuleConfig) throws SQLException {
+        assertExecuteUpdate(ruleConfig, sqlStatement, matchedRuleConfig, null);
+    }
+    
+    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
+        
+        @Override
+        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
+            return Stream.of(Arguments.arguments("normal",
+                    new GlobalClockRuleConfiguration("TSO", "local", false, new Properties()),
+                    new AlterGlobalClockRuleStatement("TSO", "redis", true, new Properties()),
+                    new GlobalClockRuleConfiguration("TSO", "redis", true, new Properties())));
+        }
     }
 }

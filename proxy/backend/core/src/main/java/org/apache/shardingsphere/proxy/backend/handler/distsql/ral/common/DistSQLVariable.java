@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.common;
 
-import org.apache.shardingsphere.proxy.backend.exception.UnsupportedVariableException;
+import org.apache.shardingsphere.infra.exception.kernel.syntax.UnsupportedVariableException;
 
 /**
  * DistSQL variable.
@@ -28,7 +28,7 @@ public enum DistSQLVariable {
     
     /**
      * Returns the variable constant of the specified variable name.
-     * 
+     *
      * @param variableName variable name
      * @return variable constant
      * @throws UnsupportedVariableException unsupported variable exception

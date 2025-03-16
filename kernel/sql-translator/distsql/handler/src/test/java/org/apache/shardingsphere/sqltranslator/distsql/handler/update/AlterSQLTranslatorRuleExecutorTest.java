@@ -18,38 +18,51 @@
 package org.apache.shardingsphere.sqltranslator.distsql.handler.update;
 
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
-import org.apache.shardingsphere.sqltranslator.api.config.SQLTranslatorRuleConfiguration;
+import org.apache.shardingsphere.distsql.statement.DistSQLStatement;
+import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.infra.config.rule.scope.GlobalRuleConfiguration;
+import org.apache.shardingsphere.sqltranslator.config.SQLTranslatorRuleConfiguration;
 import org.apache.shardingsphere.sqltranslator.distsql.statement.updateable.AlterSQLTranslatorRuleStatement;
 import org.apache.shardingsphere.sqltranslator.rule.SQLTranslatorRule;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.update.GlobalRuleDefinitionExecutorTest;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
+import java.sql.SQLException;
 import java.util.Properties;
+import java.util.stream.Stream;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-class AlterSQLTranslatorRuleExecutorTest {
+class AlterSQLTranslatorRuleExecutorTest extends GlobalRuleDefinitionExecutorTest {
     
-    @Test
-    void assertExecute() {
-        AlterSQLTranslatorRuleExecutor executor = new AlterSQLTranslatorRuleExecutor();
-        SQLTranslatorRule rule = mock(SQLTranslatorRule.class);
-        when(rule.getConfiguration()).thenReturn(createSQLTranslatorRuleConfiguration());
-        executor.setRule(rule);
-        SQLTranslatorRuleConfiguration actual = executor.buildToBeAlteredRuleConfiguration(
-                new AlterSQLTranslatorRuleStatement(new AlgorithmSegment("Native", PropertiesBuilder.build(new Property("foo", "bar"))), null));
-        assertThat(actual.getType(), is("Native"));
-        assertThat(actual.getProps().size(), is(1));
-        assertThat(actual.getProps().getProperty("foo"), is("bar"));
-        assertTrue(actual.isUseOriginalSQLWhenTranslatingFailed());
+    AlterSQLTranslatorRuleExecutorTest() {
+        super(mock(SQLTranslatorRule.class));
     }
     
-    private SQLTranslatorRuleConfiguration createSQLTranslatorRuleConfiguration() {
-        return new SQLTranslatorRuleConfiguration("NATIVE", new Properties(), true);
+    @ParameterizedTest(name = "{0}")
+    @ArgumentsSource(TestCaseArgumentsProvider.class)
+    void assertExecuteUpdate(final String name, final GlobalRuleConfiguration ruleConfig, final DistSQLStatement sqlStatement, final RuleConfiguration matchedRuleConfig) throws SQLException {
+        assertExecuteUpdate(ruleConfig, sqlStatement, matchedRuleConfig, null);
+    }
+    
+    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
+        
+        @Override
+        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
+            return Stream.of(Arguments.arguments("withTrueOriginalSQLWhenTranslatingFailed",
+                    new SQLTranslatorRuleConfiguration("NATIVE", new Properties(), true),
+                    new AlterSQLTranslatorRuleStatement(new AlgorithmSegment("NATIVE", PropertiesBuilder.build(new Property("foo", "bar"))), true),
+                    new SQLTranslatorRuleConfiguration("NATIVE", PropertiesBuilder.build(new Property("foo", "bar")), true)),
+                    Arguments.arguments("withNullOriginalSQLWhenTranslatingFailed",
+                            new SQLTranslatorRuleConfiguration("NATIVE", new Properties(), true),
+                            new AlterSQLTranslatorRuleStatement(new AlgorithmSegment("NATIVE", PropertiesBuilder.build(new Property("foo", "bar"))), null),
+                            new SQLTranslatorRuleConfiguration("NATIVE", PropertiesBuilder.build(new Property("foo", "bar")), true)));
+        }
     }
 }

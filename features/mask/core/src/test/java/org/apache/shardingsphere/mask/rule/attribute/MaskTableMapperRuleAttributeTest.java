@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.mask.rule.attribute;
 
-import org.apache.shardingsphere.mask.api.config.rule.MaskTableRuleConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -28,20 +27,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 class MaskTableMapperRuleAttributeTest {
     
-    private final MaskTableMapperRuleAttribute ruleAttribute = new MaskTableMapperRuleAttribute(Collections.singleton(new MaskTableRuleConfiguration("foo_tbl", Collections.emptyList())));
+    private final MaskTableMapperRuleAttribute ruleAttribute = new MaskTableMapperRuleAttribute(Collections.singleton("foo_tbl"));
     
     @Test
     void assertGetLogicTableMapper() {
-        assertThat(new LinkedList<>(ruleAttribute.getLogicTableMapper().getTableNames()), is(Collections.singletonList("foo_tbl")));
+        assertThat(new LinkedList<>(ruleAttribute.getLogicTableNames()), is(Collections.singletonList("foo_tbl")));
     }
     
     @Test
     void assertGetDistributedTableMapper() {
-        assertThat(new LinkedList<>(ruleAttribute.getDistributedTableMapper().getTableNames()), is(Collections.emptyList()));
+        assertThat(new LinkedList<>(ruleAttribute.getDistributedTableNames()), is(Collections.emptyList()));
     }
     
     @Test
     void assertGetEnhancedTableMapper() {
-        assertThat(new LinkedList<>(ruleAttribute.getEnhancedTableMapper().getTableNames()), is(Collections.emptyList()));
+        assertThat(new LinkedList<>(ruleAttribute.getEnhancedTableNames()), is(Collections.emptyList()));
     }
 }

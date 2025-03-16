@@ -17,9 +17,10 @@
 
 package org.apache.shardingsphere.mode.repository.cluster;
 
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.mode.repository.cluster.listener.DataChangedEventListener;
 import org.apache.shardingsphere.mode.repository.cluster.lock.holder.DistributedLockHolder;
-import org.apache.shardingsphere.mode.spi.PersistRepository;
+import org.apache.shardingsphere.mode.spi.repository.PersistRepository;
 
 /**
  * Cluster persist repository.
@@ -30,8 +31,9 @@ public interface ClusterPersistRepository extends PersistRepository {
      * Initialize registry center.
      *
      * @param config cluster persist repository configuration
+     * @param computeNodeInstanceContext compute node instance context
      */
-    void init(ClusterPersistRepositoryConfiguration config);
+    void init(ClusterPersistRepositoryConfiguration config, ComputeNodeInstanceContext computeNodeInstanceContext);
     
     /**
      * Persist ephemeral data.
@@ -45,13 +47,14 @@ public interface ClusterPersistRepository extends PersistRepository {
      * Persist exclusive ephemeral data.
      *
      * @param key key of data
-     * @param value is persisted or not
+     * @param value value of data
+     * @return persist exclusive node success or not 
      */
-    void persistExclusiveEphemeral(String key, String value);
+    boolean persistExclusiveEphemeral(String key, String value);
     
     /**
      * Get distributed lock holder.
-     * 
+     *
      * @return distributed lock holder
      */
     DistributedLockHolder getDistributedLockHolder();
@@ -63,4 +66,11 @@ public interface ClusterPersistRepository extends PersistRepository {
      * @param listener data changed event listener
      */
     void watch(String key, DataChangedEventListener listener);
+    
+    /**
+     * Remove listener by key.
+     *
+     * @param key key to be removed
+     */
+    void removeDataListener(String key);
 }

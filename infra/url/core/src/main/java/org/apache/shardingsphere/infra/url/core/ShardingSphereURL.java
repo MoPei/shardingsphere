@@ -22,8 +22,6 @@ import com.google.common.base.Strings;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.url.core.exception.URLProviderNotFoundException;
 
 import java.util.Properties;
 
@@ -42,12 +40,11 @@ public final class ShardingSphereURL {
     
     /**
      * Parse ShardingSphere URL.
-     * 
+     *
      * @param url URL
      * @return ShardingSphere URL
      */
     public static ShardingSphereURL parse(final String url) {
-        ShardingSpherePreconditions.checkNotNull(url, () -> new URLProviderNotFoundException(url));
         String sourceType = parseSourceType(url);
         return new ShardingSphereURL(sourceType, parseConfigurationSubject(url.substring(sourceType.length())), parseProperties(url));
     }

@@ -12,7 +12,7 @@ ShardingSphere CDC 分为两个部分，一个是 CDC Server，另一个是 CDC 
 ## 约束条件
 
 - 纯 JAVA 开发，JDK 建议 1.8 或以上版本。
-- CDC Server 要求 SharingSphere-Proxy 使用集群模式，目前支持 ZooKeeper 作为注册中心。
+- CDC Server 要求 ShardingSphere-Proxy 使用集群模式，目前支持 ZooKeeper 作为注册中心。
 - CDC 只同步数据，不会同步表结构，目前也不支持 DDL 的语句同步。
 - CDC 增量阶段会按照分库事务的维度输出数据， 如果要开启 XA 事务的兼容，则 openGauss 和 ShardingSphere-Proxy 都需要 GLT 模块
 
@@ -47,7 +47,7 @@ ShardingSphere CDC 分为两个部分，一个是 CDC Server，另一个是 CDC 
 
 ### CDC Server 使用手册
 
-1. 修改配置文件 `conf/global.yaml`，打开 CDC 功能。 目前 `mode` 必须是 `Cluster`，需要提前启动对应的注册中心。如果 GLT provider 使用 Redis，需要提前启动 Redis。
+修改配置文件 `conf/global.yaml`，打开 CDC 功能。 目前 `mode` 必须是 `Cluster`，需要提前启动对应的注册中心。如果 GLT provider 使用 Redis，需要提前启动 Redis。
 
 配置示例：
 
@@ -99,9 +99,9 @@ proxy 已包含 PostgreSQL JDBC 和 openGauss JDBC 驱动。
 
 如果后端连接以下数据库，请下载相应 JDBC 驱动 jar 包，并将其放入 `${shardingsphere-proxy}/ext-lib` 目录。
 
-| 数据库       | JDBC 驱动                                                                                                                         |
-|-----------|---------------------------------------------------------------------------------------------------------------------------------|
-| MySQL     | [mysql-connector-java-8.0.31.jar](https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.31/)                            |
+| 数据库       | JDBC 驱动                                                                                                                        |
+|-----------|--------------------------------------------------------------------------------------------------------------------------------|
+| MySQL     | [mysql-connector-j-8.3.0.jar](https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/)                            |
 
 4. 启动 ShardingSphere-Proxy：
 

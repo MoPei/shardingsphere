@@ -25,7 +25,7 @@
     </parent>
     <groupId>org.apache.shardingsphere</groupId>
     <artifactId>shardingsphere</artifactId>
-    <version>5.4.2-SNAPSHOT</version>
+    <version>5.5.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache ShardingSphere</name>
     <description>Build criterion and ecosystem above multi-model databases</description>
@@ -53,8 +53,11 @@
         <java.version>1.8</java.version>
         <maven.version.range>[3.0.4,)</maven.version.range>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <remoteresources.skip>true</remoteresources.skip>
+        <jacoco.skip>true</jacoco.skip>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.enforcer.fail>true</maven.enforcer.fail>
         <shade.package>org.apache.shardingsphere.shade</shade.package>
         <antlr.output.directory>${basedir}/target/generated-sources/antlr4</antlr.output.directory>
         
@@ -68,7 +71,7 @@
         <error_prone_annotations.version>2.22.0</error_prone_annotations.version>
         <j2objc-annotations.version>1.3</j2objc-annotations.version>
         
-        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <commons-lang3.version>3.15.0</commons-lang3.version>
         <commons-codec.version>1.16.0</commons-codec.version>
         <commons-math3.version>3.6.1</commons-math3.version>
         <caffeine.version>2.9.3</caffeine.version>
@@ -83,9 +86,9 @@
         <json-smart.version>2.4.10</json-smart.version>
         <accessors-smart.version>2.4.9</accessors-smart.version>
         <asm.version>9.3</asm.version>
-        <groovy.version>4.0.19</groovy.version>
+        <groovy.version>4.0.22</groovy.version>
         <freemarker.version>2.3.31</freemarker.version>
-        <bytebuddy.version>1.14.8</bytebuddy.version>
+        <bytebuddy.version>1.15.4</bytebuddy.version>
         
         <jakarta.jakartaee-bom.version>8.0.0</jakarta.jakartaee-bom.version>
         <glassfish-jaxb.version>2.3.9</glassfish-jaxb.version>
@@ -94,18 +97,18 @@
         <narayana.version>5.12.7.Final</narayana.version>
         <jboss-transaction-spi.version>7.6.1.Final</jboss-transaction-spi.version>
         <jboss-logging.version>3.2.1.Final</jboss-logging.version>
-        <seata.version>2.0.0</seata.version>
+        <seata.version>2.2.0</seata.version>
         
-        <netty.version>4.1.106.Final</netty.version>
-        <bouncycastle.version>1.70</bouncycastle.version>
+        <netty.version>4.1.112.Final</netty.version>
+        <bouncycastle.version>1.78.1</bouncycastle.version>
         
-        <curator.version>5.6.0</curator.version>
-        <zookeeper.version>3.9.2</zookeeper.version>
+        <curator.version>5.7.0</curator.version>
+        <zookeeper.version>3.9.3</zookeeper.version>
         <audience-annotations.version>0.12.0</audience-annotations.version>
         <jetcd.version>0.7.7</jetcd.version>
         <vertx.version>4.5.1</vertx.version>
         
-        <grpc.version>1.58.0</grpc.version>
+        <grpc.version>1.65.1</grpc.version>
         <protobuf.version>3.21.12</protobuf.version>
         <okhttp.version>4.12.0</okhttp.version>
         
@@ -115,46 +118,53 @@
         <logback.version>1.2.13</logback.version>
         <commons-logging.version>1.2</commons-logging.version>
         
-        <lombok.version>1.18.30</lombok.version>
+        <lombok.version>1.18.36</lombok.version>
+        <immutables.version>2.9.3</immutables.version>
         
         <postgresql.version>42.7.2</postgresql.version>
-        <mysql-connector-java.version>8.0.31</mysql-connector-java.version>
+        <mysql-connector-java.version>8.3.0</mysql-connector-java.version>
         <mssql.version>6.1.7.jre8-preview</mssql.version>
-        <hbase.client.version>1.7.1</hbase.client.version>
         <h2.version>2.2.224</h2.version>
         <opengauss.version>3.1.0-og</opengauss.version>
         <mariadb-java-client.version>2.4.2</mariadb-java-client.version>
+        <clickhouse-jdbc.version>0.6.3</clickhouse-jdbc.version>
+        <hive-server2-jdbc-driver-thin.version>1.7.0</hive-server2-jdbc-driver-thin.version>
+        <hadoop.version>3.3.6</hadoop.version>
+        <presto.version>0.288.1</presto.version>
+        <jaybird.version>5.0.6.java8</jaybird.version>
         
         <hikari-cp.version>4.0.3</hikari-cp.version>
         
         <prometheus-simpleclient.version>0.11.0</prometheus-simpleclient.version>
         <prometheus-jmx.version>0.16.1</prometheus-jmx.version>
-        <opentelemetry.version>1.31.0</opentelemetry.version>
+        <opentelemetry.version>1.41.0</opentelemetry.version>
+        <opentelemetry-semconv.version>1.27.0-alpha</opentelemetry-semconv.version>
         <kotlin-stdlib.version>1.9.10</kotlin-stdlib.version>
         
-        <junit.version>5.10.0</junit.version>
-        <hamcrest.version>2.2</hamcrest.version>
+        <junit.version>5.11.2</junit.version>
+        <hamcrest.version>3.0</hamcrest.version>
         <mockito.version>4.11.0</mockito.version>
-        <awaitility.version>4.2.0</awaitility.version>
-        <testcontainers.version>1.19.3</testcontainers.version>
+        <awaitility.version>4.2.2</awaitility.version>
+        <testcontainers.version>1.20.3</testcontainers.version>
         <commons-csv.version>1.9.0</commons-csv.version>
         
-        <graal-sdk.version>23.1.2</graal-sdk.version>
+        <graal-sdk.version>24.1.2</graal-sdk.version>
+        <jedis.version>4.4.6</jedis.version>
         
         <!-- 3rd party library plugin versions -->
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
         <dockerfile-maven.version>1.4.13</dockerfile-maven.version>
-        <docker-compose-maven-plugin.version>4.0.0</docker-compose-maven-plugin.version>
-        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
-        <native-maven-plugin.version>0.10.1</native-maven-plugin.version>
+        <os-detector-maven-plugin.version>0.3.1</os-detector-maven-plugin.version>
+        <native-maven-plugin.version>0.10.5</native-maven-plugin.version>
         
         <!-- Compile plugin versions -->
         <templating-maven-plugin.version>1.0.0</templating-maven-plugin.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <maven-enforcer-plugin.version>3.2.1</maven-enforcer-plugin.version>
-        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-        <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.5.1</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>3.2.5</maven-failsafe-plugin.version>
         <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
         <jandex-maven-plugin.version>3.1.3</jandex-maven-plugin.version>
         <build-helper-maven-plugin.version>3.3.0</build-helper-maven-plugin.version>
@@ -172,7 +182,7 @@
         
         <!-- Check plugin versions -->
         <apache-rat-plugin.version>0.15</apache-rat-plugin.version>
-        <spotless-maven-plugin.version>2.22.1</spotless-maven-plugin.version>
+        <spotless-maven-plugin.version>2.24.1</spotless-maven-plugin.version>
         <maven-checkstyle-plugin.version>3.2.1</maven-checkstyle-plugin.version>
         <maven-pmd-plugin.version>3.20.0</maven-pmd-plugin.version>
         <spotbugs-maven-plugin.version>4.7.2.1</spotbugs-maven-plugin.version>
@@ -181,12 +191,14 @@
         <sonar-maven-plugin.version>3.9.1.2184</sonar-maven-plugin.version>
         
         <!-- Report plugin versions -->
-        <maven-site-plugin.version>4.0.0-M6</maven-site-plugin.version>
-        <maven-project-info-reports-plugin.version>3.4.2</maven-project-info-reports-plugin.version>
+        <maven-site-plugin.version>4.0.0-M13</maven-site-plugin.version>
+        <maven-project-info-reports-plugin.version>3.5.0</maven-project-info-reports-plugin.version>
         <maven-javadoc-plugin.version>3.5.0</maven-javadoc-plugin.version>
         <maven-jxr-plugin.version>3.3.0</maven-jxr-plugin.version>
         <jdepend-maven-plugin.version>2.0</jdepend-maven-plugin.version>
         <taglist-maven-plugin.version>2.4</taglist-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.8</jacoco-maven-plugin.version>
+        <dependency-check-maven.version>10.0.3</dependency-check-maven.version>
     </properties>
     
     <dependencyManagement>
@@ -319,12 +331,12 @@
             
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
+                <artifactId>bcpkix-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bctls-jdk15on</artifactId>
+                <artifactId>bctls-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
             </dependency>
             
@@ -447,11 +459,6 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase-shaded-client</artifactId>
-                <version>${hbase.client.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.opengauss</groupId>
                 <artifactId>opengauss-jdbc</artifactId>
                 <version>${opengauss.version}</version>
@@ -467,6 +474,25 @@
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
                 <version>${h2.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.clickhouse</groupId>
+                <artifactId>clickhouse-jdbc</artifactId>
+                <version>${clickhouse-jdbc.version}</version>
+                <classifier>http</classifier>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.facebook.presto</groupId>
+                <artifactId>presto-jdbc</artifactId>
+                <version>${presto.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.firebirdsql.jdbc</groupId>
+                <artifactId>jaybird</artifactId>
+                <version>${jaybird.version}</version>
                 <scope>test</scope>
             </dependency>
             
@@ -545,6 +571,12 @@
                 <artifactId>java-util</artifactId>
                 <version>${java-util.version}</version>
             </dependency>
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>${jedis.version}</version>
+                <scope>provided</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     
@@ -608,12 +640,9 @@
             <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-        </dependency>
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.cedarsoftware</groupId>
@@ -640,12 +669,6 @@
                     <artifactId>dockerfile-maven-plugin</artifactId>
                     <version>${dockerfile-maven.version}</version>
                 </plugin>
-                <!-- TODO nianjun should remove after test container is used in agent e2e -->
-                <plugin>
-                    <groupId>com.dkanejs.maven.plugins</groupId>
-                    <artifactId>docker-compose-maven-plugin</artifactId>
-                    <version>${docker-compose-maven-plugin.version}</version>
-                </plugin>
                 
                 <!-- Compile plugins -->
                 <plugin>
@@ -659,6 +682,7 @@
                             </goals>
                             <configuration>
                                 <rules>
+                                    <dependencyConvergence />
                                     <requireMavenVersion>
                                         <version>${maven.version.range}</version>
                                     </requireMavenVersion>
@@ -666,7 +690,7 @@
                                         <version>${java.version}</version>
                                     </requireJavaVersion>
                                 </rules>
-                                <fail>true</fail>
+                                <fail>${maven.enforcer.fail}</fail>
                             </configuration>
                         </execution>
                     </executions>
@@ -679,6 +703,19 @@
                         <target>${java.version}</target>
                         <testSource>${java.version}</testSource>
                         <testTarget>${java.version}</testTarget>
+                        <compilerArgs>-Xlint:-options</compilerArgs>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.immutables</groupId>
+                                <artifactId>value</artifactId>
+                                <version>${immutables.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                 </plugin>
                 <!-- TODO nianjun should remove after test container is used in agent e2e -->
@@ -692,6 +729,19 @@
                     <configuration>
                         <trimStackTrace>false</trimStackTrace>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-failsafe-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>integration-tests</id>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
@@ -803,10 +853,18 @@
                         <aggregate>true</aggregate>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>${dependency-check-maven.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         
         <plugins>
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
             <!-- Release plugins -->
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -819,13 +877,35 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-report</id>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
         
         <extensions>
             <extension>
-                <groupId>kr.motd.maven</groupId>
-                <artifactId>os-maven-plugin</artifactId>
-                <version>${os-maven-plugin.version}</version>
+                <groupId>com.tisonkun.os</groupId>
+                <artifactId>os-detector-maven-plugin</artifactId>
+                <version>${os-detector-maven-plugin.version}</version>
             </extension>
         </extensions>
     </build>
@@ -950,8 +1030,13 @@
                         <plugin>
                             <artifactId>maven-surefire-plugin</artifactId>
                             <configuration>
-                                <trimStackTrace>false</trimStackTrace>
-                                <argLine>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED</argLine>
+                                <argLine>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/sun.net=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED</argLine>
+                            </configuration>
+                        </plugin>
+                        <plugin>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <configuration>
+                                <argLine>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/sun.net=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED</argLine>
                             </configuration>
                         </plugin>
                     </plugins>
@@ -960,9 +1045,6 @@
         </profile>
         <profile>
             <id>generateMetadata</id>
-            <properties>
-                <java.version>21</java.version>
-            </properties>
             <build>
                 <pluginManagement>
                     <plugins>
@@ -982,6 +1064,7 @@
                             <version>${native-maven-plugin.version}</version>
                             <extensions>true</extensions>
                             <configuration>
+                                <skipNativeTests>true</skipNativeTests>
                                 <agent>
                                     <enabled>true</enabled>
                                     <defaultMode>Conditional</defaultMode>
@@ -997,7 +1080,7 @@
                                             <stage>main</stage>
                                         </disabledStages>
                                         <merge>false</merge>
-                                        <outputDirectory>${user.dir}/infra/reachability-metadata/src/main/resources/META-INF/native-image/org.apache.shardingsphere/shardingsphere-infra-reachability-metadata/</outputDirectory>
+                                        <outputDirectory>${user.dir}/infra/reachability-metadata/src/main/resources/META-INF/native-image/org.apache.shardingsphere/generated-reachability-metadata/</outputDirectory>
                                     </metadataCopy>
                                 </agent>
                             </configuration>
@@ -1024,9 +1107,6 @@
         </profile>
         <profile>
             <id>nativeTestInShardingSphere</id>
-            <properties>
-                <java.version>21</java.version>
-            </properties>
             <build>
                 <pluginManagement>
                     <plugins>
@@ -1046,6 +1126,9 @@
                             <configuration>
                                 <buildArgs>
                                     <buildArg>-H:+AddAllCharsets</buildArg>
+                                    <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+                                    <buildArg>-H:ThrowMissingRegistrationErrors=</buildArg>
+                                    <buildArg>-H:MissingRegistrationReportingMode=Warn</buildArg>
                                 </buildArgs>
                                 <quickBuild>true</quickBuild>
                             </configuration>
@@ -1100,6 +1183,12 @@
                                         <!--suppress MavenModelInspection -->
                                         <file>${maven.multiModuleProjectDirectory}/src/resources/spotless/copyright.txt</file>
                                     </licenseHeader>
+                                    <replaceRegex>
+                                        <!-- specify replacements using regex match and replace -->
+                                        <name>Formatting JavaDoc extra spaces</name>
+                                        <searchRegex>\*\s+(\r?\n)\s{5}\*</searchRegex>
+                                        <replacement>*$1     *</replacement>
+                                    </replaceRegex>
                                 </java>
                                 <pom>
                                     <sortPom>

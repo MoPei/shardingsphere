@@ -22,7 +22,7 @@ import org.apache.shardingsphere.distsql.handler.aware.DistSQLExecutorRuleAware;
 import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
-import org.apache.shardingsphere.mask.api.config.rule.MaskTableRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskTableRuleConfiguration;
 import org.apache.shardingsphere.mask.distsql.statement.ShowMaskRulesStatement;
 import org.apache.shardingsphere.mask.rule.MaskRule;
 import org.apache.shardingsphere.mode.manager.ContextManager;
@@ -48,7 +48,7 @@ public final class ShowMaskRuleExecutor implements DistSQLQueryExecutor<ShowMask
     
     @Override
     public Collection<LocalDataQueryResultRow> getRows(final ShowMaskRulesStatement sqlStatement, final ContextManager contextManager) {
-        return rule.getConfiguration().getTables().stream().filter(each -> null == sqlStatement.getTableName() || each.getName().equals(sqlStatement.getTableName()))
+        return rule.getConfiguration().getTables().stream().filter(each -> null == sqlStatement.getTableName() || each.getName().equalsIgnoreCase(sqlStatement.getTableName()))
                 .map(each -> buildColumnData(each, rule.getConfiguration().getMaskAlgorithms())).flatMap(Collection::stream).collect(Collectors.toList());
     }
     

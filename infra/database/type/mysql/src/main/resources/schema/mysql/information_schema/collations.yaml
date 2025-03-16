@@ -16,12 +16,14 @@
 #
 
 name: COLLATIONS
+type: TABLE
 columns:
   collation_name:
     caseSensitive: false
     dataType: 12
     generated: false
     name: COLLATION_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -30,22 +32,25 @@ columns:
     dataType: 12
     generated: false
     name: CHARACTER_SET_NAME
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
   id:
     caseSensitive: false
-    dataType: 4
+    dataType: -5
     generated: false
     name: ID
+    nullable: false
     primaryKey: false
-    unsigned: false
+    unsigned: true
     visible: true
   is_default:
     caseSensitive: false
     dataType: 12
     generated: false
     name: IS_DEFAULT
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -54,6 +59,7 @@ columns:
     dataType: 12
     generated: false
     name: IS_COMPILED
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true
@@ -62,6 +68,16 @@ columns:
     dataType: 4
     generated: false
     name: SORTLEN
+    nullable: false
+    primaryKey: false
+    unsigned: true
+    visible: true
+  pad_attribute:
+    caseSensitive: true
+    dataType: 1
+    generated: false
+    name: PAD_ATTRIBUTE
+    nullable: false
     primaryKey: false
     unsigned: false
     visible: true

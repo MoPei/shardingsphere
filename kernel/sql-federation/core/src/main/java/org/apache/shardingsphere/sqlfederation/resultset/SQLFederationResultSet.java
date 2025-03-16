@@ -27,7 +27,6 @@ import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.impl.driver.jdbc.type.util.ResultSetUtils;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.sqlfederation.resultset.converter.SQLFederationColumnTypeConverter;
 
 import java.io.InputStream;
@@ -56,7 +55,7 @@ import java.util.Map;
 /**
  * SQL federation result set.
  */
-public final class SQLFederationResultSet extends AbstractUnsupportedOperationResultSet {
+public final class SQLFederationResultSet extends AbstractUnsupportedOperationSQLFederationResultSet {
     
     private static final String ASCII = "Ascii";
     
@@ -80,8 +79,7 @@ public final class SQLFederationResultSet extends AbstractUnsupportedOperationRe
     
     private boolean closed;
     
-    public SQLFederationResultSet(final Enumerator<Object> enumerator, final ShardingSphereSchema schema, final Schema sqlFederationSchema,
-                                  final SelectStatementContext selectStatementContext, final RelDataType resultColumnType) {
+    public SQLFederationResultSet(final Enumerator<Object> enumerator, final Schema sqlFederationSchema, final SelectStatementContext selectStatementContext, final RelDataType resultColumnType) {
         this.enumerator = enumerator;
         DatabaseType databaseType = selectStatementContext.getDatabaseType().getTrunkDatabaseType().orElse(selectStatementContext.getDatabaseType());
         columnTypeConverter = DatabaseTypedSPILoader.getService(SQLFederationColumnTypeConverter.class, databaseType);
@@ -105,9 +103,9 @@ public final class SQLFederationResultSet extends AbstractUnsupportedOperationRe
     public boolean next() {
         boolean result = enumerator.moveNext();
         if (result && null != enumerator.current()) {
-            currentRows = enumerator.current().getClass().isArray() ? (Object[]) enumerator.current() : new Object[]{enumerator.current()};
+            currentRows = enumerator.current().getClass().isArray() && !(enumerator.current() instanceof byte[]) ? (Object[]) enumerator.current() : new Object[]{enumerator.current()};
         } else {
-            currentRows = new Object[]{};
+            currentRows = new Object[]{null};
         }
         return result;
     }
@@ -468,7 +466,7 @@ public final class SQLFederationResultSet extends AbstractUnsupportedOperationRe
     }
     
     private Object getValue(final int columnIndex, final Class<?> type) throws SQLException {
-        ShardingSpherePreconditions.checkState(!INVALID_FEDERATION_TYPES.contains(type), () -> new SQLFeatureNotSupportedException(String.format("Get value from `%s`", type.getName())));
+        ShardingSpherePreconditions.checkNotContains(INVALID_FEDERATION_TYPES, type, () -> new SQLFeatureNotSupportedException(String.format("Get value from `%s`", type.getName())));
         Object result = currentRows[columnIndex - 1];
         wasNull = null == result;
         return columnTypeConverter.convertColumnValue(result);

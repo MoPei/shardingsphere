@@ -19,12 +19,11 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.OrderBySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.limit.LimitSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OutputSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.UpdateStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.handler.dml.UpdateStatementHandler;
-import org.apache.shardingsphere.sql.parser.sql.dialect.segment.sqlserver.hint.OptionHintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.hint.OptionHintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.LimitSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OutputSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.UpdateStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.limit.LimitClauseAssert;
@@ -59,6 +58,7 @@ public final class UpdateStatementAssert {
     public static void assertIs(final SQLCaseAssertContext assertContext, final UpdateStatement actual, final UpdateStatementTestCase expected) {
         assertTable(assertContext, actual, expected);
         assertSetClause(assertContext, actual, expected);
+        assertFromClause(assertContext, actual, expected);
         assertWhereClause(assertContext, actual, expected);
         assertOrderByClause(assertContext, actual, expected);
         assertLimitClause(assertContext, actual, expected);
@@ -78,6 +78,15 @@ public final class UpdateStatementAssert {
         SetClauseAssert.assertIs(assertContext, actual.getSetAssignment(), expected.getSetClause());
     }
     
+    private static void assertFromClause(final SQLCaseAssertContext assertContext, final UpdateStatement actual, final UpdateStatementTestCase expected) {
+        if (null == expected.getFrom()) {
+            assertFalse(actual.getFrom().isPresent(), assertContext.getText("Actual from segment should not exist."));
+        } else {
+            assertTrue(actual.getFrom().isPresent(), assertContext.getText("Actual from segment should exist."));
+            TableAssert.assertIs(assertContext, actual.getFrom().get(), expected.getFrom());
+        }
+    }
+    
     private static void assertWhereClause(final SQLCaseAssertContext assertContext, final UpdateStatement actual, final UpdateStatementTestCase expected) {
         if (null == expected.getWhereClause()) {
             assertFalse(actual.getWhere().isPresent(), assertContext.getText("Actual where segment should not exist."));
@@ -88,7 +97,7 @@ public final class UpdateStatementAssert {
     }
     
     private static void assertOrderByClause(final SQLCaseAssertContext assertContext, final UpdateStatement actual, final UpdateStatementTestCase expected) {
-        Optional<OrderBySegment> orderBySegment = UpdateStatementHandler.getOrderBySegment(actual);
+        Optional<OrderBySegment> orderBySegment = actual.getOrderBy();
         if (null == expected.getOrderByClause()) {
             assertFalse(orderBySegment.isPresent(), assertContext.getText("Actual order by segment should not exist."));
         } else {
@@ -98,7 +107,7 @@ public final class UpdateStatementAssert {
     }
     
     private static void assertLimitClause(final SQLCaseAssertContext assertContext, final UpdateStatement actual, final UpdateStatementTestCase expected) {
-        Optional<LimitSegment> limitSegment = UpdateStatementHandler.getLimitSegment(actual);
+        Optional<LimitSegment> limitSegment = actual.getLimit();
         if (null == expected.getLimitClause()) {
             assertFalse(limitSegment.isPresent(), assertContext.getText("Actual limit segment should not exist."));
         } else {
@@ -109,7 +118,7 @@ public final class UpdateStatementAssert {
     }
     
     private static void assertOptionHint(final SQLCaseAssertContext assertContext, final UpdateStatement actual, final UpdateStatementTestCase expected) {
-        Optional<OptionHintSegment> optionHintSegment = UpdateStatementHandler.getOptionHintSegment(actual);
+        Optional<OptionHintSegment> optionHintSegment = actual.getOptionHintSegment();
         if (null == expected.getOptionHint()) {
             assertFalse(optionHintSegment.isPresent(), assertContext.getText("Actual option hint segment should not exist."));
         } else {
@@ -120,7 +129,7 @@ public final class UpdateStatementAssert {
     }
     
     private static void assertOutputClause(final SQLCaseAssertContext assertContext, final UpdateStatement actual, final UpdateStatementTestCase expected) {
-        Optional<OutputSegment> outputSegment = UpdateStatementHandler.getOutputSegment(actual);
+        Optional<OutputSegment> outputSegment = actual.getOutputSegment();
         if (null == expected.getOutputClause()) {
             assertFalse(outputSegment.isPresent(), assertContext.getText("Actual output segment should not exist."));
         } else {

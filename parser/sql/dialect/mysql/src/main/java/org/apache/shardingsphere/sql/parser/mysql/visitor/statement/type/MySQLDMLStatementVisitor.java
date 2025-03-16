@@ -27,27 +27,33 @@ import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.IndexHi
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.LoadDataStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.LoadStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.LoadXmlStatementContext;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.ProjectionContext;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.ReturningClauseContext;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.TargetListContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.WindowClauseContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.WindowFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.WindowingClauseContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.WindowItemContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.WindowSpecificationContext;
 import org.apache.shardingsphere.sql.parser.mysql.visitor.statement.MySQLStatementVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.FunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.complex.CommonExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.OrderBySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.WindowItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.WindowSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.IndexHintSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLCallStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLDoStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLHandlerStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLImportStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLLoadDataStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLLoadXMLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.ReturningSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.FunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.complex.CommonExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.WindowItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.WindowSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.IndexHintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLCallStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLDoStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLHandlerStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLImportStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLLoadDataStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLLoadXMLStatement;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,14 +67,18 @@ public final class MySQLDMLStatementVisitor extends MySQLStatementVisitor implem
     
     @Override
     public ASTNode visitCall(final CallContext ctx) {
-        List<ExpressionSegment> params = new ArrayList<>();
+        List<ExpressionSegment> params = new ArrayList<>(ctx.expr().size());
         ctx.expr().forEach(each -> params.add((ExpressionSegment) visit(each)));
-        return new MySQLCallStatement(ctx.identifier().getText(), params);
+        String procedureName = ctx.identifier().getText();
+        if (null != ctx.owner()) {
+            procedureName = ctx.owner().getText() + "." + procedureName;
+        }
+        return new MySQLCallStatement(procedureName, params);
     }
     
     @Override
     public ASTNode visitDoStatement(final DoStatementContext ctx) {
-        List<ExpressionSegment> params = new ArrayList<>();
+        List<ExpressionSegment> params = new ArrayList<>(ctx.expr().size());
         ctx.expr().forEach(each -> params.add((ExpressionSegment) visit(each)));
         return new MySQLDoStatement(params);
     }
@@ -90,18 +100,24 @@ public final class MySQLDMLStatementVisitor extends MySQLStatementVisitor implem
     
     @Override
     public ASTNode visitLoadDataStatement(final LoadDataStatementContext ctx) {
-        return new MySQLLoadDataStatement((SimpleTableSegment) visit(ctx.tableName()));
+        MySQLLoadDataStatement result = new MySQLLoadDataStatement();
+        result.setTableSegment((SimpleTableSegment) visit(ctx.tableName()));
+        return result;
     }
     
     @Override
     public ASTNode visitLoadXmlStatement(final LoadXmlStatementContext ctx) {
-        return new MySQLLoadXMLStatement((SimpleTableSegment) visit(ctx.tableName()));
+        MySQLLoadXMLStatement result = new MySQLLoadXMLStatement();
+        result.setTableSegment((SimpleTableSegment) visit(ctx.tableName()));
+        return result;
     }
     
     @Override
     public ASTNode visitIndexHint(final IndexHintContext ctx) {
         Collection<String> indexNames = new LinkedList<>();
-        ctx.indexName().forEach(each -> indexNames.add(each.getText()));
+        if (null != ctx.indexNameList()) {
+            ctx.indexNameList().indexName().forEach(each -> indexNames.add(each.getText()));
+        }
         String useType;
         if (null != ctx.USE()) {
             useType = ctx.USE().getText();
@@ -112,11 +128,11 @@ public final class MySQLDMLStatementVisitor extends MySQLStatementVisitor implem
         }
         IndexHintSegment result = new IndexHintSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), indexNames, useType,
                 null == ctx.INDEX() ? ctx.KEY().getText() : ctx.INDEX().getText(), getOriginalText(ctx));
-        if (null != ctx.FOR()) {
+        if (null != ctx.indexHintClause().FOR()) {
             String hintScope;
-            if (null != ctx.JOIN()) {
+            if (null != ctx.indexHintClause().JOIN()) {
                 hintScope = "JOIN";
-            } else if (null != ctx.ORDER()) {
+            } else if (null != ctx.indexHintClause().ORDER()) {
                 hintScope = "ORDER BY";
             } else {
                 hintScope = "GROUP BY";
@@ -158,7 +174,7 @@ public final class MySQLDMLStatementVisitor extends MySQLStatementVisitor implem
         if (null != ctx.frameClause()) {
             result.setFrameClause(new CommonExpressionSegment(ctx.frameClause().start.getStartIndex(), ctx.frameClause().stop.getStopIndex(), ctx.frameClause().getText()));
         }
-        if (ctx.identifier() != null) {
+        if (null != ctx.identifier()) {
             result.setWindowName(new IdentifierValue(ctx.identifier().getText()));
         }
         return result;
@@ -195,5 +211,15 @@ public final class MySQLDMLStatementVisitor extends MySQLStatementVisitor implem
             result.setFrameClause(windowItemSegment.getFrameClause());
         }
         return result;
+    }
+    
+    @Override
+    public ASTNode visitReturningClause(final ReturningClauseContext ctx) {
+        TargetListContext targetList = ctx.targetList();
+        ProjectionsSegment projectionsSegment = new ProjectionsSegment(targetList.getStart().getStartIndex(), targetList.getStop().getStopIndex());
+        for (ProjectionContext projectionContext : targetList.projection()) {
+            projectionsSegment.getProjections().add((ProjectionSegment) visit(projectionContext));
+        }
+        return new ReturningSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), projectionsSegment);
     }
 }
